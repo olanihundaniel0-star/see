@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&amp;family=Space+Mono:ital,wght@0,400;0,700;1,400&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { colors: { "surface-tint": "#c6c6c9", "error-container": "#93000a", "primary-fixed": "#e2e2e5", "on-primary": "#2f3033", "surface-dim": "#131313", "inverse-on-surface": "#303030", "surface-bright": "#393939", "surface-container": "#1f1f1f", "inverse-surface": "#e2e2e2", "on-primary-container": "#636467", "on-error-container": "#ffdad6", "tertiary-container": "#ebe0da", "secondary-fixed": "#e3e1ec", "background": "#131313", "outline": "#8f9194", "tertiary": "#ffffff", "on-secondary-container": "#bcbbc5", "on-surface-variant": "#c5c6ca", "on-tertiary": "#352f2b", "error": "#ffb4ab", "primary-fixed-dim": "#c6c6c9", "surface-container-highest": "#353535", "on-surface": "#e2e2e2", "surface-container-high": "#2a2a2a", "on-primary-fixed-variant": "#454749", "tertiary-fixed": "#ebe0da", "primary": "#ffffff", "surface-variant": "#353535", "tertiary-fixed-dim": "#cfc4bf", "on-primary-fixed": "#1a1c1e", "on-secondary-fixed-variant": "#46464e", "on-tertiary-container": "#6a635e", "on-tertiary-fixed": "#201b17", "inverse-primary": "#5d5e61", "on-background": "#e2e2e2", "surface-container-low": "#1b1b1b", "on-secondary-fixed": "#1a1b22", "surface": "#131313", "on-tertiary-fixed-variant": "#4c4541", "secondary": "#c6c5cf", "secondary-container": "#4a4b53", "on-secondary": "#2f3038", "surface-container-lowest": "#0e0e0e", "outline-variant": "#45474a", "on-error": "#690005", "primary-container": "#e2e2e5", "secondary-fixed-dim": "#c6c5cf" }, borderRadius: { DEFAULT: "0.125rem", lg: "0.25rem", xl: "0.5rem", full: "0.75rem" }, spacing: { "space-xl": "1.5rem", "space-md": "0.75rem", "space-2xl": "2rem", "space-3xl": "3rem", "gutter-desktop": "1.25rem", "grid-margin": "1rem", "space-lg": "1rem", "space-xs": "0.25rem", "space-2xs": "0.125rem", "gutter-mobile": "0.75rem", "space-sm": "0.5rem" }, fontFamily: { "headline-xl": ["Space Grotesk"], "telemetry-readout": ["Space Mono"], "label-code": ["Space Mono"], "headline-md": ["Space Grotesk"], "headline-lg": ["Space Grotesk"], "headline-xl-mobile": ["Space Grotesk"], "body-sm": ["Space Mono"], "body-md": ["Space Mono"], "body-lg": ["Space Mono"] }, fontSize: { "headline-xl": ["36px", { lineHeight: "40px", letterSpacing: "-0.04em", fontWeight: "700" }], "telemetry-readout": ["12px", { lineHeight: "14px", letterSpacing: "0.05em", fontWeight: "700" }], "label-code": ["10px", { lineHeight: "12px", letterSpacing: "0.08em", fontWeight: "700" }], "headline-md": ["20px", { lineHeight: "24px", letterSpacing: "-0.02em", fontWeight: "600" }], "headline-lg": ["24px", { lineHeight: "28px", letterSpacing: "-0.03em", fontWeight: "600" }], "headline-xl-mobile": ["28px", { lineHeight: "32px", letterSpacing: "-0.03em", fontWeight: "700" }], "body-sm": ["11px", { lineHeight: "16px", letterSpacing: "0.02em", fontWeight: "400" }], "body-md": ["13px", { lineHeight: "18px", letterSpacing: "0em", fontWeight: "400" }], "body-lg": ["15px", { lineHeight: "22px", letterSpacing: "-0.01em", fontWeight: "400" }] } } } };</script><style>@layer base{html,body{width:100vw;min-height:100vh;margin:0;padding:0;}body{overscroll-behavior-y:none;background-color:#131313;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head><body class="bg-surface font-body-md text-body-md text-on-surface antialiased flex flex-col"><header class="fixed top-0 w-full z-50 pt-safe bg-surface/80 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="h-14 px-grid-margin flex items-center justify-between"><div class="flex items-center gap-space-xs"><button aria-label="Return" class="flex items-center justify-center min-w-[44px] min-h-[44px] text-on-surface hover:text-primary transition-colors" onclick="history.back()" type="button"><span class="font-label-code text-label-code tracking-wider">[&lt; ESC]</span></button><span class="font-headline-md text-headline-md text-on-surface uppercase tracking-tight">Job Details</span></div><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></header><main class="flex flex-col relative w-full pt-14 pb-safe px-grid-margin bg-surface"><div class="flex flex-col w-full pb-10 space-y-space-lg">
+<!-- System Status Telemetry Ribbon -->
+<section class="flex items-center justify-between px-space-md py-space-xs bg-surface-container-lowest rounded-lg">
+<div class="flex items-center space-x-space-xs">
+<span class="inline-block w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+<span class="font-label-code text-label-code text-on-surface uppercase tracking-wider">// DOSSIER: MONIEPOINT_INC</span>
+</div>
+<div class="flex items-center space-x-space-xs text-on-surface-variant font-label-code text-label-code">
+<span>SYNC_EPOCH: 1726049281</span>
+<span class="text-primary">[LIVE]</span>
+</div>
+</section>
+<!-- Horizontal Pipeline Stepper -->
+<section class="bg-surface-container-low rounded-xl p-space-md flex flex-col space-y-space-sm shadow-sm">
+<div class="flex items-center justify-between">
+<span class="font-label-code text-label-code text-on-surface-variant uppercase tracking-widest">// LIFECYCLE_STAGE</span>
+<span class="font-label-code text-label-code text-primary">[■■■□□] STAGE 3/4</span>
+</div>
+<div class="flex items-center w-full overflow-x-auto py-space-xs no-scrollbar">
+<div class="flex items-center min-w-[340px] w-full justify-between font-label-code text-label-code">
+<!-- Node 1 -->
+<div class="flex flex-col items-center gap-1">
+<span class="text-on-surface-variant line-through opacity-70">[APPLIED]</span>
+<span class="w-1.5 h-1.5 rounded-full bg-on-surface-variant"></span>
+</div>
+<div class="h-[1px] flex-1 bg-surface-container-highest mx-1"></div>
+<!-- Node 2 -->
+<div class="flex flex-col items-center gap-1">
+<span class="text-on-surface-variant line-through opacity-70">[ASSESSMENT]</span>
+<span class="w-1.5 h-1.5 rounded-full bg-on-surface-variant"></span>
+</div>
+<div class="h-[1px] flex-1 bg-surface-container-highest mx-1"></div>
+<!-- Node 3: Active -->
+<div class="flex flex-col items-center gap-1">
+<span class="text-primary font-bold bg-surface-container-highest px-space-xs py-0.5 rounded-DEFAULT shadow-[0_0_12px_rgba(255,255,255,0.25)]">[● INTERVIEWING]</span>
+<span class="w-2 h-2 rounded-full bg-primary ring-2 ring-primary/30 animate-ping"></span>
+</div>
+<div class="h-[1px] flex-1 bg-surface-container-highest mx-1"></div>
+<!-- Node 4 -->
+<div class="flex flex-col items-center gap-1">
+<span class="text-on-surface-variant opacity-40">[OFFER]</span>
+<span class="w-1.5 h-1.5 rounded-full bg-surface-container-highest"></span>
+</div>
+</div>
+</div>
+</section>
+<!-- Section 1: Role & Company Overview -->
+<section class="bg-surface-container-low rounded-xl p-space-md flex flex-col space-y-space-md shadow-sm">
+<div class="flex items-start justify-between gap-space-sm">
+<div class="flex flex-col space-y-1">
+<span class="font-label-code text-label-code text-on-surface-variant tracking-wider">// SPEC_IDENTIFIER: REC_8842</span>
+<h2 class="font-headline-lg text-headline-lg text-primary tracking-tight">Senior Backend Engineer</h2>
+<span class="font-telemetry-readout text-telemetry-readout text-secondary">Core Banking Architecture</span>
+</div>
+<div class="w-10 h-10 rounded-lg bg-surface-container-high flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-primary text-[22px]">memory</span>
+</div>
+</div>
+<!-- Metadata Matrix -->
+<div class="grid grid-cols-2 gap-space-xs font-telemetry-readout text-telemetry-readout">
+<div class="bg-surface-container-high p-space-sm rounded-lg flex flex-col">
+<span class="font-label-code text-label-code text-on-surface-variant">COMPENSATION</span>
+<span class="text-on-surface font-bold mt-0.5">₦450k-550k/mo</span>
+</div>
+<div class="bg-surface-container-high p-space-sm rounded-lg flex flex-col">
+<span class="font-label-code text-label-code text-on-surface-variant">WORK_POLICY</span>
+<span class="text-on-surface font-bold mt-0.5">Hybrid (Lagos HQ)</span>
+</div>
+<div class="bg-surface-container-high p-space-sm rounded-lg flex flex-col">
+<span class="font-label-code text-label-code text-on-surface-variant">HIRING_LEAD</span>
+<span class="text-on-surface font-bold mt-0.5 truncate">Chidi K. (Lead Arch)</span>
+</div>
+<div class="bg-surface-container-high p-space-sm rounded-lg flex flex-col">
+<span class="font-label-code text-label-code text-on-surface-variant">EXTERNAL_PORTAL</span>
+<span class="text-on-surface font-bold mt-0.5">Greenhouse.io</span>
+</div>
+</div>
+<!-- External Link -->
+<a class="w-full bg-surface-container-high active:scale-[0.99] transition-transform py-space-sm px-space-md rounded-lg flex items-center justify-between text-on-surface hover:text-primary" href="#portal">
+<div class="flex items-center space-x-space-xs">
+<span class="material-symbols-outlined text-[16px] text-secondary">open_in_new</span>
+<span class="font-label-code text-label-code uppercase tracking-wider">[OPEN GREENHOUSE APPLICATION]</span>
+</div>
+<span class="font-label-code text-label-code text-primary">-&gt;</span>
+</a>
+</section>
+<!-- Section 2: Preparation Checklist -->
+<section class="bg-surface-container-low rounded-xl p-space-md flex flex-col space-y-space-md shadow-sm">
+<div class="flex items-center justify-between">
+<div class="flex items-center space-x-space-xs">
+<span class="material-symbols-outlined text-[18px] text-primary">checklist</span>
+<span class="font-label-code text-label-code text-on-surface tracking-wider">// PREPARATION_CHECKLIST</span>
+</div>
+<span class="font-label-code text-label-code text-primary bg-surface-container-highest px-space-xs py-0.5 rounded-DEFAULT" id="checklist-counter">[3/4 COMPLETED]</span>
+</div>
+<div class="flex flex-col space-y-space-xs" id="checklist-items">
+<!-- Item 1 -->
+<label class="flex items-start space-x-space-sm p-space-sm bg-surface-container-high rounded-lg cursor-pointer select-none">
+<input checked="" class="peer sr-only" onchange="updateChecklistProgress()" type="checkbox"/>
+<div class="w-4 h-4 rounded-DEFAULT bg-surface-container-lowest flex items-center justify-center shrink-0 mt-0.5 peer-checked:bg-primary">
+<span class="material-symbols-outlined text-[14px] text-on-primary font-bold peer-checked:block hidden">check</span>
+</div>
+<span class="font-body-md text-body-md text-on-surface peer-checked:line-through peer-checked:text-on-surface-variant transition-colors">
+          System Design: Kafka event streaming for idempotency &amp; deduplication
+        </span>
+</label>
+<!-- Item 2 -->
+<label class="flex items-start space-x-space-sm p-space-sm bg-surface-container-high rounded-lg cursor-pointer select-none">
+<input checked="" class="peer sr-only" onchange="updateChecklistProgress()" type="checkbox"/>
+<div class="w-4 h-4 rounded-DEFAULT bg-surface-container-lowest flex items-center justify-center shrink-0 mt-0.5 peer-checked:bg-primary">
+<span class="material-symbols-outlined text-[14px] text-on-primary font-bold peer-checked:block hidden">check</span>
+</div>
+<span class="font-body-md text-body-md text-on-surface peer-checked:line-through peer-checked:text-on-surface-variant transition-colors">
+          Review PostgreSQL transaction isolation levels (MVCC &amp; serialized snapshots)
+        </span>
+</label>
+<!-- Item 3 -->
+<label class="flex items-start space-x-space-sm p-space-sm bg-surface-container-high rounded-lg cursor-pointer select-none">
+<input checked="" class="peer sr-only" onchange="updateChecklistProgress()" type="checkbox"/>
+<div class="w-4 h-4 rounded-DEFAULT bg-surface-container-lowest flex items-center justify-center shrink-0 mt-0.5 peer-checked:bg-primary">
+<span class="material-symbols-outlined text-[14px] text-on-primary font-bold peer-checked:block hidden">check</span>
+</div>
+<span class="font-body-md text-body-md text-on-surface peer-checked:line-through peer-checked:text-on-surface-variant transition-colors">
+          Behavioral story: Resolving distributed 2-phase commit deadlocks under high load
+        </span>
+</label>
+<!-- Item 4 (Unchecked) -->
+<label class="flex items-start space-x-space-sm p-space-sm bg-surface-container-high rounded-lg cursor-pointer select-none">
+<input class="peer sr-only" onchange="updateChecklistProgress()" type="checkbox"/>
+<div class="w-4 h-4 rounded-DEFAULT bg-surface-container-lowest flex items-center justify-center shrink-0 mt-0.5 peer-checked:bg-primary">
+<span class="material-symbols-outlined text-[14px] text-on-primary font-bold peer-checked:block hidden">check</span>
+</div>
+<span class="font-body-md text-body-md text-on-surface peer-checked:line-through peer-checked:text-on-surface-variant transition-colors">
+          Mock interview with staff engineer on peer network
+        </span>
+</label>
+</div>
+<button class="flex items-center justify-center space-x-space-xs py-space-xs px-space-md bg-surface-container-highest active:scale-[0.98] rounded-lg font-label-code text-label-code text-on-surface hover:text-primary transition-all" onclick="addSubtaskPrompt()" type="button">
+<span class="material-symbols-outlined text-[14px]">add</span>
+<span>[+ ADD SUBTASK]</span>
+</button>
+</section>
+<!-- Section 3: Interview Debrief Scratchpad -->
+<section class="bg-surface-container-low rounded-xl p-space-md flex flex-col space-y-space-sm shadow-sm">
+<div class="flex items-center justify-between">
+<div class="flex items-center space-x-space-xs">
+<span class="material-symbols-outlined text-[18px] text-primary">terminal</span>
+<span class="font-label-code text-label-code text-on-surface tracking-wider">// SCRATCHPAD: ROUND_1_DEBRIEF</span>
+</div>
+<span class="font-label-code text-label-code text-on-surface-variant">[MD_ENABLED]</span>
+</div>
+<div class="relative bg-surface-container-lowest rounded-lg p-space-md flex flex-col">
+<textarea class="w-full bg-transparent font-telemetry-readout text-telemetry-readout text-on-surface outline-none resize-none leading-relaxed" id="debrief-notes" placeholder="Type debrief markdown here..." rows="6"># Round 1 Technical Notes (Sep 05)
+- Panel asked deep dive on write-ahead logging (WAL) internals
+- Discussed Paxos vs Raft leader election edge cases during net splits
+- Action: Follow up with code sample on GitHub (gh/reorg-distributed-ledger)</textarea>
+<div class="flex items-center justify-between pt-space-xs mt-space-xs border-t border-surface-container-highest">
+<span class="font-label-code text-label-code text-on-surface-variant">CHARS: 248 // SAVED_LOCAL</span>
+<button class="font-label-code text-label-code text-primary bg-surface-container px-space-xs py-0.5 rounded-DEFAULT active:scale-95" onclick="flashSaveState(this)" type="button">
+          [SAVE_BUFFER]
+        </button>
+</div>
+</div>
+</section>
+<!-- Tactical Bottom Action Stack -->
+<section class="flex flex-col space-y-space-xs pt-space-sm">
+<button class="w-full bg-primary text-on-primary py-space-md px-space-lg rounded-xl font-telemetry-readout text-telemetry-readout font-bold flex items-center justify-center space-x-space-xs active:scale-[0.98] transition-transform shadow-md" type="button">
+<span class="material-symbols-outlined text-[18px]">upgrade</span>
+<span>[UPDATE APPLICATION STAGE -&gt;]</span>
+</button>
+<div class="flex items-center space-x-space-xs">
+<button class="flex-1 bg-surface-container-high hover:bg-surface-container-highest text-on-surface py-space-sm px-space-md rounded-xl font-label-code text-label-code active:scale-[0.98] transition-colors flex items-center justify-center space-x-1" type="button">
+<span class="material-symbols-outlined text-[14px]">share</span>
+<span>[EXPORT DOSSIER]</span>
+</button>
+<button class="bg-error-container/30 hover:bg-error-container/50 text-error py-space-sm px-space-md rounded-xl font-label-code text-label-code active:scale-[0.98] transition-colors flex items-center justify-center space-x-1" onclick="confirmArchive(this)" type="button">
+<span class="material-symbols-outlined text-[14px]">archive</span>
+<span>[ARCHIVE]</span>
+</button>
+</div>
+</section>
+</div>
+<script>
+  function updateChecklistProgress() {
+    const list = document.getElementById('checklist-items');
+    if (!list) return;
+    const inputs = list.querySelectorAll('input[type="checkbox"]');
+    let checked = 0;
+    inputs.forEach(i => { if (i.checked) checked++; });
+    const counter = document.getElementById('checklist-counter');
+    if (counter) {
+      counter.textContent = `[${checked}/${inputs.length} COMPLETED]`;
+    }
+  }
+
+  function addSubtaskPrompt() {
+    const title = prompt("Enter subtask description:");
+    if (!title || !title.trim()) return;
+    const list = document.getElementById('checklist-items');
+    if (!list) return;
+    
+    const label = document.createElement('label');
+    label.className = "flex items-start space-x-space-sm p-space-sm bg-surface-container-high rounded-lg cursor-pointer select-none";
+    label.innerHTML = `
+      <input type="checkbox" onchange="updateChecklistProgress()" class="peer sr-only" />
+      <div class="w-4 h-4 rounded-DEFAULT bg-surface-container-lowest flex items-center justify-center shrink-0 mt-0.5 peer-checked:bg-primary">
+        <span class="material-symbols-outlined text-[14px] text-on-primary font-bold peer-checked:block hidden">check</span>
+      </div>
+      <span class="font-body-md text-body-md text-on-surface peer-checked:line-through peer-checked:text-on-surface-variant transition-colors">
+        ${title.trim()}
+      </span>
+    `;
+    list.appendChild(label);
+    updateChecklistProgress();
+  }
+
+  function flashSaveState(btn) {
+    const original = btn.textContent;
+    btn.textContent = "[BUFFER_FLUSHED ✓]";
+    btn.classList.add("text-primary");
+    setTimeout(() => {
+      btn.textContent = original;
+    }, 1400);
+  }
+
+  function confirmArchive(btn) {
+    if (confirm("Confirm move to cold storage archive?")) {
+      btn.textContent = "[ARCHIVED]";
+      btn.disabled = true;
+      btn.classList.add("opacity-50");
+    }
+  }
+</script></main></body></html>

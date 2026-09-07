@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&amp;family=Space+Mono:ital,wght@0,400;0,700;1,400&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { colors: { "surface-tint": "#c6c6c9", "error-container": "#93000a", "primary-fixed": "#e2e2e5", "on-primary": "#2f3033", "surface-dim": "#131313", "inverse-on-surface": "#303030", "surface-bright": "#393939", "surface-container": "#1f1f1f", "inverse-surface": "#e2e2e2", "on-primary-container": "#636467", "on-error-container": "#ffdad6", "tertiary-container": "#ebe0da", "secondary-fixed": "#e3e1ec", "background": "#131313", "outline": "#8f9194", "tertiary": "#ffffff", "on-secondary-container": "#bcbbc5", "on-surface-variant": "#c5c6ca", "on-tertiary": "#352f2b", "error": "#ffb4ab", "primary-fixed-dim": "#c6c6c9", "surface-container-highest": "#353535", "on-surface": "#e2e2e2", "surface-container-high": "#2a2a2a", "on-primary-fixed-variant": "#454749", "tertiary-fixed": "#ebe0da", "primary": "#ffffff", "surface-variant": "#353535", "tertiary-fixed-dim": "#cfc4bf", "on-primary-fixed": "#1a1c1e", "on-secondary-fixed-variant": "#46464e", "on-tertiary-container": "#6a635e", "on-tertiary-fixed": "#201b17", "inverse-primary": "#5d5e61", "on-background": "#e2e2e2", "surface-container-low": "#1b1b1b", "on-secondary-fixed": "#1a1b22", "surface": "#131313", "on-tertiary-fixed-variant": "#4c4541", "secondary": "#c6c5cf", "secondary-container": "#4a4b53", "on-secondary": "#2f3038", "surface-container-lowest": "#0e0e0e", "outline-variant": "#45474a", "on-error": "#690005", "primary-container": "#e2e2e5", "secondary-fixed-dim": "#c6c5cf" }, borderRadius: { DEFAULT: "0.125rem", lg: "0.25rem", xl: "0.5rem", full: "0.75rem" }, spacing: { "space-xl": "1.5rem", "space-md": "0.75rem", "space-2xl": "2rem", "space-3xl": "3rem", "gutter-desktop": "1.25rem", "grid-margin": "1rem", "space-lg": "1rem", "space-xs": "0.25rem", "space-2xs": "0.125rem", "gutter-mobile": "0.75rem", "space-sm": "0.5rem" }, fontFamily: { "headline-xl": ["Space Grotesk"], "telemetry-readout": ["Space Mono"], "label-code": ["Space Mono"], "headline-md": ["Space Grotesk"], "headline-lg": ["Space Grotesk"], "headline-xl-mobile": ["Space Grotesk"], "body-sm": ["Space Mono"], "body-md": ["Space Mono"], "body-lg": ["Space Mono"] }, fontSize: { "headline-xl": ["36px", { lineHeight: "40px", letterSpacing: "-0.04em", fontWeight: "700" }], "telemetry-readout": ["12px", { lineHeight: "14px", letterSpacing: "0.05em", fontWeight: "700" }], "label-code": ["10px", { lineHeight: "12px", letterSpacing: "0.08em", fontWeight: "700" }], "headline-md": ["20px", { lineHeight: "24px", letterSpacing: "-0.02em", fontWeight: "600" }], "headline-lg": ["24px", { lineHeight: "28px", letterSpacing: "-0.03em", fontWeight: "600" }], "headline-xl-mobile": ["28px", { lineHeight: "32px", letterSpacing: "-0.03em", fontWeight: "700" }], "body-sm": ["11px", { lineHeight: "16px", letterSpacing: "0.02em", fontWeight: "400" }], "body-md": ["13px", { lineHeight: "18px", letterSpacing: "0em", fontWeight: "400" }], "body-lg": ["15px", { lineHeight: "22px", letterSpacing: "-0.01em", fontWeight: "400" }] } } } };</script><style>@layer base{html,body{width:100vw;min-height:100vh;margin:0;padding:0;}body{overscroll-behavior-y:none;background-color:#131313;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style></head><body class="bg-surface font-body-md text-body-md text-on-surface antialiased flex flex-col"><header class="fixed top-0 w-full z-50 pt-safe bg-surface/80 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="h-14 px-grid-margin flex items-center justify-between"><div class="flex items-center gap-space-xs"><button aria-label="Return" class="flex items-center justify-center min-w-[44px] min-h-[44px] text-on-surface hover:text-primary transition-colors" onclick="history.back()" type="button"><span class="font-label-code text-label-code tracking-wider">[&lt; ESC]</span></button><span class="font-headline-md text-headline-md text-on-surface uppercase tracking-tight">Quick Add Entry</span></div><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></header><main class="flex flex-col relative w-full pt-14 pb-safe px-grid-margin bg-surface"><div class="flex flex-col w-full pb-safe">
+<!-- Backdrop Visual Ambient Grid Stack (Glass Pill Layer Inspiration) -->
+<div class="relative w-full overflow-hidden rounded-xl bg-surface-container-lowest p-space-sm mb-space-md shadow-2xl">
+<div class="flex items-center justify-between px-space-sm py-space-xs text-on-surface-variant font-label-code text-label-code">
+<span class="tracking-widest">// STACK_TOPOLOGY: QUICK_DISPATCH</span>
+<span class="flex items-center gap-space-2xs text-primary">
+<span class="inline-block w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
+        [● SYS_ONLINE]
+      </span>
+</div>
+<!-- Tiered Glass Slab Visualization -->
+<div class="relative w-full h-24 flex flex-col justify-end items-center gap-1.5 py-2 overflow-hidden bg-gradient-to-b from-surface-container-lowest to-surface-container-low rounded-lg">
+<div class="w-11/12 h-3.5 rounded-full bg-surface-variant/30 backdrop-blur-md opacity-40 transform scale-90"></div>
+<div class="w-11/12 h-4 rounded-full bg-surface-container-highest/50 backdrop-blur-lg opacity-70 transform scale-95 shadow-sm"></div>
+<div class="w-full h-6 rounded-full bg-surface-container-high/80 backdrop-blur-xl flex items-center justify-between px-4 shadow-md">
+<span class="font-label-code text-label-code text-on-surface-variant">// CACHE_LAYER_01</span>
+<span class="font-telemetry-readout text-telemetry-readout text-primary">[RDY]</span>
+</div>
+</div>
+</div>
+<!-- Bottom Sheet Modal Card Component -->
+<section class="relative w-full rounded-xl bg-surface-container-low/95 backdrop-blur-2xl p-space-md shadow-2xl flex flex-col gap-space-md">
+<!-- Top Pull Handle Pill -->
+<div class="flex justify-center items-center pt-space-2xs">
+<div class="w-12 h-1 rounded-full bg-surface-variant"></div>
+</div>
+<!-- Header Terminal Readout -->
+<div class="flex items-center justify-between pb-space-xs">
+<div class="flex flex-col">
+<span class="font-label-code text-label-code text-on-surface-variant tracking-wider uppercase">// RAPID_CAPTURE_TERMINAL</span>
+<h2 class="font-headline-md text-headline-md text-on-surface uppercase tracking-tight">Queue Record</h2>
+</div>
+<button aria-label="Dismiss Sheet" class="flex items-center justify-center w-8 h-8 rounded-lg bg-surface-container-highest text-on-surface hover:bg-surface-variant active:scale-95 transition-all" onclick="this.closest('section').classList.add('opacity-40'); setTimeout(()=&gt;this.closest('section').classList.remove('opacity-40'), 300);" type="button">
+<span class="font-label-code text-label-code">[X]</span>
+</button>
+</div>
+<!-- Segmented Mode Selectors -->
+<div class="grid grid-cols-3 gap-space-xs p-space-2xs rounded-lg bg-surface-container-lowest" id="mode-selector">
+<button class="mode-pill py-space-xs px-space-2xs rounded text-center font-telemetry-readout text-telemetry-readout transition-all bg-primary text-on-primary shadow-sm" data-mode="job" type="button">
+        [01: JOB]
+      </button>
+<button class="mode-pill py-space-xs px-space-2xs rounded text-center font-telemetry-readout text-telemetry-readout transition-all bg-surface-container text-on-surface-variant hover:text-on-surface" data-mode="note" type="button">
+        [02: NOTE]
+      </button>
+<button class="mode-pill py-space-xs px-space-2xs rounded text-center font-telemetry-readout text-telemetry-readout transition-all bg-surface-container text-on-surface-variant hover:text-on-surface" data-mode="reminder" type="button">
+        [03: REMIND]
+      </button>
+</div>
+<!-- Dynamic Telemetry Capture Form -->
+<form class="flex flex-col gap-space-md" onsubmit="event.preventDefault(); triggerDispatchAnimation();">
+<!-- Target Organization Input -->
+<div class="flex flex-col gap-space-2xs">
+<div class="flex justify-between items-center text-on-surface-variant">
+<label class="font-label-code text-label-code tracking-wide uppercase" for="company-id">&gt; TARGET_COMPANY</label>
+<span class="font-label-code text-label-code text-outline">[REQ]</span>
+</div>
+<div class="relative flex items-center rounded-lg bg-surface-container-lowest px-space-md py-space-sm focus-within:bg-surface-container transition-colors">
+<input class="w-full bg-transparent font-body-md text-body-md text-on-surface placeholder:text-outline focus:outline-none" id="company-id" placeholder="e.g. Anthropic, Moniepoint" required="" type="text" value="Anthropic"/>
+<span class="font-label-code text-label-code text-on-surface-variant">_</span>
+</div>
+</div>
+<!-- Target Role Input -->
+<div class="flex flex-col gap-space-2xs">
+<div class="flex justify-between items-center text-on-surface-variant">
+<label class="font-label-code text-label-code tracking-wide uppercase" for="role-id">&gt; ROLE_TITLE</label>
+<span class="font-label-code text-label-code text-outline">[REQ]</span>
+</div>
+<div class="relative flex items-center rounded-lg bg-surface-container-lowest px-space-md py-space-sm focus-within:bg-surface-container transition-colors">
+<input class="w-full bg-transparent font-body-md text-body-md text-on-surface placeholder:text-outline focus:outline-none" id="role-id" placeholder="e.g. Distributed Systems Engineer" required="" type="text" value="Distributed Systems Engineer"/>
+<span class="font-label-code text-label-code text-on-surface-variant">_</span>
+</div>
+</div>
+<!-- Pipeline Status Selection Matrix -->
+<div class="flex flex-col gap-space-2xs">
+<span class="font-label-code text-label-code text-on-surface-variant tracking-wide uppercase">&gt; PIPELINE_STATE</span>
+<div class="grid grid-cols-3 gap-space-xs" id="status-group">
+<button class="status-btn py-space-xs px-1 rounded bg-surface-container text-on-surface-variant font-label-code text-label-code truncate text-center hover:bg-surface-container-high transition-colors" type="button">
+            [BOOKMARKED]
+          </button>
+<button class="status-btn py-space-xs px-1 rounded bg-surface-container-highest text-primary font-label-code text-label-code truncate text-center shadow-sm" type="button">
+            [APPLIED *]
+          </button>
+<button class="status-btn py-space-xs px-1 rounded bg-surface-container text-on-surface-variant font-label-code text-label-code truncate text-center hover:bg-surface-container-high transition-colors" type="button">
+            [INTERVIEW]
+          </button>
+</div>
+</div>
+<!-- Grid Data Segment: Timestamp & Yield Metrics -->
+<div class="grid grid-cols-2 gap-space-xs">
+<!-- Date / Epoch Picker -->
+<div class="flex flex-col gap-space-2xs">
+<label class="font-label-code text-label-code text-on-surface-variant uppercase" for="epoch-time">&gt; DEADLINE</label>
+<div class="flex items-center rounded-lg bg-surface-container-lowest px-space-sm py-space-xs">
+<input class="w-full bg-transparent font-body-sm text-body-sm text-on-surface focus:outline-none truncate" id="epoch-time" type="text" value="2026-09-20 // 23:59"/>
+</div>
+</div>
+<!-- Compensation Gauge -->
+<div class="flex flex-col gap-space-2xs">
+<label class="font-label-code text-label-code text-on-surface-variant uppercase" for="comp-val">&gt; EST_COMP</label>
+<div class="flex items-center rounded-lg bg-surface-container-lowest px-space-sm py-space-xs">
+<input class="w-full bg-transparent font-body-sm text-body-sm text-on-surface focus:outline-none truncate" id="comp-val" type="text" value="$150k - $210k"/>
+</div>
+</div>
+</div>
+<!-- Tactical Quick Notes / Checklist Item -->
+<div class="flex flex-col gap-space-2xs">
+<label class="font-label-code text-label-code text-on-surface-variant uppercase" for="notes-id">&gt; DISPATCH_NOTES</label>
+<div class="rounded-lg bg-surface-container-lowest p-space-sm">
+<textarea class="w-full bg-transparent font-body-sm text-body-sm text-on-surface placeholder:text-outline focus:outline-none resize-none" id="notes-id" placeholder="Action items, recruiter handle, or referrers..." rows="2">Follow-up with systems infra lead on LinkedIn post-submission.</textarea>
+</div>
+</div>
+<!-- Checkbox Parameter Toggle -->
+<div class="flex items-center justify-between p-space-xs rounded-lg bg-surface-container-lowest">
+<div class="flex items-center gap-space-sm cursor-pointer select-none" id="toggle-row">
+<div class="w-4 h-4 rounded bg-primary flex items-center justify-center text-on-primary" id="check-icon">
+<span class="font-label-code text-label-code">■</span>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface">Auto-sync with calendar reminders</span>
+</div>
+<span class="font-label-code text-label-code text-on-surface-variant">[CRON_ON]</span>
+</div>
+<!-- Primary Tactical Action Trigger -->
+<button class="w-full py-space-md px-space-lg rounded-xl bg-primary text-on-primary font-telemetry-readout text-telemetry-readout uppercase tracking-widest text-center shadow-lg active:scale-98 transition-transform hover:opacity-90 flex items-center justify-center gap-space-sm" id="submit-btn" type="submit">
+<span>[ CAPTURE -&gt; ENTER ]</span>
+<span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</button>
+</form>
+<!-- Micro Diagnostic Sync Status -->
+<div class="flex items-center justify-between pt-space-xs px-space-2xs text-on-surface-variant font-label-code text-label-code">
+<span class="truncate">OPTIMISTIC_SYNC: LOCAL_CACHE -&gt; CELERY_QUEUE</span>
+<span class="shrink-0 text-primary font-bold">[READY]</span>
+</div>
+</section>
+<!-- Interactive Terminal Script -->
+<script>
+    // Segmented Mode Switching
+    document.querySelectorAll('#mode-selector .mode-pill').forEach(pill => {
+      pill.addEventListener('click', () => {
+        document.querySelectorAll('#mode-selector .mode-pill').forEach(p => {
+          p.classList.remove('bg-primary', 'text-on-primary', 'shadow-sm');
+          p.classList.add('bg-surface-container', 'text-on-surface-variant');
+        });
+        pill.classList.add('bg-primary', 'text-on-primary', 'shadow-sm');
+        pill.classList.remove('bg-surface-container', 'text-on-surface-variant');
+      });
+    });
+
+    // Pipeline Status Switching
+    document.querySelectorAll('#status-group .status-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#status-group .status-btn').forEach(b => {
+          b.classList.remove('bg-surface-container-highest', 'text-primary');
+          b.classList.add('bg-surface-container', 'text-on-surface-variant');
+          if (b.innerText.includes('*')) {
+            b.innerText = b.innerText.replace(' *', '');
+          }
+        });
+        btn.classList.remove('bg-surface-container', 'text-on-surface-variant');
+        btn.classList.add('bg-surface-container-highest', 'text-primary');
+        if (!btn.innerText.includes('*')) {
+          btn.innerText = btn.innerText.replace(']', ' *]');
+        }
+      });
+    });
+
+    // Mechanical Checkbox Toggle
+    const toggleRow = document.getElementById('toggle-row');
+    const checkIcon = document.getElementById('check-icon');
+    let isChecked = true;
+    toggleRow.addEventListener('click', () => {
+      isChecked = !isChecked;
+      if (isChecked) {
+        checkIcon.className = 'w-4 h-4 rounded bg-primary flex items-center justify-center text-on-primary';
+        checkIcon.innerHTML = '<span class="font-label-code text-label-code">■</span>';
+      } else {
+        checkIcon.className = 'w-4 h-4 rounded bg-surface-container flex items-center justify-center text-transparent';
+        checkIcon.innerHTML = '';
+      }
+    });
+
+    // Tactile Execution Action
+    function triggerDispatchAnimation() {
+      const btn = document.getElementById('submit-btn');
+      const originalText = btn.innerHTML;
+      btn.innerHTML = '<span class="animate-pulse">[ SYNCING RECORD... ]</span>';
+      btn.classList.add('bg-surface-tint');
+      setTimeout(() => {
+        btn.innerHTML = '<span>[ RECORD COMMITTED ]</span>';
+        setTimeout(() => {
+          btn.innerHTML = originalText;
+          btn.classList.remove('bg-surface-tint');
+        }, 1200);
+      }, 600);
+    }
+  </script>
+</div></main></body></html>

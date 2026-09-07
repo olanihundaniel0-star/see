@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&amp;family=Space+Mono:ital,wght@0,400;0,700;1,400&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { colors: { "surface-tint": "#c6c6c9", "error-container": "#93000a", "primary-fixed": "#e2e2e5", "on-primary": "#2f3033", "surface-dim": "#131313", "inverse-on-surface": "#303030", "surface-bright": "#393939", "surface-container": "#1f1f1f", "inverse-surface": "#e2e2e2", "on-primary-container": "#636467", "on-error-container": "#ffdad6", "tertiary-container": "#ebe0da", "secondary-fixed": "#e3e1ec", "background": "#131313", "outline": "#8f9194", "tertiary": "#ffffff", "on-secondary-container": "#bcbbc5", "on-surface-variant": "#c5c6ca", "on-tertiary": "#352f2b", "error": "#ffb4ab", "primary-fixed-dim": "#c6c6c9", "surface-container-highest": "#353535", "on-surface": "#e2e2e2", "surface-container-high": "#2a2a2a", "on-primary-fixed-variant": "#454749", "tertiary-fixed": "#ebe0da", "primary": "#ffffff", "surface-variant": "#353535", "tertiary-fixed-dim": "#cfc4bf", "on-primary-fixed": "#1a1c1e", "on-secondary-fixed-variant": "#46464e", "on-tertiary-container": "#6a635e", "on-tertiary-fixed": "#201b17", "inverse-primary": "#5d5e61", "on-background": "#e2e2e2", "surface-container-low": "#1b1b1b", "on-secondary-fixed": "#1a1b22", "surface": "#131313", "on-tertiary-fixed-variant": "#4c4541", "secondary": "#c6c5cf", "secondary-container": "#4a4b53", "on-secondary": "#2f3038", "surface-container-lowest": "#0e0e0e", "outline-variant": "#45474a", "on-error": "#690005", "primary-container": "#e2e2e5", "secondary-fixed-dim": "#c6c5cf" }, borderRadius: { DEFAULT: "0.125rem", lg: "0.25rem", xl: "0.5rem", full: "0.75rem" }, spacing: { "space-xl": "1.5rem", "space-md": "0.75rem", "space-2xl": "2rem", "space-3xl": "3rem", "gutter-desktop": "1.25rem", "grid-margin": "1rem", "space-lg": "1rem", "space-xs": "0.25rem", "space-2xs": "0.125rem", "gutter-mobile": "0.75rem", "space-sm": "0.5rem" }, fontFamily: { "headline-xl": ["Space Grotesk"], "telemetry-readout": ["Space Mono"], "label-code": ["Space Mono"], "headline-md": ["Space Grotesk"], "headline-lg": ["Space Grotesk"], "headline-xl-mobile": ["Space Grotesk"], "body-sm": ["Space Mono"], "body-md": ["Space Mono"], "body-lg": ["Space Mono"] }, fontSize: { "headline-xl": ["36px", { lineHeight: "40px", letterSpacing: "-0.04em", fontWeight: "700" }], "telemetry-readout": ["12px", { lineHeight: "14px", letterSpacing: "0.05em", fontWeight: "700" }], "label-code": ["10px", { lineHeight: "12px", letterSpacing: "0.08em", fontWeight: "700" }], "headline-md": ["20px", { lineHeight: "24px", letterSpacing: "-0.02em", fontWeight: "600" }], "headline-lg": ["24px", { lineHeight: "28px", letterSpacing: "-0.03em", fontWeight: "600" }], "headline-xl-mobile": ["28px", { lineHeight: "32px", letterSpacing: "-0.03em", fontWeight: "700" }], "body-sm": ["11px", { lineHeight: "16px", letterSpacing: "0.02em", fontWeight: "400" }], "body-md": ["13px", { lineHeight: "18px", letterSpacing: "0em", fontWeight: "400" }], "body-lg": ["15px", { lineHeight: "22px", letterSpacing: "-0.01em", fontWeight: "400" }] } } } };</script><style>@layer base{html,body{width:100vw;min-height:100vh;margin:0;padding:0;}body{overscroll-behavior-y:none;background-color:#131313;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style></head><body class="bg-surface font-body-md text-body-md text-on-surface antialiased flex flex-col pt-safe pb-safe"><main class="flex flex-col relative w-full bg-surface min-h-screen px-grid-margin"><div class="flex flex-col w-full relative pb-space-2xl select-none">
+<!-- Subtle ambient blurred backdrop lighting -->
+<div class="absolute -top-10 left-1/2 -translate-x-1/2 w-64 h-64 bg-surface-container-highest/20 rounded-full blur-3xl pointer-events-none"></div>
+<!-- Retro Terminal Header Telemetry -->
+<div class="flex items-center justify-between py-space-sm mb-space-md border-none">
+<div class="flex items-center gap-space-xs">
+<span class="inline-block w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+<span class="font-label-code text-label-code text-on-surface tracking-wider">[SYS_ACTIVE: 0x8F91]</span>
+</div>
+<div class="flex items-center gap-space-xs">
+<span class="font-label-code text-label-code text-on-surface-variant">// PORT_224_ESTABLISHED</span>
+</div>
+</div>
+<!-- ASCII Art Showcase: Wordmark & Cyber Aura -->
+<div class="flex flex-col items-center justify-center my-space-md text-center">
+<div class="font-telemetry-readout text-telemetry-readout text-on-surface-variant flex items-center gap-space-xs mb-space-xs">
+<span class="text-primary font-bold animate-ping inline-block w-1.5 h-1.5 rounded-full bg-primary"></span>
+<span>[● SYS_INITIALIZE]</span>
+<span class="text-outline">:: REV_4.09</span>
+</div>
+<!-- Retro-Futuristic SEE ASCII Wordmark Block -->
+<pre class="font-telemetry-readout text-[9px] leading-[10px] sm:text-[11px] sm:leading-[12px] text-primary tracking-tight select-all overflow-x-auto max-w-full text-center py-space-xs opacity-95">.sSSSSs.   .sSSSSs.   .sSSSSs. 
+SSSS  SSS  SSSS       SSSS     
+ `SSsSS.   SSSSss.    SSSSss.  
+.   `SSSS  SSSS       SSSS     
+`SSSSSS'   `SSSSSS'   `SSSSSS' 
+    </pre>
+<!-- Technical Subtitle Readout -->
+<div class="mt-space-sm px-space-md py-space-2xs bg-surface-container-low rounded-lg inline-flex items-center gap-space-xs shadow-sm">
+<span class="font-label-code text-label-code text-on-surface font-bold tracking-wider">
+        SINGLE_PANE_ORGANIZER // CAREER_RADAR_VAULT
+      </span>
+</div>
+<!-- ASCII Radar Pulse Indicator -->
+<div class="font-label-code text-label-code text-outline-variant mt-space-2xs tracking-widest">
+      &lt;-- [■■■■■■■□□□] RADAR_SYNC 70% --&gt;
+    </div>
+</div>
+<!-- Central Authentication Glass Slab -->
+<div class="w-full bg-surface-container-low/90 backdrop-blur-2xl rounded-xl p-space-lg shadow-2xl relative my-space-md">
+<!-- Card Top Diagnostic Header -->
+<div class="flex items-center justify-between pb-space-sm mb-space-md border-none">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-primary text-[14px]">terminal</span>
+<span class="font-label-code text-label-code text-primary uppercase tracking-wider">SECURE_GATEWAY_AUTH</span>
+</div>
+<span class="font-label-code text-label-code text-on-surface-variant bg-surface-container-high px-space-xs py-space-2xs rounded">
+        ID: 04-98A
+      </span>
+</div>
+<!-- Direct Sign-In Terminal Form (cuervo inspired sleek input fields) -->
+<div class="flex flex-col gap-space-md mb-space-lg">
+<div class="flex flex-col gap-space-2xs">
+<label class="font-label-code text-label-code text-on-surface-variant tracking-wider flex items-center justify-between">
+<span>// TERMINAL_IDENTITY</span>
+<span class="text-outline">EMAIL_PROTOCOL</span>
+</label>
+<div class="relative flex items-center bg-surface-container rounded-lg p-space-sm transition-all focus-within:bg-surface-container-highest">
+<span class="font-telemetry-readout text-telemetry-readout text-outline mr-space-xs">&gt;</span>
+<input class="bg-transparent w-full text-on-surface placeholder:text-outline-variant font-body-md text-body-md outline-none" placeholder="architect@neural.grid" type="email"/>
+</div>
+</div>
+<div class="flex flex-col gap-space-2xs">
+<div class="flex justify-between items-center">
+<label class="font-label-code text-label-code text-on-surface-variant tracking-wider">
+            // CIPHER_PASSPHRASE
+          </label>
+<button class="font-label-code text-label-code text-on-surface hover:text-primary transition-colors" type="button">
+            RECOVER?
+          </button>
+</div>
+<div class="relative flex items-center bg-surface-container rounded-lg p-space-sm transition-all focus-within:bg-surface-container-highest">
+<span class="font-telemetry-readout text-telemetry-readout text-outline mr-space-xs">#</span>
+<input class="bg-transparent w-full text-on-surface placeholder:text-outline-variant font-body-md text-body-md outline-none" placeholder="••••••••••••" type="password"/>
+<button class="text-outline hover:text-on-surface text-[16px] flex items-center pr-space-2xs" onclick="togglePassVisibility(this)" type="button">
+<span class="material-symbols-outlined text-[16px]">visibility</span>
+</button>
+</div>
+</div>
+<!-- Tactical Checkbox: Hardware State Retain -->
+<div class="flex items-center justify-between pt-space-2xs">
+<label class="flex items-center gap-space-sm cursor-pointer" onclick="toggleCheckbox(this)">
+<div class="w-4 h-4 rounded-DEFAULT bg-surface-container-highest flex items-center justify-center transition-colors" id="remember-box">
+<span class="font-label-code text-label-code text-primary font-bold" id="remember-check">■</span>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant">RETAIN_SESSION_KEY</span>
+</label>
+<span class="font-label-code text-label-code text-outline">[TTL: 30D]</span>
+</div>
+</div>
+<!-- Primary Action: Google Single-Sign-On -->
+<button class="w-full bg-primary text-on-primary font-telemetry-readout text-telemetry-readout font-bold py-space-md px-space-md rounded-xl flex items-center justify-center gap-space-sm shadow-xl active:scale-[0.98] transition-transform mb-space-sm" id="btn-google-auth" type="button">
+<svg class="w-4 h-4" fill="currentColor" viewbox="0 0 24 24">
+<path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"></path>
+<path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"></path>
+<path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05"></path>
+<path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" fill="#EA4335"></path>
+</svg>
+<span>[ SIGN IN WITH GOOGLE ]</span>
+</button>
+<!-- Secondary Action: Monospace GitHub Outline -->
+<button class="w-full bg-surface-container hover:bg-surface-container-high text-on-surface font-telemetry-readout text-telemetry-readout font-bold py-space-md px-space-md rounded-xl flex items-center justify-center gap-space-sm active:scale-[0.98] transition-all" id="btn-github-auth" type="button">
+<svg class="w-4 h-4 fill-current text-primary" viewbox="0 0 24 24">
+<path clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" fill-rule="evenodd"></path>
+</svg>
+<span>CONTINUE_WITH_GITHUB</span>
+</button>
+<!-- Alternative Terminal Route -->
+<div class="mt-space-md text-center">
+<span class="font-body-sm text-body-sm text-outline">UNREGISTERED_ENTITY? </span>
+<button class="font-telemetry-readout text-telemetry-readout text-primary underline font-bold tracking-wider hover:text-surface-tint" type="button">
+        REQUEST_ACCESS
+      </button>
+</div>
+</div>
+<!-- ASCII Heart / Telepathy Signature Deco Pod -->
+<div class="w-full bg-surface-container-lowest/80 rounded-xl p-space-md my-space-xs flex flex-col items-center justify-center">
+<div class="flex items-center justify-between w-full mb-space-2xs">
+<span class="font-label-code text-label-code text-outline">// ARCHIVE_FRAGMENT_0x0</span>
+<span class="font-label-code text-label-code text-on-surface-variant">[ANSI_GRAFFITI]</span>
+</div>
+<!-- Retro Telepathy Heart ASCII Matrix -->
+<pre class="font-telemetry-readout text-[8px] leading-[9px] text-outline-variant tracking-tighter opacity-80 select-none py-space-2xs text-center">    .sSSSSs.     .sSSSSs.    
+  sSSSSSSSSSSs sSSSSSSSSSSs  
+ SSSSSSSSSSSSSSSSSSSSSSSSSSS 
+ SSSSSSSSSSSSSSSSSSSSSSSSSSS 
+  `SSSSSSSSSSSSSSSSSSSSSSS'  
+    `SSSSSSSSSSSSSSSSSSS'    
+      `SSSSSSSSSSSSSSS'      
+        `SSSSSSSSSSS'        
+          `SSSSSSS'          
+            `SSS'            
+              '              
+    </pre>
+<p class="font-body-sm text-body-sm text-outline-variant text-center mt-space-2xs">
+      "Career trajectories encrypted in obsidian memory banks."
+    </p>
+</div>
+<!-- High-Density Telemetry & Hardware Keystore Badges -->
+<div class="w-full mt-space-md flex flex-col gap-space-xs">
+<!-- Security Keystore Tag -->
+<div class="flex items-center justify-between px-space-sm py-space-xs bg-surface-container-low rounded-lg">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-primary text-[14px]">encrypted</span>
+<span class="font-label-code text-label-code text-on-surface-variant">EXPO_SECURE_STORE</span>
+</div>
+<div class="flex items-center gap-space-2xs">
+<span class="w-1.5 h-1.5 rounded-full bg-primary inline-block"></span>
+<span class="font-label-code text-label-code text-primary font-bold">[ACTIVE]</span>
+</div>
+</div>
+<!-- Security Protocol Readout -->
+<div class="flex items-center justify-between px-space-sm py-space-xs bg-surface-container-lowest rounded-lg">
+<span class="font-label-code text-label-code text-outline">PROTOCOL</span>
+<span class="font-label-code text-label-code text-on-surface-variant font-mono">
+        SECURED BY SUPABASE_AUTH // RSA_256
+      </span>
+</div>
+<!-- Cluster Nodes Latency Telemetry Grid -->
+<div class="grid grid-cols-3 gap-space-xs mt-space-2xs">
+<div class="bg-surface-container-lowest p-space-xs rounded-lg text-center">
+<span class="block font-label-code text-label-code text-outline">NODE</span>
+<span class="font-telemetry-readout text-telemetry-readout text-on-surface">US-EAST</span>
+</div>
+<div class="bg-surface-container-lowest p-space-xs rounded-lg text-center">
+<span class="block font-label-code text-label-code text-outline">LATENCY</span>
+<span class="font-telemetry-readout text-telemetry-readout text-primary">14ms</span>
+</div>
+<div class="bg-surface-container-lowest p-space-xs rounded-lg text-center">
+<span class="block font-label-code text-label-code text-outline">SESSION</span>
+<span class="font-telemetry-readout text-telemetry-readout text-on-surface">AIR-GAPPED</span>
+</div>
+</div>
+</div>
+<!-- HUD Toast Feedback Micro-Interaction -->
+<div class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-sm bg-surface-container-highest/95 backdrop-blur-3xl text-primary px-space-md py-space-sm rounded-xl shadow-2xl flex items-center justify-between z-30 transition-opacity" id="hud-toast">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-[18px]">lock_open</span>
+<span class="font-label-code text-label-code text-primary font-bold" id="toast-message">AUTHENTICATING...</span>
+</div>
+<span class="font-label-code text-label-code text-outline">[200_OK]</span>
+</div>
+</div>
+<script>
+  function togglePassVisibility(btn) {
+    const input = btn.parentElement.querySelector('input');
+    const icon = btn.querySelector('.material-symbols-outlined');
+    if (input.type === 'password') {
+      input.type = 'text';
+      icon.textContent = 'visibility_off';
+    } else {
+      input.type = 'password';
+      icon.textContent = 'visibility';
+    }
+  }
+
+  function toggleCheckbox(container) {
+    const checkElem = container.querySelector('#remember-check');
+    if (checkElem.textContent.trim() === '■') {
+      checkElem.textContent = '';
+    } else {
+      checkElem.textContent = '■';
+    }
+  }
+
+  function triggerToast(msg) {
+    const toast = document.getElementById('hud-toast');
+    const toastMsg = document.getElementById('toast-message');
+    if (!toast || !toastMsg) return;
+    toastMsg.textContent = msg;
+    toast.classList.remove('hidden');
+    toast.classList.add('flex');
+    setTimeout(() => {
+      toast.classList.add('hidden');
+      toast.classList.remove('flex');
+    }, 2400);
+  }
+
+  document.getElementById('btn-google-auth')?.addEventListener('click', () => {
+    triggerToast('HANDSHAKE_INITIATED // GOOGLE_ID');
+  });
+
+  document.getElementById('btn-github-auth')?.addEventListener('click', () => {
+    triggerToast('OAUTH2_DISPATCH // GITHUB_NET');
+  });
+</script></main></body></html>

@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&amp;family=Space+Mono:ital,wght@0,400;0,700;1,400&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { colors: { "surface-tint": "#c6c6c9", "error-container": "#93000a", "primary-fixed": "#e2e2e5", "on-primary": "#2f3033", "surface-dim": "#131313", "inverse-on-surface": "#303030", "surface-bright": "#393939", "surface-container": "#1f1f1f", "inverse-surface": "#e2e2e2", "on-primary-container": "#636467", "on-error-container": "#ffdad6", "tertiary-container": "#ebe0da", "secondary-fixed": "#e3e1ec", "background": "#131313", "outline": "#8f9194", "tertiary": "#ffffff", "on-secondary-container": "#bcbbc5", "on-surface-variant": "#c5c6ca", "on-tertiary": "#352f2b", "error": "#ffb4ab", "primary-fixed-dim": "#c6c6c9", "surface-container-highest": "#353535", "on-surface": "#e2e2e2", "surface-container-high": "#2a2a2a", "on-primary-fixed-variant": "#454749", "tertiary-fixed": "#ebe0da", "primary": "#ffffff", "surface-variant": "#353535", "tertiary-fixed-dim": "#cfc4bf", "on-primary-fixed": "#1a1c1e", "on-secondary-fixed-variant": "#46464e", "on-tertiary-container": "#6a635e", "on-tertiary-fixed": "#201b17", "inverse-primary": "#5d5e61", "on-background": "#e2e2e2", "surface-container-low": "#1b1b1b", "on-secondary-fixed": "#1a1b22", "surface": "#131313", "on-tertiary-fixed-variant": "#4c4541", "secondary": "#c6c5cf", "secondary-container": "#4a4b53", "on-secondary": "#2f3038", "surface-container-lowest": "#0e0e0e", "outline-variant": "#45474a", "on-error": "#690005", "primary-container": "#e2e2e5", "secondary-fixed-dim": "#c6c5cf" }, borderRadius: { DEFAULT: "0.125rem", lg: "0.25rem", xl: "0.5rem", full: "0.75rem" }, spacing: { "space-xl": "1.5rem", "space-md": "0.75rem", "space-2xl": "2rem", "space-3xl": "3rem", "gutter-desktop": "1.25rem", "grid-margin": "1rem", "space-lg": "1rem", "space-xs": "0.25rem", "space-2xs": "0.125rem", "gutter-mobile": "0.75rem", "space-sm": "0.5rem" }, fontFamily: { "headline-xl": ["Space Grotesk"], "telemetry-readout": ["Space Mono"], "label-code": ["Space Mono"], "headline-md": ["Space Grotesk"], "headline-lg": ["Space Grotesk"], "headline-xl-mobile": ["Space Grotesk"], "body-sm": ["Space Mono"], "body-md": ["Space Mono"], "body-lg": ["Space Mono"] }, fontSize: { "headline-xl": ["36px", { lineHeight: "40px", letterSpacing: "-0.04em", fontWeight: "700" }], "telemetry-readout": ["12px", { lineHeight: "14px", letterSpacing: "0.05em", fontWeight: "700" }], "label-code": ["10px", { lineHeight: "12px", letterSpacing: "0.08em", fontWeight: "700" }], "headline-md": ["20px", { lineHeight: "24px", letterSpacing: "-0.02em", fontWeight: "600" }], "headline-lg": ["24px", { lineHeight: "28px", letterSpacing: "-0.03em", fontWeight: "600" }], "headline-xl-mobile": ["28px", { lineHeight: "32px", letterSpacing: "-0.03em", fontWeight: "700" }], "body-sm": ["11px", { lineHeight: "16px", letterSpacing: "0.02em", fontWeight: "400" }], "body-md": ["13px", { lineHeight: "18px", letterSpacing: "0em", fontWeight: "400" }], "body-lg": ["15px", { lineHeight: "22px", letterSpacing: "-0.01em", fontWeight: "400" }] } } } };</script><style>@layer base{html,body{width:100vw;min-height:100vh;margin:0;padding:0;}body{overscroll-behavior-y:none;background-color:#131313;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style></head><body class="bg-surface font-body-md text-body-md text-on-surface antialiased flex flex-col"><header class="fixed top-0 w-full z-50 pt-safe bg-surface/80 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="h-14 px-grid-margin flex items-center justify-between"><div class="flex items-center gap-space-sm"><div class="flex items-center justify-center min-w-[44px] min-h-[44px]"><span class="font-label-code text-label-code text-on-surface font-bold tracking-widest">// SEE_OS</span></div><div class="flex items-center gap-space-xs px-space-xs py-space-2xs bg-surface-container-highest/40 rounded-DEFAULT"><span class="font-telemetry-readout text-telemetry-readout text-primary tracking-wider">[● SYS_ONLINE]</span></div></div><div class="flex items-center gap-space-sm"><span class="font-label-code text-label-code text-on-surface-variant tracking-wider hidden xs:inline-block">00:03 WAT</span><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="flex flex-col relative w-full pt-14 pb-28 px-grid-margin bg-surface"><div class="flex flex-col w-full">
+<!-- Telemetry Sub-Header & Live Diagnostic Metrics -->
+<div class="flex items-center justify-between py-space-xs mb-space-sm">
+<div class="flex items-center gap-space-xs">
+<span class="text-on-surface-variant font-label-code text-label-code tracking-widest">// PIPELINE_STATUS</span>
+<span class="text-primary font-telemetry-readout text-telemetry-readout px-space-xs py-space-2xs bg-surface-container-high/90 rounded-DEFAULT">[ACTIVE_SYNC]</span>
+</div>
+<div class="flex items-center gap-space-xs font-telemetry-readout text-telemetry-readout text-on-surface-variant">
+<span>18 NODES</span>
+<span class="text-on-surface-variant/40">|</span>
+<span class="text-primary">3 HOT</span>
+</div>
+</div>
+<!-- Horizontal Scrollable Glass Pill Filter Strip (Inspired by dark stacked translucent glass plates) -->
+<div class="relative w-full -mx-grid-margin px-grid-margin mb-space-md">
+<div class="flex items-center gap-space-xs overflow-x-auto no-scrollbar py-space-2xs">
+<button class="filter-pill shrink-0 px-space-md py-space-xs rounded-full bg-primary text-on-primary font-label-code text-label-code tracking-wider shadow-sm transition-transform active:scale-95 flex items-center gap-space-2xs" data-filter="all" type="button">
+<span class="w-1.5 h-1.5 rounded-full bg-surface"></span>
+<span>ALL (18)</span>
+</button>
+<button class="filter-pill shrink-0 px-space-md py-space-xs rounded-full bg-surface-container-high/80 text-on-surface hover:bg-surface-container-highest transition-colors font-label-code text-label-code tracking-wider active:scale-95 flex items-center gap-space-2xs" data-filter="bookmarked" type="button">
+<span class="text-on-surface-variant">●</span>
+<span>BOOKMARKED (4)</span>
+</button>
+<button class="filter-pill shrink-0 px-space-md py-space-xs rounded-full bg-surface-container-high/80 text-on-surface hover:bg-surface-container-highest transition-colors font-label-code text-label-code tracking-wider active:scale-95 flex items-center gap-space-2xs" data-filter="applied" type="button">
+<span class="text-on-surface-variant">●</span>
+<span>APPLIED (14)</span>
+</button>
+<button class="filter-pill shrink-0 px-space-md py-space-xs rounded-full bg-surface-container-high/80 text-on-surface hover:bg-surface-container-highest transition-colors font-label-code text-label-code tracking-wider active:scale-95 flex items-center gap-space-2xs" data-filter="interviewing" type="button">
+<span class="text-primary font-bold">●</span>
+<span>INTERVIEWING (3)</span>
+</button>
+<button class="filter-pill shrink-0 px-space-md py-space-xs rounded-full bg-surface-container-high/80 text-on-surface hover:bg-surface-container-highest transition-colors font-label-code text-label-code tracking-wider active:scale-95 flex items-center gap-space-2xs" data-filter="offers" type="button">
+<span class="text-primary font-bold">★</span>
+<span>OFFERS (1)</span>
+</button>
+<button class="filter-pill shrink-0 px-space-md py-space-xs rounded-full bg-surface-container-high/80 text-on-surface-variant hover:text-on-surface transition-colors font-label-code text-label-code tracking-wider active:scale-95 flex items-center gap-space-2xs" data-filter="archived" type="button">
+<span>ARCHIVED (2)</span>
+</button>
+</div>
+</div>
+<!-- Swipe Interaction Telemetry Guide Affordance -->
+<div class="w-full flex items-center justify-between px-space-xs py-space-2xs mb-space-sm bg-surface-container-lowest/60 rounded-DEFAULT text-on-surface-variant font-label-code text-label-code">
+<div class="flex items-center gap-space-2xs">
+<span class="material-symbols-outlined text-[14px]">arrow_back</span>
+<span>SWIPE TO ARCHIVE</span>
+</div>
+<div class="flex items-center gap-space-2xs opacity-40">
+<span class="material-symbols-outlined text-[12px]">code</span>
+<span>DRAG POD</span>
+</div>
+<div class="flex items-center gap-space-2xs">
+<span>SWIPE TO ADVANCE</span>
+<span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+</div>
+</div>
+<!-- Pipeline Job Cards Stream (Monochromatic Optical Slabs with Micro-Delight Drag Affordances) -->
+<div class="flex flex-col gap-space-md" id="jobs-container">
+<!-- Card 1: Moniepoint Inc. -->
+<div class="job-card group relative w-full bg-surface-container/70 backdrop-blur-xl rounded-xl p-space-md flex flex-col shadow-md transition-all duration-300 hover:bg-surface-container-high/80 active:scale-[0.99] touch-pan-y select-none overflow-hidden" data-id="job-1" data-status="interviewing">
+<!-- Specular Top Rim Gradient Simulation -->
+<div class="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-primary/30 to-transparent"></div>
+<!-- Header Row: Company + Status Glass Pill -->
+<div class="flex items-start justify-between gap-space-sm mb-space-xs">
+<div class="flex items-center gap-space-sm min-w-0">
+<div class="w-8 h-8 rounded-lg bg-surface-container-highest flex items-center justify-center shrink-0">
+<!-- Retro ASCII Micro Microchip Glyph -->
+<svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" stroke-width="1.8" viewbox="0 0 24 24">
+<rect height="14" rx="2" width="14" x="5" y="5"></rect>
+<rect height="6" width="6" x="9" y="9"></rect>
+<path d="M9 1v4M15 1v4M9 19v4M15 19v4M1 9h4M1 15h4M19 9h4M19 15h4"></path>
+</svg>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-headline-md text-headline-md text-primary tracking-tight truncate">Moniepoint Inc.</span>
+<div class="flex items-center gap-space-2xs text-on-surface-variant font-label-code text-label-code">
+<span class="material-symbols-outlined text-[12px]">location_on</span>
+<span class="truncate">Hybrid // Lagos, NG</span>
+</div>
+</div>
+</div>
+<div class="shrink-0 px-space-sm py-space-2xs rounded-full bg-surface-container-highest/90 shadow-sm flex items-center gap-space-2xs">
+<span class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
+<span class="font-label-code text-label-code text-primary tracking-wider">[ INTERVIEWING ]</span>
+</div>
+</div>
+<!-- Role Architecture Title -->
+<div class="my-space-xs">
+<h3 class="font-body-lg text-body-lg text-primary font-bold tracking-tight">
+          Senior Backend Engineer // Core Banking
+        </h3>
+</div>
+<!-- High-Density Metadata Matrix -->
+<div class="grid grid-cols-2 gap-space-xs p-space-xs my-space-xs bg-surface-container-lowest/80 rounded-lg font-telemetry-readout text-telemetry-readout">
+<div class="flex flex-col">
+<span class="text-on-surface-variant/70 text-label-code font-label-code">// COMP_BAND</span>
+<span class="text-primary truncate">₦450k-550k/mo</span>
+</div>
+<div class="flex flex-col">
+<span class="text-on-surface-variant/70 text-label-code font-label-code">// TIMESTAMP</span>
+<span class="text-on-surface truncate">APPLIED: 14d ago</span>
+</div>
+</div>
+<!-- Progress Matrix & Action Telemetry -->
+<div class="mt-space-xs pt-space-xs flex flex-col gap-space-xs">
+<div class="flex items-center justify-between text-on-surface-variant font-telemetry-readout text-telemetry-readout">
+<span class="text-on-surface">PREPARATION [■■■□]</span>
+<span class="text-primary font-bold">75%</span>
+</div>
+<!-- Segmented Glass Micro Meter -->
+<div class="w-full h-1.5 bg-surface-container-lowest rounded-full overflow-hidden flex gap-[2px] p-[1px]">
+<div class="h-full w-1/4 bg-primary rounded-full"></div>
+<div class="h-full w-1/4 bg-primary rounded-full"></div>
+<div class="h-full w-1/4 bg-primary rounded-full"></div>
+<div class="h-full w-1/4 bg-surface-container-highest rounded-full"></div>
+</div>
+<div class="flex items-center justify-between mt-space-2xs font-body-sm text-body-sm">
+<div class="flex items-center gap-space-xs text-on-surface truncate min-w-0">
+<span class="material-symbols-outlined text-primary text-[15px]">forward</span>
+<span class="truncate">Next: <strong class="text-primary">Round 2 System Architecture Review</strong></span>
+</div>
+<button class="shrink-0 text-primary hover:text-surface-tint active:scale-90 transition-transform font-label-code text-label-code ml-space-xs underline underline-offset-4" type="button">
+            [PREP_DOCS]
+          </button>
+</div>
+</div>
+<!-- Quick Drag Indicator Overlay Ribbon -->
+<div class="swipe-hint pointer-events-none absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-primary/10 to-transparent opacity-0 flex items-center justify-end pr-space-xs transition-opacity duration-200">
+<span class="material-symbols-outlined text-primary text-[18px]">chevron_right</span>
+</div>
+</div>
+<!-- Card 2: Stripe -->
+<div class="job-card group relative w-full bg-surface-container/70 backdrop-blur-xl rounded-xl p-space-md flex flex-col shadow-md transition-all duration-300 hover:bg-surface-container-high/80 active:scale-[0.99] touch-pan-y select-none overflow-hidden" data-id="job-2" data-status="interviewing">
+<!-- Specular Top Rim Gradient -->
+<div class="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-primary/30 to-transparent"></div>
+<!-- Header Row: Company + Status Glass Pill -->
+<div class="flex items-start justify-between gap-space-sm mb-space-xs">
+<div class="flex items-center gap-space-sm min-w-0">
+<div class="w-8 h-8 rounded-lg bg-surface-container-highest flex items-center justify-center shrink-0">
+<span class="font-headline-md text-headline-md font-bold text-primary">S</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-headline-md text-headline-md text-primary tracking-tight truncate">Stripe</span>
+<div class="flex items-center gap-space-2xs text-on-surface-variant font-label-code text-label-code">
+<span class="material-symbols-outlined text-[12px]">public</span>
+<span class="truncate">Remote // US-EU</span>
+</div>
+</div>
+</div>
+<div class="shrink-0 px-space-sm py-space-2xs rounded-full bg-surface-container-highest/90 shadow-sm flex items-center gap-space-2xs">
+<span class="w-1.5 h-1.5 rounded-full bg-on-surface-variant"></span>
+<span class="font-label-code text-label-code text-on-surface tracking-wider">[ TECHNICAL TEST ]</span>
+</div>
+</div>
+<!-- Role Title -->
+<div class="my-space-xs">
+<h3 class="font-body-lg text-body-lg text-primary font-bold tracking-tight">
+          Staff Infrastructure Engineer
+        </h3>
+</div>
+<!-- Metadata Matrix -->
+<div class="grid grid-cols-2 gap-space-xs p-space-xs my-space-xs bg-surface-container-lowest/80 rounded-lg font-telemetry-readout text-telemetry-readout">
+<div class="flex flex-col">
+<span class="text-on-surface-variant/70 text-label-code font-label-code">// COMP_BAND</span>
+<span class="text-primary truncate">$185k - $210k</span>
+</div>
+<div class="flex flex-col">
+<span class="text-on-surface-variant/70 text-label-code font-label-code">// TIMESTAMP</span>
+<span class="text-on-surface truncate">APPLIED: 4d ago</span>
+</div>
+</div>
+<!-- Progress Matrix & Action Telemetry -->
+<div class="mt-space-xs pt-space-xs flex flex-col gap-space-xs">
+<div class="flex items-center justify-between text-on-surface-variant font-telemetry-readout text-telemetry-readout">
+<span class="text-on-surface">PREPARATION [■■□□]</span>
+<span class="text-primary font-bold">50%</span>
+</div>
+<!-- Segmented Glass Meter -->
+<div class="w-full h-1.5 bg-surface-container-lowest rounded-full overflow-hidden flex gap-[2px] p-[1px]">
+<div class="h-full w-1/4 bg-primary rounded-full"></div>
+<div class="h-full w-1/4 bg-primary rounded-full"></div>
+<div class="h-full w-1/4 bg-surface-container-highest rounded-full"></div>
+<div class="h-full w-1/4 bg-surface-container-highest rounded-full"></div>
+</div>
+<div class="flex items-center justify-between mt-space-2xs font-body-sm text-body-sm">
+<div class="flex items-center gap-space-xs text-on-surface truncate min-w-0">
+<span class="material-symbols-outlined text-primary text-[15px]">terminal</span>
+<span class="truncate">Next: <strong class="text-primary">Complete concurrency challenge</strong></span>
+</div>
+<button class="shrink-0 text-primary hover:text-surface-tint active:scale-90 transition-transform font-label-code text-label-code ml-space-xs underline underline-offset-4" type="button">
+            [START_RUN]
+          </button>
+</div>
+</div>
+<div class="swipe-hint pointer-events-none absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-primary/10 to-transparent opacity-0 flex items-center justify-end pr-space-xs transition-opacity duration-200">
+<span class="material-symbols-outlined text-primary text-[18px]">chevron_right</span>
+</div>
+</div>
+<!-- Card 3: Kuda Bank -->
+<div class="job-card group relative w-full bg-surface-container/70 backdrop-blur-xl rounded-xl p-space-md flex flex-col shadow-md transition-all duration-300 hover:bg-surface-container-high/80 active:scale-[0.99] touch-pan-y select-none overflow-hidden" data-id="job-3" data-status="offers">
+<!-- Specular Top Rim Gradient -->
+<div class="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-primary/30 to-transparent"></div>
+<!-- Header Row: Company + Status Glass Pill -->
+<div class="flex items-start justify-between gap-space-sm mb-space-xs">
+<div class="flex items-center gap-space-sm min-w-0">
+<div class="w-8 h-8 rounded-lg bg-surface-container-highest flex items-center justify-center shrink-0">
+<span class="font-headline-md text-headline-md font-bold text-primary">K</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-headline-md text-headline-md text-primary tracking-tight truncate">Kuda Bank</span>
+<div class="flex items-center gap-space-2xs text-on-surface-variant font-label-code text-label-code">
+<span class="material-symbols-outlined text-[12px]">apartment</span>
+<span class="truncate">Lagos, NG</span>
+</div>
+</div>
+</div>
+<div class="shrink-0 px-space-sm py-space-2xs rounded-full bg-primary text-on-primary shadow-sm flex items-center gap-space-2xs">
+<span class="w-1.5 h-1.5 rounded-full bg-surface animate-ping"></span>
+<span class="font-label-code text-label-code font-bold tracking-wider">[ OFFER EXTENDED ]</span>
+</div>
+</div>
+<!-- Role Title -->
+<div class="my-space-xs">
+<h3 class="font-body-lg text-body-lg text-primary font-bold tracking-tight">
+          Lead Platform Engineer
+        </h3>
+</div>
+<!-- Metadata Matrix -->
+<div class="grid grid-cols-2 gap-space-xs p-space-xs my-space-xs bg-surface-container-lowest/80 rounded-lg font-telemetry-readout text-telemetry-readout">
+<div class="flex flex-col">
+<span class="text-on-surface-variant/70 text-label-code font-label-code">// COMP_PACKAGE</span>
+<span class="text-primary font-bold truncate">₦850k/mo + Equity</span>
+</div>
+<div class="flex flex-col">
+<span class="text-on-surface-variant/70 text-label-code font-label-code">// TIMESTAMP</span>
+<span class="text-on-surface truncate">APPLIED: 28d ago</span>
+</div>
+</div>
+<!-- Progress Matrix & Action Telemetry -->
+<div class="mt-space-xs pt-space-xs flex flex-col gap-space-xs">
+<div class="flex items-center justify-between text-on-surface-variant font-telemetry-readout text-telemetry-readout">
+<span class="text-on-surface">STAGE: NEGOTIATION [■■■■]</span>
+<span class="text-primary font-bold">100%</span>
+</div>
+<!-- Solid 100% Glass Meter -->
+<div class="w-full h-1.5 bg-surface-container-lowest rounded-full overflow-hidden flex gap-[2px] p-[1px]">
+<div class="h-full w-1/4 bg-primary rounded-full"></div>
+<div class="h-full w-1/4 bg-primary rounded-full"></div>
+<div class="h-full w-1/4 bg-primary rounded-full"></div>
+<div class="h-full w-1/4 bg-primary rounded-full"></div>
+</div>
+<div class="flex items-center justify-between mt-space-2xs font-body-sm text-body-sm">
+<div class="flex items-center gap-space-xs text-on-surface truncate min-w-0">
+<span class="material-symbols-outlined text-primary text-[15px]">verified</span>
+<span class="truncate">Review counter-offer &amp; term sheets</span>
+</div>
+<button class="shrink-0 bg-primary text-on-primary px-space-xs py-space-2xs rounded-DEFAULT active:scale-95 transition-transform font-label-code text-label-code font-bold" type="button">
+            [DECISION]
+          </button>
+</div>
+</div>
+<div class="swipe-hint pointer-events-none absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-primary/10 to-transparent opacity-0 flex items-center justify-end pr-space-xs transition-opacity duration-200">
+<span class="material-symbols-outlined text-primary text-[18px]">chevron_right</span>
+</div>
+</div>
+</div>
+<!-- Pipeline Diagnostic Footprint & Quick Stats HUD -->
+<div class="mt-space-xl p-space-md bg-surface-container-lowest/80 rounded-xl flex flex-col gap-space-xs font-telemetry-readout text-telemetry-readout text-on-surface-variant">
+<div class="flex items-center justify-between">
+<span class="font-label-code text-label-code text-on-surface">// TELEMETRY_SUMMARY</span>
+<span class="text-primary font-bold">[SYNC_SUCCESS]</span>
+</div>
+<div class="flex justify-between items-center pt-space-xs text-body-sm font-body-sm">
+<span>Pipeline Velocity: <strong class="text-on-surface">+18.4% WoW</strong></span>
+<span>Avg Response: <strong class="text-on-surface">3.8 Days</strong></span>
+</div>
+</div>
+<!-- Toast Notification Scaffold for Micro-Delight Feedback -->
+<div class="fixed bottom-24 left-1/2 -translate-x-1/2 z-40 bg-surface-container-highest/95 backdrop-blur-2xl px-space-md py-space-xs rounded-full shadow-2xl flex items-center gap-space-xs opacity-0 pointer-events-none transition-all duration-300 transform translate-y-4" id="action-toast">
+<span class="material-symbols-outlined text-primary text-[16px]" id="toast-icon">check_circle</span>
+<span class="font-label-code text-label-code text-primary tracking-wide" id="toast-text">STAGE ADVANCED</span>
+</div>
+</div>
+<script>
+  (function initPipelineInteractivity() {
+    // Filter strip state management
+    const filterPills = document.querySelectorAll('.filter-pill');
+    const jobCards = document.querySelectorAll('.job-card');
+    const toast = document.getElementById('action-toast');
+    const toastText = document.getElementById('toast-text');
+    const toastIcon = document.getElementById('toast-icon');
+
+    function showToast(msg, icon = 'check_circle') {
+      if (!toast) return;
+      toastText.textContent = msg;
+      toastIcon.textContent = icon;
+      toast.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-4');
+      toast.classList.add('opacity-100', 'translate-y-0');
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'pointer-events-none', 'translate-y-4');
+        toast.classList.remove('opacity-100', 'translate-y-0');
+      }, 2200);
+    }
+
+    filterPills.forEach(pill => {
+      pill.addEventListener('click', () => {
+        filterPills.forEach(p => {
+          p.classList.remove('bg-primary', 'text-on-primary');
+          p.classList.add('bg-surface-container-high/80', 'text-on-surface');
+        });
+        pill.classList.remove('bg-surface-container-high/80', 'text-on-surface');
+        pill.classList.add('bg-primary', 'text-on-primary');
+
+        const filter = pill.getAttribute('data-filter');
+        jobCards.forEach(card => {
+          const status = card.getAttribute('data-status');
+          if (filter === 'all' || filter === status) {
+            card.style.display = 'flex';
+          } else {
+            card.style.display = 'none';
+          }
+        });
+        showToast(`FILTER APPLIED: [${filter.toUpperCase()}]`, 'filter_list');
+      });
+    });
+
+    // Touch & Mouse horizontal swipe gestures for Kanban status transitions
+    jobCards.forEach(card => {
+      let startX = 0;
+      let currentX = 0;
+      let isDragging = false;
+      const hint = card.querySelector('.swipe-hint');
+
+      function onStart(e) {
+        isDragging = true;
+        startX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+        card.style.transition = 'none';
+      }
+
+      function onMove(e) {
+        if (!isDragging) return;
+        currentX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+        const diffX = currentX - startX;
+        
+        // Constrain drag to reasonable bounds
+        if (Math.abs(diffX) < 160) {
+          card.style.transform = `translateX(${diffX * 0.4}px)`;
+          if (hint) {
+            hint.style.opacity = Math.min(Math.abs(diffX) / 80, 1);
+          }
+        }
+      }
+
+      function onEnd() {
+        if (!isDragging) return;
+        isDragging = false;
+        const diffX = currentX - startX;
+        card.style.transition = 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)';
+        card.style.transform = 'translateX(0px)';
+        if (hint) hint.style.opacity = '0';
+
+        if (diffX > 75) {
+          showToast(`STAGE ADVANCED: [${card.querySelector('h3').textContent.trim().split('//')[0].trim()}]`, 'done_all');
+        } else if (diffX < -75) {
+          showToast(`NODE ARCHIVED TO VAULT`, 'archive');
+        }
+        startX = 0;
+        currentX = 0;
+      }
+
+      card.addEventListener('touchstart', onStart, { passive: true });
+      card.addEventListener('touchmove', onMove, { passive: true });
+      card.addEventListener('touchend', onEnd);
+      
+      card.addEventListener('mousedown', onStart);
+      window.addEventListener('mousemove', onMove);
+      window.addEventListener('mouseup', onEnd);
+    });
+  })();
+</script></main><div class="fixed bottom-24 right-grid-margin z-50"><button aria-label="Quick Add Item" class="w-12 h-12 rounded-xl bg-surface-container-high/90 backdrop-blur-xl flex items-center justify-center text-primary font-telemetry-readout text-telemetry-readout shadow-[0_1px_8px_rgba(0,0,0,0.04)] active:scale-95 transition-transform min-w-[44px] min-h-[44px]" type="button"><span class="font-bold text-[16px]">[+]</span></button></div><nav class="fixed bottom-0 w-full z-50 pb-safe bg-surface/80 backdrop-blur-xl shadow-[0_-1px_8px_rgba(0,0,0,0.04)]" data-active-classes="text-primary font-bold"><div class="flex items-center justify-around h-16 px-space-xs"><a class="flex flex-col items-center justify-center min-w-[44px] min-h-[44px] px-space-xs text-on-surface-variant hover:text-on-surface transition-colors" data-path="today" href="#"><span class="material-symbols-outlined text-[20px]">adjust</span><span class="font-label-code text-label-code mt-space-2xs tracking-widest">TODAY [●]</span></a><a aria-current="page" class="flex flex-col items-center justify-center min-w-[44px] min-h-[44px] px-space-xs transition-colors text-primary font-bold" data-path="jobs" href="#"><span class="material-symbols-outlined text-[20px]">view_kanban</span><span class="font-label-code text-label-code mt-space-2xs tracking-widest">JOBS</span></a><a class="flex flex-col items-center justify-center min-w-[44px] min-h-[44px] px-space-xs text-on-surface-variant hover:text-on-surface transition-colors" data-path="radar" href="#"><span class="material-symbols-outlined text-[20px]">radar</span><span class="font-label-code text-label-code mt-space-2xs tracking-widest">RADAR</span></a><a class="flex flex-col items-center justify-center min-w-[44px] min-h-[44px] px-space-xs text-on-surface-variant hover:text-on-surface transition-colors" data-path="vault" href="#"><span class="material-symbols-outlined text-[20px]">terminal</span><span class="font-label-code text-label-code mt-space-2xs tracking-widest">VAULT</span></a></div></nav></body></html>
