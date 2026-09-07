@@ -1,0 +1,29 @@
+{
+  "expo": {
+    "name": "See",
+    "slug": "see",
+    "scheme": "see",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "backgroundColor": "#000000"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-haptics",
+      "expo-notifications",
+      "expo-calendar"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "web": {
+      "bundler": "metro"
+    }
+  }
+}
