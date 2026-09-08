@@ -90,7 +90,7 @@ export class ErrorBoundary extends Component<Props, State> {
                 className="mt-4 rounded-xl border border-white/20 bg-white px-4 py-4 active:scale-[0.99]"
               >
                 <Text className="text-center font-mono text-[10px] font-bold text-black">
-                  [ RESET -> RETRY ]
+                  [ RESET -&gt; RETRY ]
                 </Text>
               </Pressable>
             </View>

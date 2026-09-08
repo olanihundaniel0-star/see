@@ -28,6 +28,11 @@ class JobChecklistCreate(BaseModel):
     is_completed: bool = False
 
 
+class JobChecklistUpdate(BaseModel):
+    title: str | None = Field(default=None, max_length=255)
+    is_completed: bool | None = None
+
+
 class JobApplicationBase(BaseModel):
     company: str = Field(max_length=150)
     role: str = Field(max_length=150)

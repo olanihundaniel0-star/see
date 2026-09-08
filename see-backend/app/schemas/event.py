@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class EventRead(BaseModel):
@@ -16,7 +16,7 @@ class EventRead(BaseModel):
     source_url: str | None
     location: str | None
     is_virtual: bool
-    categories: list[str] | None = Field(default_factory=list)
+    categories: list[str] = Field(default_factory=list)
     prize_pool: str | None
     start_date: datetime
     end_date: datetime | None
@@ -25,6 +25,13 @@ class EventRead(BaseModel):
     scraped_at: datetime
 
     model_config = {"from_attributes": True}
+
+    @field_validator("categories", mode="before")
+    @classmethod
+    def _default_categories(cls, value: object) -> list[str]:
+        if value is None:
+            return []
+        return list(value) if isinstance(value, tuple) else value  # type: ignore[return-value]
 
 
 class EventPageResponse(BaseModel):

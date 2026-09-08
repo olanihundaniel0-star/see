@@ -110,7 +110,7 @@ def upgrade() -> None:
         sa.Column("start_date", sa.DateTime(timezone=True), nullable=False),
         sa.Column("end_date", sa.DateTime(timezone=True), nullable=True),
         sa.Column("scraped_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("NOW()")),
-        sa.UniqueConstraint("external_id", name="uq_scraped_events_external_id"),
+        sa.UniqueConstraint("source", "external_id", name="uq_scraped_events_source_external_id"),
     )
     op.create_index("ix_scraped_events_start_date", "scraped_events", ["start_date"])
 

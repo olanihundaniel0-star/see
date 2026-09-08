@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: see
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d see"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      APP_ENV: development
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/see
+      REDIS_URL: redis://localhost:6379/0
+      SUPABASE_JWT_SECRET: replace-me
+      EMAIL_WEBHOOK_SECRET: replace-me
+      CORS_ORIGINS: http://localhost:8081,http://localhost:19006,http://127.0.0.1:8081,http://127.0.0.1:19006
+      GMAIL_USER: ""
+      GMAIL_APP_PASSWORD: ""
+    defaults:
+      run:
+        working-directory: see-backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: see-backend/requirements.txt
+      - name: Install backend dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Run migrations
+        run: alembic upgrade head
+      - name: Run backend tests
+        run: pytest
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: see-app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: see-app/package-lock.json
+      - name: Install frontend dependencies
+        run: npm ci
+      - name: Typecheck frontend
+        run: npx tsc --noEmit

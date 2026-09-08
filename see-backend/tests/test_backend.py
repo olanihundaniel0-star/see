@@ -4,6 +4,7 @@ import asyncio
 import hashlib
 import hmac
 from datetime import datetime, timezone
+from types import SimpleNamespace
 from uuid import UUID
 
 import jwt
@@ -11,12 +12,13 @@ from fastapi import HTTPException
 
 from fastapi.security import HTTPAuthorizationCredentials
 
-from app.api.v1.endpoints import jobs, notes, reminders, webhooks
+from app.api.v1.endpoints import events, jobs, notes, reminders, webhooks
 from app.core.auth import get_current_user_id
 from app.core.config import settings
 from app.models.event import ScrapedEvent
 from app.models.job import JobApplication, JobStatus
 from app.models.reminder import Reminder, ReminderPriority
+from app.schemas.event import EventRead
 from app.schemas.job import JobApplicationCreate, JobApplicationUpdate, JobChecklistCreate, JobChecklistUpdate
 from app.schemas.note import NoteCreate, NoteUpdate
 from app.schemas.reminder import ReminderCreate, ReminderPriority as ReminderPrioritySchema, ReminderUpdate
@@ -48,14 +50,17 @@ class FakeRequest:
 
 
 def test_auth_me_returns_user_id(monkeypatch):
-    monkeypatch.setattr("app.core.auth.jwt.decode", lambda token, secret, algorithms: {"sub": str(USER_ID)})
+    monkeypatch.setattr("app.core.auth.jwt.decode", lambda token, secret, algorithms, **kwargs: {"sub": str(USER_ID)})
 
     credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials="test-token")
     assert get_current_user_id(credentials) == USER_ID
 
 
 def test_auth_me_rejects_invalid_token(monkeypatch):
-    monkeypatch.setattr("app.core.auth.jwt.decode", lambda token, secret, algorithms: (_ for _ in ()).throw(jwt.PyJWTError("bad token")))
+    monkeypatch.setattr(
+        "app.core.auth.jwt.decode",
+        lambda token, secret, algorithms, **kwargs: (_ for _ in ()).throw(jwt.PyJWTError("bad token")),
+    )
 
     credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials="bad-token")
     try:
@@ -473,6 +478,81 @@ def test_events_endpoint_returns_cached_shape_and_headers(client, fake_db):
     assert payload["page_size"] == 20
     assert len(payload["items"]) == 1
     assert payload["items"][0]["title"] == "Claude Code + Firecrawl"
+
+
+def test_event_read_normalizes_null_categories():
+    payload = SimpleNamespace(
+        id=UUID("22222222-2222-2222-2222-222222222222"),
+        source="luma",
+        external_id="re0oh7md",
+        title="Claude Code + Firecrawl",
+        description="A workshop on scraping",
+        url="https://luma.com/re0oh7md",
+        source_url="https://luma.com/ai",
+        location="Zoom",
+        is_virtual=True,
+        categories=None,
+        prize_pool=None,
+        start_date=datetime(2026, 9, 10, 12, 0, tzinfo=timezone.utc),
+        end_date=datetime(2026, 9, 10, 14, 0, tzinfo=timezone.utc),
+        last_seen_at=datetime(2026, 9, 7, 12, 0, tzinfo=timezone.utc),
+        raw_source_ref=None,
+        scraped_at=datetime(2026, 9, 7, 12, 0, tzinfo=timezone.utc),
+    )
+
+    event = EventRead.model_validate(payload)
+    assert event.categories == []
+
+
+def test_events_crud_and_pagination(fake_db):
+    first = ScrapedEvent(
+        source="luma",
+        external_id="first",
+        title="First Event",
+        description=None,
+        url="https://luma.com/first",
+        source_url="https://luma.com/first",
+        location="Zoom",
+        is_virtual=True,
+        categories=["ai", "scraping"],
+        prize_pool=None,
+        start_date=datetime(2026, 9, 10, 12, 0, tzinfo=timezone.utc),
+        end_date=datetime(2026, 9, 10, 13, 0, tzinfo=timezone.utc),
+        last_seen_at=datetime(2026, 9, 7, 12, 0, tzinfo=timezone.utc),
+        raw_source_ref="first",
+        scraped_at=datetime(2026, 9, 7, 12, 0, tzinfo=timezone.utc),
+    )
+    second = ScrapedEvent(
+        source="devpost",
+        external_id="second",
+        title="Second Event",
+        description=None,
+        url="https://devpost.com/second",
+        source_url="https://devpost.com/second",
+        location=None,
+        is_virtual=False,
+        categories=["hackathon"],
+        prize_pool=None,
+        start_date=datetime(2026, 9, 11, 12, 0, tzinfo=timezone.utc),
+        end_date=None,
+        last_seen_at=datetime(2026, 9, 7, 12, 0, tzinfo=timezone.utc),
+        raw_source_ref="second",
+        scraped_at=datetime(2026, 9, 7, 12, 0, tzinfo=timezone.utc),
+    )
+    fake_db.add(first)
+    fake_db.add(second)
+
+    page_one = run(events.list_events(page=1, page_size=1, is_virtual=None, user_id=USER_ID, db=fake_db))
+    page_two = run(events.list_events(page=2, page_size=1, is_virtual=None, user_id=USER_ID, db=fake_db))
+
+    assert page_one["page"] == 1
+    assert page_one["page_size"] == 1
+    assert len(page_one["items"]) == 1
+    assert len(page_two["items"]) == 1
+    assert {page_one["items"][0].id, page_two["items"][0].id} == {first.id, second.id}
+
+    first_payload = EventRead.model_validate(page_one["items"][0])
+    assert first_payload.categories == ["ai", "scraping"]
 
 
 def test_cors_preflight_allows_configured_origin(client):

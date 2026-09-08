@@ -27,3 +27,5 @@ export const supabase =
         }
       })
     : null;
+
+export const supabaseRedirectUrl = "see://auth";
