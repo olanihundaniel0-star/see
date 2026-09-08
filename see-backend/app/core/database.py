@@ -1,6 +1,7 @@
 from collections.abc import AsyncGenerator
 
 from sqlalchemy import MetaData
+from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 
@@ -22,8 +23,15 @@ class Base(DeclarativeBase):
     metadata = metadata
 
 
+def _normalize_database_url(url: str) -> str:
+    parsed = make_url(url)
+    if parsed.drivername in {"postgresql", "postgres"}:
+        parsed = parsed.set(drivername="postgresql+asyncpg")
+    return str(parsed)
+
+
 engine = create_async_engine(
-    settings.DATABASE_URL,
+    _normalize_database_url(settings.DATABASE_URL),
     echo=False,
     pool_size=10,
     max_overflow=20,

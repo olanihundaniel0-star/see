@@ -69,9 +69,10 @@ def build_email_extraction_payload(payload: dict[str, Any]) -> dict[str, Any]:
 
 
 def _gemini_client() -> genai.Client | None:
-    if not settings.GEMINI_API_KEY:
+    api_key = getattr(settings, "GEMINI_API_KEY", "")
+    if not api_key:
         return None
-    return genai.Client(api_key=settings.GEMINI_API_KEY.get_secret_value())
+    return genai.Client(api_key=api_key)
 
 
 def _gemini_prompt(normalized: NormalizedEmailIngestPayload, existing_job: JobApplication | None = None) -> str:

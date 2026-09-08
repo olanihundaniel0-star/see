@@ -1,11 +1,11 @@
 import { forwardRef } from "react";
-import { TextInput, View, type TextInputProps } from "react-native";
+import { Text, TextInput, View, type TextInputProps } from "react-native";
 
 type Props = TextInputProps & {
   label?: string;
 };
 
-export const GlassInput = forwardRef<TextInput, Props>(function GlassInput(
+export const GlassInput = forwardRef<any, Props>(function GlassInput(
   { label, className = "", ...props },
   ref
 ) {
@@ -23,5 +23,9 @@ export const GlassInput = forwardRef<TextInput, Props>(function GlassInput(
 });
 
 function TextInputLabel({ label }: { label: string }) {
-  return <View className="px-1">{/* reserved for future label rendering */}</View>;
+  return (
+    <View className="px-1">
+      <Text className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">{label}</Text>
+    </View>
+  );
 }

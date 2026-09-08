@@ -1,0 +1,139 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: see
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d see"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  migrate:
+    build:
+      context: ./see-backend
+      dockerfile: Dockerfile
+    working_dir: /app
+    command: alembic upgrade head
+    environment:
+      APP_ENV: development
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/see
+      REDIS_URL: redis://redis:6379/0
+      SUPABASE_JWT_SECRET: replace-me
+      EMAIL_WEBHOOK_SECRET: replace-me
+      CORS_ORIGINS: http://localhost:8081,http://localhost:19006,http://127.0.0.1:8081,http://127.0.0.1:19006
+      GMAIL_USER: ""
+      GMAIL_APP_PASSWORD: ""
+    volumes:
+      - ./see-backend:/app
+    depends_on:
+      db:
+        condition: service_healthy
+
+  backend:
+    build:
+      context: ./see-backend
+      dockerfile: Dockerfile
+    working_dir: /app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    environment:
+      APP_ENV: development
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/see
+      REDIS_URL: redis://redis:6379/0
+      SUPABASE_JWT_SECRET: replace-me
+      EMAIL_WEBHOOK_SECRET: replace-me
+      CORS_ORIGINS: http://localhost:8081,http://localhost:19006,http://127.0.0.1:8081,http://127.0.0.1:19006
+      GMAIL_USER: ""
+      GMAIL_APP_PASSWORD: ""
+    volumes:
+      - ./see-backend:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import json, urllib.request; print(json.loads(urllib.request.urlopen('http://127.0.0.1:8000/health').read().decode())['status'])\""
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  worker:
+    build:
+      context: ./see-backend
+      dockerfile: Dockerfile
+    working_dir: /app
+    command: celery -A app.workers.celery_app worker -l info
+    environment:
+      APP_ENV: development
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/see
+      REDIS_URL: redis://redis:6379/0
+      SUPABASE_JWT_SECRET: replace-me
+      EMAIL_WEBHOOK_SECRET: replace-me
+      CORS_ORIGINS: http://localhost:8081,http://localhost:19006,http://127.0.0.1:8081,http://127.0.0.1:19006
+      GMAIL_USER: ""
+      GMAIL_APP_PASSWORD: ""
+    volumes:
+      - ./see-backend:/app
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  beat:
+    build:
+      context: ./see-backend
+      dockerfile: Dockerfile
+    working_dir: /app
+    command: celery -A app.workers.celery_app beat -l info
+    environment:
+      APP_ENV: development
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/see
+      REDIS_URL: redis://redis:6379/0
+      SUPABASE_JWT_SECRET: replace-me
+      EMAIL_WEBHOOK_SECRET: replace-me
+      CORS_ORIGINS: http://localhost:8081,http://localhost:19006,http://127.0.0.1:8081,http://127.0.0.1:19006
+      GMAIL_USER: ""
+      GMAIL_APP_PASSWORD: ""
+    volumes:
+      - ./see-backend:/app
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  redis_data:

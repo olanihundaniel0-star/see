@@ -311,7 +311,7 @@ async def _upsert_events(records: list[dict[str, Any]]) -> int:
             "raw_source_ref": statement.excluded.raw_source_ref,
         }
         statement = statement.on_conflict_do_update(
-            index_elements=[ScrapedEvent.__table__.c.external_id],
+            index_elements=[ScrapedEvent.__table__.c.source, ScrapedEvent.__table__.c.external_id],
             set_=update_columns,
         )
         await session.execute(statement)

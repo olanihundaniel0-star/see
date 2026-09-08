@@ -52,7 +52,6 @@ async def today_dashboard(
         .where(
             Reminder.user_id == user_id,
             Reminder.is_completed.is_(False),
-            Reminder.due_date >= now,
             Reminder.due_date <= horizon,
         )
         .order_by(Reminder.due_date.asc())
@@ -63,7 +62,6 @@ async def today_dashboard(
             JobApplication.user_id == user_id,
             JobApplication.status != JobStatus.REJECTED,
             JobApplication.deadline.is_not(None),
-            JobApplication.deadline >= now,
             JobApplication.deadline <= horizon,
         )
         .order_by(JobApplication.deadline.asc())

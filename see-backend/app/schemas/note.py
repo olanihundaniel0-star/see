@@ -12,6 +12,12 @@ class NoteCreate(BaseModel):
     tags: str | None = Field(default=None, max_length=255)
 
 
+class NoteUpdate(BaseModel):
+    title: str | None = Field(default=None, max_length=255)
+    content: str | None = None
+    tags: str | None = Field(default=None, max_length=255)
+
+
 class NoteRead(NoteCreate):
     id: UUID
     user_id: UUID

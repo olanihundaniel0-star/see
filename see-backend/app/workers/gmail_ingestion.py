@@ -50,13 +50,16 @@ def _looks_relevant(sender: str, subject: str, body: str) -> bool:
 def fetch_unread_job_emails() -> list[dict[str, Any]]:
     gmail_user = settings.GMAIL_USER
     gmail_password = settings.GMAIL_APP_PASSWORD.get_secret_value() if settings.GMAIL_APP_PASSWORD else None
-    
+
     if not gmail_user or not gmail_password:
         return []
 
     mail = imaplib.IMAP4_SSL(DEFAULT_IMAP_HOST, DEFAULT_IMAP_PORT)
-    mail.login(gmail_user, gmail_password)
-    mail.select("inbox")
+    try:
+        mail.login(gmail_user, gmail_password)
+        mail.select("inbox")
+    except imaplib.IMAP4.error:
+        return []
 
     try:
         status, messages = mail.search(None, "UNSEEN")

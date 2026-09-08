@@ -22,7 +22,7 @@ def upgrade() -> None:
     op.add_column("scraped_events", sa.Column("source_url", sa.Text(), nullable=True))
     op.add_column("scraped_events", sa.Column("categories", postgresql.ARRAY(sa.String(length=50)), nullable=False, server_default=sa.text("'{}'::varchar(50)[]")))
     op.add_column("scraped_events", sa.Column("prize_pool", sa.String(length=255), nullable=True))
-    op.add_column("scraped_events", sa.Column("last_seen_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("NOW()")))
+    op.add_column("scraped_events", sa.Column("last_seen_at", sa.DateTime(timezone=True), nullable=True))
     op.add_column("scraped_events", sa.Column("raw_source_ref", sa.String(length=255), nullable=True))
 
     op.create_index("ix_scraped_events_source", "scraped_events", ["source"])

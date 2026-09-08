@@ -44,6 +44,7 @@ class JobApplication(Base):
         back_populates="job",
         cascade="all, delete-orphan",
         passive_deletes=True,
+        lazy="selectin",
     )
 
 

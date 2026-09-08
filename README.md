@@ -18,9 +18,33 @@ cd see-backend
 python -m uvicorn app.main:app --reload --port 8000
 ```
 
+## Local stack
+
+```bash
+make compose-up
+```
+
+That starts Postgres, Redis, the backend API, the Celery worker, and Celery beat.
+
+For one-off tasks:
+
+- `make setup`
+- `make backend-test`
+- `make frontend-typecheck`
+- `make migrate`
+
 ## App
 
 ```bash
-cd see-app
-npx expo start
+make frontend-start
 ```
+
+## CI
+
+GitHub Actions runs backend migrations and tests plus frontend typechecking on every push and pull request.
+
+## Deployment Notes
+
+See [docs/deployment.md](docs/deployment.md) for the env vars and startup order needed to run and test the app locally or in production.
+
+For Render specifically, see [docs/render.md](docs/render.md).

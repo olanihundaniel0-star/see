@@ -19,6 +19,13 @@ class ReminderCreate(BaseModel):
     priority: ReminderPriority = ReminderPriority.MEDIUM
 
 
+class ReminderUpdate(BaseModel):
+    title: str | None = Field(default=None, max_length=255)
+    due_date: datetime | None = None
+    priority: ReminderPriority | None = None
+    is_completed: bool | None = None
+
+
 class ReminderRead(ReminderCreate):
     id: UUID
     user_id: UUID

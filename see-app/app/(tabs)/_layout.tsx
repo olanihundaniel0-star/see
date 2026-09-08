@@ -21,11 +21,13 @@ export default function TabsLayout() {
             letterSpacing: 1.5
           }
         }}
-      >
+        >
         <Tabs.Screen name="index" options={{ title: "TODAY" }} />
         <Tabs.Screen name="jobs" options={{ title: "PIPELINE" }} />
         <Tabs.Screen name="events" options={{ title: "RADAR" }} />
         <Tabs.Screen name="notes" options={{ title: "VAULT" }} />
+        <Tabs.Screen name="reminders" options={{ title: "ALERTS" }} />
+        <Tabs.Screen name="account" options={{ title: "ACCOUNT" }} />
       </Tabs>
 
       <Link href="/modal/quick-add" asChild>

@@ -9,8 +9,10 @@ import {
   BottomSheetView
 } from "@gorhom/bottom-sheet";
 
+import { GlassCard } from "@/components/glass/GlassCard";
 import { GlassInput } from "@/components/glass/GlassInput";
-import { api } from "@/lib/api";
+import { GlassPill } from "@/components/glass/GlassPill";
+import { useQuickAdd } from "@/lib/queries";
 
 type Mode = "job" | "note" | "reminder";
 
@@ -22,10 +24,7 @@ const modes: { id: Mode; label: string }[] = [
 
 const priorityOptions = ["low", "medium", "high"] as const;
 
-function SheetInput({
-  inputRef,
-  ...props
-}: TextInputProps & { inputRef?: RefObject<TextInput> }) {
+function SheetInput({ inputRef, ...props }: TextInputProps & { inputRef?: RefObject<any> }) {
   return (
     <BottomSheetTextInput
       ref={inputRef}
@@ -38,17 +37,19 @@ function SheetInput({
 
 export default function QuickAddModal() {
   const sheetRef = useRef<BottomSheetModal>(null);
-  const firstFieldRef = useRef<TextInput>(null);
+  const firstFieldRef = useRef<any>(null);
   const snapPoints = useMemo(() => ["84%"], []);
+  const quickAdd = useQuickAdd();
   const [mode, setMode] = useState<Mode>("job");
   const [saving, setSaving] = useState(false);
+  const [syncEnabled, setSyncEnabled] = useState(true);
 
   const [jobForm, setJobForm] = useState({
     company: "",
     role: "",
     location: "",
-    salaryRange: "",
-    jobUrl: "",
+    salary_range: "",
+    job_url: "",
     deadline: ""
   });
   const [noteForm, setNoteForm] = useState({
@@ -58,7 +59,7 @@ export default function QuickAddModal() {
   });
   const [reminderForm, setReminderForm] = useState({
     title: "",
-    dueDate: "",
+    due_date: "",
     priority: "medium"
   });
 
@@ -79,20 +80,26 @@ export default function QuickAddModal() {
     try {
       setSaving(true);
 
+      if (!syncEnabled) {
+        throw new Error("Sync must be enabled to capture to the backend.");
+      }
+
       if (mode === "job") {
         if (!jobForm.company.trim() || !jobForm.role.trim()) {
           throw new Error("Company and role are required.");
         }
 
-        await api.post("/quick-add", {
+        await quickAdd.mutateAsync({
           type: "job",
-          title: `${jobForm.company.trim()} — ${jobForm.role.trim()}`,
+          title: jobForm.company.trim(),
           data: {
             company: jobForm.company.trim(),
             role: jobForm.role.trim(),
             location: jobForm.location.trim() || null,
-            salary_range: jobForm.salaryRange.trim() || null,
-            job_url: jobForm.jobUrl.trim() || null,
+            salary_range: jobForm.salary_range.trim() || null,
+            job_url: jobForm.job_url.trim() || null,
+            status: "applied",
+            interview_notes: null,
             deadline: jobForm.deadline ? new Date(jobForm.deadline).toISOString() : null
           }
         });
@@ -103,7 +110,7 @@ export default function QuickAddModal() {
           throw new Error("Title and content are required.");
         }
 
-        await api.post("/quick-add", {
+        await quickAdd.mutateAsync({
           type: "note",
           title: noteForm.title.trim(),
           data: {
@@ -115,7 +122,7 @@ export default function QuickAddModal() {
       }
 
       if (mode === "reminder") {
-        if (!reminderForm.title.trim() || !reminderForm.dueDate.trim()) {
+        if (!reminderForm.title.trim() || !reminderForm.due_date.trim()) {
           throw new Error("Title and due date are required.");
         }
 
@@ -123,12 +130,17 @@ export default function QuickAddModal() {
           ? reminderForm.priority
           : "medium";
 
-        await api.post("/quick-add", {
+        const dueDate = new Date(reminderForm.due_date);
+        if (Number.isNaN(dueDate.getTime())) {
+          throw new Error("Due date must be a valid ISO 8601 timestamp.");
+        }
+
+        await quickAdd.mutateAsync({
           type: "reminder",
           title: reminderForm.title.trim(),
           data: {
             title: reminderForm.title.trim(),
-            due_date: new Date(reminderForm.dueDate).toISOString(),
+            due_date: dueDate.toISOString(),
             priority
           }
         });
@@ -187,6 +199,26 @@ export default function QuickAddModal() {
                 })}
               </View>
 
+              <GlassCard className="gap-3">
+                <View className="flex-row items-center justify-between">
+                  <GlassPill label="SYNC" value={syncEnabled ? "ONLINE" : "PAUSED"} tone={syncEnabled ? "active" : "default"} />
+                  <Pressable
+                    onPress={async () => {
+                      await Haptics.selectionAsync();
+                      setSyncEnabled((current) => !current);
+                    }}
+                    className="rounded-lg border border-white/10 bg-zinc-950/70 px-3 py-2"
+                  >
+                    <Text className="font-mono text-[10px] tracking-[0.16em] text-white">
+                      {syncEnabled ? "[SYNC ENABLED]" : "[SYNC DISABLED]"}
+                    </Text>
+                  </Pressable>
+                </View>
+                <Text className="font-mono text-[11px] text-zinc-400">
+                  Optimistic capture writes directly into the backend collections and refreshes dashboards after commit.
+                </Text>
+              </GlassCard>
+
               {mode === "job" ? (
                 <View className="gap-3">
                   <SheetInput
@@ -208,15 +240,15 @@ export default function QuickAddModal() {
                   />
                   <GlassInput
                     placeholder="Salary range"
-                    value={jobForm.salaryRange}
-                    onChangeText={(salaryRange) => setJobForm((current) => ({ ...current, salaryRange }))}
+                    value={jobForm.salary_range}
+                    onChangeText={(salary_range) => setJobForm((current) => ({ ...current, salary_range }))}
                   />
                   <GlassInput
                     placeholder="Job URL"
                     autoCapitalize="none"
                     keyboardType="url"
-                    value={jobForm.jobUrl}
-                    onChangeText={(jobUrl) => setJobForm((current) => ({ ...current, jobUrl }))}
+                    value={jobForm.job_url}
+                    onChangeText={(job_url) => setJobForm((current) => ({ ...current, job_url }))}
                   />
                   <GlassInput
                     placeholder="Deadline ISO 8601"
@@ -264,8 +296,8 @@ export default function QuickAddModal() {
                   <GlassInput
                     placeholder="Due date ISO 8601"
                     autoCapitalize="none"
-                    value={reminderForm.dueDate}
-                    onChangeText={(dueDate) => setReminderForm((current) => ({ ...current, dueDate }))}
+                    value={reminderForm.due_date}
+                    onChangeText={(due_date) => setReminderForm((current) => ({ ...current, due_date }))}
                   />
                   <GlassInput
                     placeholder="Priority: low | medium | high"
@@ -282,7 +314,7 @@ export default function QuickAddModal() {
                 className="mt-auto rounded-xl border border-white/20 bg-white px-4 py-4 disabled:opacity-60"
               >
                 <Text className="text-center font-mono text-[10px] font-bold text-black">
-                  {saving ? "[ CAPTURING... ]" : "[ CAPTURE -> ENTER ]"}
+                  {saving ? "[ CAPTURING... ]" : `[ CAPTURE -> ${mode.toUpperCase()} ]`}
                 </Text>
               </Pressable>
             </View>
