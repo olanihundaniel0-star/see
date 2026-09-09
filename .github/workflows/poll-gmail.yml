@@ -1,0 +1,15 @@
+name: Poll Gmail
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch: {}
+
+jobs:
+  poll:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Gmail poll
+        run: |
+          curl -sf -X POST "${{ secrets.BACKEND_URL }}/internal/poll-gmail" \
+            --max-time 60
