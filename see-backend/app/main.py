@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 import redis.asyncio as redis_async
 
+from app.api.internal import router as internal_router
 from app.api.v1.router import api_router
 from app.core.database import AsyncSessionLocal
 from app.core.config import settings
@@ -17,6 +18,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.include_router(api_router, prefix=settings.API_V1_STR)
+app.include_router(internal_router)
 
 
 @app.get("/health")

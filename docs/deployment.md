@@ -82,3 +82,7 @@ Frontend:
 4. Start the Celery worker.
 5. Start Celery beat if Gmail polling is enabled.
 6. Deploy the Expo app or web build with the frontend environment variables set.
+
+On the free Render deployment, use an external timer to `POST
+/internal/poll-gmail` instead of relying on Celery beat. The endpoint runs Gmail
+polling directly and deduplicates messages by their stored content hash.

@@ -64,8 +64,9 @@ to `./start.sh` so Render does not need to parse an inline shell command.
    `REDIS_URL`, database, and application secrets. Replace Celery beat with an
    external scheduler that enqueues `app.workers.tasks.poll_gmail_inbox` every
    15 minutes. Use this only with a Redis endpoint the external host can reach.
-3. **Serverless scheduler redesign:** use GitHub Actions, a cloud scheduler, or
-   a webhook scheduler to invoke a protected API endpoint every 15 minutes.
-   That endpoint must poll Gmail and process each message directly (or enqueue
-   it to a managed queue). This requires a small application change; it is not
-   safe to call the existing Celery task while no worker is running.
+3. **Serverless polling (now supported):** use GitHub Actions, a cloud
+   scheduler, or another timer to `POST /internal/poll-gmail` every 15 minutes.
+   The endpoint runs the polling and persistence path directly, without a
+   Celery worker. It is currently unauthenticated for this personal-use
+   deployment, so do not expose it beyond the intended scheduler until request
+   authentication is added.
