@@ -4,7 +4,8 @@ from datetime import datetime
 from enum import Enum
 from uuid import UUID, uuid4
 
-from sqlalchemy import Boolean, DateTime, Enum as SAEnum, String, func
+from sqlalchemy import Boolean, DateTime, String, func
+from sqlalchemy.dialects.postgresql import ENUM as PGEnum
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -24,7 +25,7 @@ class Reminder(Base):
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     due_date: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True, nullable=False)
     priority: Mapped[ReminderPriority] = mapped_column(
-        SAEnum(ReminderPriority, name="priority_level"),
+        PGEnum(ReminderPriority, name="priority_level", create_type=False),
         default=ReminderPriority.MEDIUM,
         nullable=False,
     )

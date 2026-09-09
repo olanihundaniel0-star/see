@@ -4,7 +4,8 @@ from datetime import datetime
 from enum import Enum
 from uuid import UUID, uuid4
 
-from sqlalchemy import Boolean, DateTime, Enum as SAEnum, ForeignKey, String, Text, func
+from sqlalchemy import Boolean, DateTime, ForeignKey, String, Text, func
+from sqlalchemy.dialects.postgresql import ENUM as PGEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -29,7 +30,7 @@ class JobApplication(Base):
     salary_range: Mapped[str | None] = mapped_column(String(100), nullable=True)
     job_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     status: Mapped[JobStatus] = mapped_column(
-        SAEnum(JobStatus, name="job_status"),
+        PGEnum(JobStatus, name="job_status", create_type=False),
         default=JobStatus.APPLIED,
         nullable=False,
     )

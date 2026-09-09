@@ -18,7 +18,7 @@ branch_labels = None
 depends_on = None
 
 
-job_status = sa.Enum(
+job_status = postgresql.ENUM(
     "bookmarked",
     "applied",
     "interviewing",
@@ -28,7 +28,7 @@ job_status = sa.Enum(
     create_type=False,
 )
 
-priority_level = sa.Enum("low", "medium", "high", name="priority_level", create_type=False)
+priority_level = postgresql.ENUM("low", "medium", "high", name="priority_level", create_type=False)
 
 
 def upgrade() -> None:
