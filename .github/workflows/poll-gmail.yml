@@ -11,5 +11,7 @@ jobs:
     steps:
       - name: Trigger Gmail poll
         run: |
-          curl -sf -X POST "${{ secrets.BACKEND_URL }}/internal/poll-gmail" \
-            --max-time 60
+          curl --fail-with-body --show-error --silent \
+            --retry 2 --retry-all-errors --connect-timeout 20 --max-time 300 \
+            -X POST "${{ secrets.BACKEND_URL }}/internal/poll-gmail" \
+            -H "X-Internal-Token: ${{ secrets.INTERNAL_API_TOKEN }}"

@@ -33,6 +33,12 @@ services:
         sync: false
       - key: GMAIL_APP_PASSWORD
         sync: false
+      - key: INTERNAL_API_TOKEN
+        sync: false
+      - key: GMAIL_IMAP_TIMEOUT_SECONDS
+        value: "20"
+      - key: GMAIL_MAX_MESSAGES_PER_POLL
+        value: "5"
       - key: GMAIL_POLL_INTERVAL_MINUTES
         value: "15"
       - key: CORS_ORIGINS

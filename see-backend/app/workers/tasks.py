@@ -24,7 +24,11 @@ def poll_gmail_inbox() -> dict[str, int]:
 
 async def poll_gmail_inbox_impl() -> dict[str, int]:
     """Fetch and persist Gmail messages without requiring Celery or Redis."""
-    messages = await asyncio.to_thread(gmail_ingestion.fetch_unread_job_emails)
+    try:
+        messages = await asyncio.to_thread(gmail_ingestion.fetch_unread_job_emails)
+    except Exception:
+        logger.exception("Unable to fetch unread Gmail messages")
+        return {"found": 0, "processed": 0, "duplicates": 0, "failed": 1}
     processed = 0
     duplicates = 0
     failed = 0

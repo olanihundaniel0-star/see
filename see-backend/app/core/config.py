@@ -36,6 +36,9 @@ class Settings(BaseSettings):
     GMAIL_USER: str = ""
     GMAIL_APP_PASSWORD: SecretStr | None = None
     GMAIL_POLL_INTERVAL_MINUTES: int = 15
+    GMAIL_IMAP_TIMEOUT_SECONDS: int = 20
+    GMAIL_MAX_MESSAGES_PER_POLL: int = 5
+    INTERNAL_API_TOKEN: SecretStr | None = None
     CORS_ORIGINS: str = "http://localhost:8081,http://localhost:19006,http://127.0.0.1:8081,http://127.0.0.1:19006"
     REDIS_URL: str = "redis://localhost:6379/0"
 

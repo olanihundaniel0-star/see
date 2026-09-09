@@ -54,7 +54,12 @@ def fetch_unread_job_emails() -> list[dict[str, Any]]:
     if not gmail_user or not gmail_password:
         return []
 
-    mail = imaplib.IMAP4_SSL(DEFAULT_IMAP_HOST, DEFAULT_IMAP_PORT)
+    # A scheduler request must not be held indefinitely by a stalled IMAP connection.
+    mail = imaplib.IMAP4_SSL(
+        DEFAULT_IMAP_HOST,
+        DEFAULT_IMAP_PORT,
+        timeout=max(settings.GMAIL_IMAP_TIMEOUT_SECONDS, 1),
+    )
     try:
         mail.login(gmail_user, gmail_password)
         mail.select("inbox")
@@ -67,7 +72,9 @@ def fetch_unread_job_emails() -> list[dict[str, Any]]:
             return []
 
         parsed_emails: list[dict[str, Any]] = []
-        for e_id in messages[0].split():
+        # Keep each scheduled invocation bounded. Remaining unread messages are handled next run.
+        message_ids = messages[0].split()[-max(settings.GMAIL_MAX_MESSAGES_PER_POLL, 1) :]
+        for e_id in message_ids:
             res, data = mail.fetch(e_id, "(RFC822)")
             if res != "OK" or not data or not data[0]:
                 continue

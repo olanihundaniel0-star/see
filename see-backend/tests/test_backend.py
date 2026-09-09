@@ -8,10 +8,12 @@ from types import SimpleNamespace
 from uuid import UUID
 
 import jwt
+import pytest
 from fastapi import HTTPException
 
 from fastapi.security import HTTPAuthorizationCredentials
 
+from app.api import internal
 from app.api.v1.endpoints import events, jobs, notes, reminders, webhooks
 from app.core.auth import get_current_user_id
 from app.core.config import settings
@@ -25,6 +27,7 @@ from app.schemas.reminder import ReminderCreate, ReminderPriority as ReminderPri
 from app.workers import ingest as worker_ingest
 from app.workers import email as worker_email
 from app.workers import tasks as worker_tasks
+from pydantic import SecretStr
 
 
 USER_ID = UUID("11111111-1111-1111-1111-111111111111")
@@ -72,6 +75,29 @@ def test_auth_me_rejects_invalid_token(monkeypatch):
 
 def test_webhook_verification_rejects_missing_secret():
     assert not webhooks._verify_signature("1757200000", "abc", "def")
+
+
+def test_internal_gmail_poll_requires_scheduler_token(monkeypatch):
+    monkeypatch.setattr(settings, "INTERNAL_API_TOKEN", SecretStr("scheduler-secret"))
+
+    with pytest.raises(HTTPException) as exc_info:
+        run(internal.trigger_gmail_poll(x_internal_token="wrong-token"))
+
+    assert exc_info.value.status_code == 401
+
+
+def test_internal_gmail_poll_returns_observable_result(monkeypatch):
+    monkeypatch.setattr(settings, "INTERNAL_API_TOKEN", SecretStr("scheduler-secret"))
+
+    async def fake_poll():
+        return {"found": 2, "processed": 1, "duplicates": 1, "failed": 0}
+
+    monkeypatch.setattr(internal, "poll_gmail_inbox_impl", fake_poll)
+    response = run(internal.trigger_gmail_poll(x_internal_token="scheduler-secret"))
+
+    assert response["status"] == "ok"
+    assert response["elapsed_ms"] >= 0
+    assert response["result"] == {"found": 2, "processed": 1, "duplicates": 1, "failed": 0}
 
 
 def test_webhook_verifies_and_queues_email(monkeypatch, fake_db):

@@ -23,6 +23,7 @@ support web services and datastores, but not Background Workers or Cron Jobs.
    - `GEMINI_API_KEY`
    - `GMAIL_USER`
    - `GMAIL_APP_PASSWORD`
+   - `INTERNAL_API_TOKEN` (a long random value shared with the GitHub Actions secret)
 5. Deploy the blueprint.
 
 The web service runs `alembic upgrade head` before Uvicorn starts. This keeps
@@ -66,7 +67,7 @@ to `./start.sh` so Render does not need to parse an inline shell command.
    15 minutes. Use this only with a Redis endpoint the external host can reach.
 3. **Serverless polling (now supported):** use GitHub Actions, a cloud
    scheduler, or another timer to `POST /internal/poll-gmail` every 15 minutes.
-   The endpoint runs the polling and persistence path directly, without a
-   Celery worker. It is currently unauthenticated for this personal-use
-   deployment, so do not expose it beyond the intended scheduler until request
-   authentication is added.
+   Send the shared `X-Internal-Token` header. The endpoint runs a bounded
+   polling and persistence path directly, without a Celery worker, and returns
+   JSON containing the elapsed time plus found, processed, duplicate, and
+   failed counts.
