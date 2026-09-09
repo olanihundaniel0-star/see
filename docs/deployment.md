@@ -29,6 +29,14 @@ The backend schema is managed by Alembic.
 - Local stack: `make compose-up` runs the `migrate` service before the API, worker, and beat start.
 - Manual migration: `make migrate`
 
+## Render Startup Command
+
+Render runs `dockerCommand` in exec form and does not implicitly invoke a
+shell. Commands that chain migration and application startup with `&&`, or
+expand variables such as `$PORT`, must therefore use an explicit
+`sh -c "..."` wrapper or a startup script. The Render Blueprint uses the
+explicit shell wrapper so Alembic completes before Uvicorn starts.
+
 ## Validation
 
 Run these before testing a deployment:
