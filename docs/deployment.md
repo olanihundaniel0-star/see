@@ -31,11 +31,12 @@ The backend schema is managed by Alembic.
 
 ## Render Startup Command
 
-Render runs `dockerCommand` in exec form and does not implicitly invoke a
-shell. Commands that chain migration and application startup with `&&`, or
-expand variables such as `$PORT`, must therefore use an explicit
-`sh -c "..."` wrapper or a startup script. The Render Blueprint uses the
-explicit shell wrapper so Alembic completes before Uvicorn starts.
+The backend image's [`start.sh`](../see-backend/start.sh) is the source of
+truth for container startup: it runs `alembic upgrade head` and then replaces
+itself with Uvicorn. The Render Blueprint's `dockerCommand` points to
+`./start.sh`; keep the command as that path rather than embedding shell logic
+in YAML or in the Render dashboard. This avoids relying on Render's conversion
+of command strings into Docker exec-form arguments.
 
 ## Validation
 

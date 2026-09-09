@@ -26,10 +26,9 @@ support web services and datastores, but not Background Workers or Cron Jobs.
 5. Deploy the blueprint.
 
 The web service runs `alembic upgrade head` before Uvicorn starts. This keeps
-the schema current without Render's paid pre-deploy jobs. Render runs
-`dockerCommand` in exec form, with no implicit shell; chained commands and
-environment-variable expansion therefore require an explicit `sh -c "..."`
-wrapper (or a startup script).
+the schema current without Render's paid pre-deploy jobs. The container's
+`start.sh` is the source of truth for this sequence, and `dockerCommand` points
+to `./start.sh` so Render does not need to parse an inline shell command.
 
 ## After Deploy
 
