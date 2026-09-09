@@ -25,9 +25,10 @@ job_status = sa.Enum(
     "offer",
     "rejected",
     name="job_status",
+    create_type=False,
 )
 
-priority_level = sa.Enum("low", "medium", "high", name="priority_level")
+priority_level = sa.Enum("low", "medium", "high", name="priority_level", create_type=False)
 
 
 def upgrade() -> None:
