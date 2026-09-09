@@ -65,6 +65,7 @@ Backend:
 - `GEMINI_API_KEY`
 - `GMAIL_USER`
 - `GMAIL_APP_PASSWORD`
+- `DEFAULT_USER_ID` (the Supabase Auth user UUID to receive Gmail-created records)
 - `INTERNAL_API_TOKEN` (also set as the `INTERNAL_API_TOKEN` GitHub Actions secret)
 - `GMAIL_POLL_INTERVAL_MINUTES`
 - `CORS_ORIGINS`

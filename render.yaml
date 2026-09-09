@@ -33,6 +33,8 @@ services:
         sync: false
       - key: GMAIL_APP_PASSWORD
         sync: false
+      - key: DEFAULT_USER_ID
+        sync: false
       - key: INTERNAL_API_TOKEN
         sync: false
       - key: GMAIL_IMAP_TIMEOUT_SECONDS
