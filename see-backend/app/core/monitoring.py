@@ -52,7 +52,7 @@ def init_sentry(app: FastAPI) -> None:
         traces_sample_rate=traces_sample_rate,
         profiles_sample_rate=profiles_sample_rate,
         environment=settings.APP_ENV,
-        release=settings.get("VERSION", "unknown"),
+        release=settings.VERSION,
         # Only capture errors in production/staging (not dev)
         debug=settings.APP_ENV == "development",
         # Attach stack traces to all messages
