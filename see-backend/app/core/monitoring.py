@@ -14,7 +14,6 @@ from typing import Optional
 from fastapi import FastAPI, Request
 from sentry_sdk.integrations.fastapi import FastApiIntegration
 from sentry_sdk.integrations.celery import CeleryIntegration
-from sentry_sdk.integrations.sqlalchemy import SqlAlchemyIntegration
 from sentry_sdk.integrations.redis import RedisIntegration
 
 from app.core.config import settings
@@ -48,7 +47,6 @@ def init_sentry(app: FastAPI) -> None:
         integrations=[
             FastApiIntegration(),
             CeleryIntegration(),
-            SqlAlchemyIntegration(),
             RedisIntegration(),
         ],
         traces_sample_rate=traces_sample_rate,
