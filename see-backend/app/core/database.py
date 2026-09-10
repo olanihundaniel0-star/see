@@ -22,12 +22,25 @@ class Base(DeclarativeBase):
     metadata = metadata
 
 
+# Connection pool configuration
+# Development: smaller pool (local testing)
+# Production: larger pool (handle more concurrent requests)
+if settings.APP_ENV == "production":
+    pool_size = 20
+    max_overflow = 40
+    pool_recycle = 3600  # Recycle connections after 1 hour
+else:
+    pool_size = 10
+    max_overflow = 20
+    pool_recycle = 3600
+
 engine = create_async_engine(
     settings.DATABASE_URL,
     echo=False,
-    pool_size=10,
-    max_overflow=20,
+    pool_size=pool_size,
+    max_overflow=max_overflow,
     pool_pre_ping=True,
+    pool_recycle=pool_recycle,
 )
 
 AsyncSessionLocal = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)

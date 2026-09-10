@@ -45,7 +45,7 @@ export default function RootLayout() {
             <Stack
               screenOptions={{
                 headerShown: false,
-                contentStyle: { backgroundColor: "#000000" }
+                contentStyle: { backgroundColor: "#000000" } as any
               }}
             >
               {authLoading ? <Stack.Screen name="auth" /> : null}

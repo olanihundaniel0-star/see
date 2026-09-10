@@ -15,7 +15,6 @@
     "plugins": [
       "expo-router",
       "expo-secure-store",
-      "expo-haptics",
       "expo-notifications",
       "expo-calendar"
     ],
@@ -24,6 +23,39 @@
     },
     "web": {
       "bundler": "metro"
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "ed15e83e-514e-4a1a-b1b9-049653548bd4"
+      }
+    },
+    "android": {
+      "package": "com.nife.dev.see",
+      "versionCode": 1,
+      "permissions": [
+        "READ_CALENDAR",
+        "WRITE_CALENDAR",
+        "INTERNET",
+        "ACCESS_NETWORK_STATE"
+      ],
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#000000"
+      }
+    },
+    "ios": {
+      "supportsTabletMode": true,
+      "bundleIdentifier": "com.nife.dev.see",
+      "buildNumber": "1",
+      "infoPlist": {
+        "NSCalendarsUsageDescription": "See needs calendar access to sync events",
+        "NSContactsUsageDescription": "See needs contacts access for job prospects",
+        "UIRequiredDeviceCapabilities": [
+          "armv7"
+        ]
+      }
+    },
+    "privacy": "https://your-app-domain.com/privacy"
   }
 }

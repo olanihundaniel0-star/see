@@ -14,12 +14,12 @@ export default function TabsLayout() {
             backgroundColor: "rgba(9, 9, 11, 0.96)",
             borderTopColor: "rgba(255,255,255,0.08)",
             height: 74
-          },
+          } as any,
           tabBarLabelStyle: {
             fontFamily: "monospace",
             fontSize: 10,
             letterSpacing: 1.5
-          }
+          } as any
         }}
         >
         <Tabs.Screen name="index" options={{ title: "TODAY" }} />

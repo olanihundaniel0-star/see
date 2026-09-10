@@ -7,9 +7,24 @@ from app.api.internal import router as internal_router
 from app.api.v1.router import api_router
 from app.core.database import AsyncSessionLocal
 from app.core.config import settings
+from app.core.monitoring import init_sentry, setup_logging, SentryContextMiddleware
+from app.core.security import setup_security_middleware
 
+
+# Set up logging
+setup_logging()
 
 app = FastAPI(title=settings.PROJECT_NAME, version="1.0.0")
+
+# Initialize Sentry for error tracking
+init_sentry(app)
+
+# Set up security middleware
+setup_security_middleware(app)
+
+# Add Sentry context middleware
+app.add_middleware(SentryContextMiddleware)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,

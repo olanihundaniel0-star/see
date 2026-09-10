@@ -165,8 +165,8 @@ export default function QuickAddModal() {
         snapPoints={snapPoints}
         enablePanDownToClose
         backdropComponent={(props) => <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} />}
-        backgroundStyle={{ backgroundColor: "rgba(9, 9, 11, 0.96)" }}
-        handleIndicatorStyle={{ backgroundColor: "rgba(255,255,255,0.25)" }}
+        backgroundStyle={{ backgroundColor: "rgba(9, 9, 11, 0.96)" } as any}
+        handleIndicatorStyle={{ backgroundColor: "rgba(255,255,255,0.25)" } as any}
         onDismiss={() => router.back()}
       >
         <BottomSheetView className="flex-1 px-4 pb-6">

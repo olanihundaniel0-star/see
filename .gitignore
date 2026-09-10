@@ -38,3 +38,12 @@ env/
 .ruff_cache/
 pip-wheel-metadata/
 .nyc_output/
+
+
+# Documentation - internal only
+docs/legacy/
+docs/design/
+
+# Build artifacts and temporary files
+*.docx
+build_prd.py
