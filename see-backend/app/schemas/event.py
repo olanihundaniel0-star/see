@@ -21,7 +21,6 @@ class EventRead(BaseModel):
     start_date: datetime
     end_date: datetime | None
     last_seen_at: datetime
-    raw_source_ref: str | None
     scraped_at: datetime
 
     model_config = {"from_attributes": True}

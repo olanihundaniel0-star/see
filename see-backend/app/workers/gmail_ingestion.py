@@ -72,10 +72,13 @@ def fetch_unread_job_emails() -> list[dict[str, Any]]:
             return []
 
         parsed_emails: list[dict[str, Any]] = []
-        # Keep each scheduled invocation bounded. Remaining unread messages are handled next run.
-        uids = [uid.decode("ascii") for uid in messages[0].split()[-max(settings.GMAIL_MAX_MESSAGES_PER_POLL, 1) :]]
+        # Keep each scheduled invocation bounded and drain oldest-first so a
+        # backlog cannot be permanently masked by newer mail. BODY.PEEK avoids
+        # setting \Seen as a side effect; relevant mail is marked seen only after
+        # it has been persisted.
+        uids = [uid.decode("ascii") for uid in messages[0].split()[: max(settings.GMAIL_MAX_MESSAGES_PER_POLL, 1)]]
         for uid in uids:
-            res, data = mail.uid("fetch", uid, "(RFC822)")
+            res, data = mail.uid("fetch", uid, "(BODY.PEEK[])")
             if res != "OK" or not data or not data[0]:
                 continue
 
@@ -86,6 +89,12 @@ def fetch_unread_job_emails() -> list[dict[str, Any]]:
             body = extract_body(msg)
 
             if not _looks_relevant(sender, subject, body):
+                # This is the dedicated ingestion inbox, so non-job mail is
+                # marked read once evaluated to keep the unread window moving.
+                try:
+                    mail.uid("store", uid, "+FLAGS", "\\Seen")
+                except imaplib.IMAP4.error:
+                    pass
                 continue
 
             stripped_text = " ".join(body.split()).strip()

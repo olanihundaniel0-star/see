@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import json
 import re
@@ -321,7 +322,7 @@ async def _upsert_events(records: list[dict[str, Any]]) -> int:
 
 async def scrape_devpost_events() -> int:
     try:
-        content_type, body = _fetch_url(settings.DEVPOST_HACKATHON_URL)
+        content_type, body = await asyncio.to_thread(_fetch_url, settings.DEVPOST_HACKATHON_URL)
     except (HTTPError, URLError):
         return 0
 
@@ -658,7 +659,7 @@ async def scrape_luma_events() -> int:
 
     for page_url in page_urls:
         try:
-            content_type, body = _fetch_url(page_url)
+            content_type, body = await asyncio.to_thread(_fetch_url, page_url)
         except (HTTPError, URLError):
             continue
 
@@ -673,7 +674,7 @@ async def scrape_luma_events() -> int:
 
         for candidate_url in _extract_luma_candidate_urls(soup, page_url):
             try:
-                candidate_content_type, candidate_body = _fetch_url(candidate_url)
+                candidate_content_type, candidate_body = await asyncio.to_thread(_fetch_url, candidate_url)
             except (HTTPError, URLError):
                 continue
             if "html" not in candidate_content_type:

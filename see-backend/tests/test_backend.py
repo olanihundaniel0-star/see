@@ -6,7 +6,7 @@ import hmac
 import imaplib
 import json
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 from uuid import UUID
 
@@ -598,11 +598,10 @@ def test_events_endpoint_returns_cached_shape_and_headers(client, fake_db):
         is_virtual=True,
         categories=["ai", "scraping"],
         prize_pool=None,
-        start_date=datetime(2026, 9, 10, 12, 0, tzinfo=timezone.utc),
-        end_date=datetime(2026, 9, 10, 14, 0, tzinfo=timezone.utc),
-        last_seen_at=datetime(2026, 9, 7, 12, 0, tzinfo=timezone.utc),
-        raw_source_ref=None,
-        scraped_at=datetime(2026, 9, 7, 12, 0, tzinfo=timezone.utc),
+        start_date=datetime.now(timezone.utc) + timedelta(days=30),
+        end_date=datetime.now(timezone.utc) + timedelta(days=30, hours=2),
+        last_seen_at=datetime.now(timezone.utc) - timedelta(days=3),
+        scraped_at=datetime.now(timezone.utc) - timedelta(days=3),
     )
     fake_db.add(event)
 
@@ -654,11 +653,11 @@ def test_events_crud_and_pagination(fake_db):
         is_virtual=True,
         categories=["ai", "scraping"],
         prize_pool=None,
-        start_date=datetime(2026, 9, 10, 12, 0, tzinfo=timezone.utc),
-        end_date=datetime(2026, 9, 10, 13, 0, tzinfo=timezone.utc),
-        last_seen_at=datetime(2026, 9, 7, 12, 0, tzinfo=timezone.utc),
+        start_date=datetime.now(timezone.utc) + timedelta(days=10),
+        end_date=datetime.now(timezone.utc) + timedelta(days=10, hours=1),
+        last_seen_at=datetime.now(timezone.utc) - timedelta(days=3),
         raw_source_ref="first",
-        scraped_at=datetime(2026, 9, 7, 12, 0, tzinfo=timezone.utc),
+        scraped_at=datetime.now(timezone.utc) - timedelta(days=3),
     )
     second = ScrapedEvent(
         source="devpost",
@@ -671,11 +670,11 @@ def test_events_crud_and_pagination(fake_db):
         is_virtual=False,
         categories=["hackathon"],
         prize_pool=None,
-        start_date=datetime(2026, 9, 11, 12, 0, tzinfo=timezone.utc),
+        start_date=datetime.now(timezone.utc) + timedelta(days=11),
         end_date=None,
-        last_seen_at=datetime(2026, 9, 7, 12, 0, tzinfo=timezone.utc),
+        last_seen_at=datetime.now(timezone.utc) - timedelta(days=3),
         raw_source_ref="second",
-        scraped_at=datetime(2026, 9, 7, 12, 0, tzinfo=timezone.utc),
+        scraped_at=datetime.now(timezone.utc) - timedelta(days=3),
     )
     fake_db.add(first)
     fake_db.add(second)
@@ -691,6 +690,30 @@ def test_events_crud_and_pagination(fake_db):
 
     first_payload = EventRead.model_validate(page_one["items"][0])
     assert first_payload.categories == ["ai", "scraping"]
+
+
+def test_events_endpoint_excludes_past_events(client, fake_db):
+    fake_db.add(
+        ScrapedEvent(
+            source="luma",
+            external_id="past",
+            title="Past Event",
+            description=None,
+            url="https://luma.com/past",
+            source_url="https://luma.com/past",
+            location=None,
+            is_virtual=True,
+            categories=[],
+            prize_pool=None,
+            start_date=datetime.now(timezone.utc) - timedelta(days=5),
+            end_date=datetime.now(timezone.utc) - timedelta(days=5),
+            last_seen_at=datetime.now(timezone.utc) - timedelta(days=5),
+            raw_source_ref="past",
+            scraped_at=datetime.now(timezone.utc) - timedelta(days=5),
+        )
+    )
+
+    assert client.get("/api/v1/events").json()["items"] == []
 
 
 def test_cors_preflight_allows_configured_origin(client):
@@ -840,6 +863,44 @@ def test_mark_seen_by_uids_marks_only_persisted_messages(monkeypatch):
 def test_fetch_unread_job_emails_does_not_mark_seen(monkeypatch):
     monkeypatch.setattr(settings, "GMAIL_USER", "")
     assert gmail_ingestion.fetch_unread_job_emails() == []
+
+
+def test_fetch_unread_job_emails_marks_irrelevant_seen(monkeypatch):
+    monkeypatch.setattr(settings, "GMAIL_USER", "me@example.com")
+    monkeypatch.setattr(settings, "GMAIL_APP_PASSWORD", SecretStr("app-password"))
+
+    irrelevant = b"From: friend@example.com\r\nSubject: Lunch\r\n\r\nWant to grab lunch?"
+
+    class FakeFetcher:
+        def __init__(self, *args, **kwargs):
+            self.stores: list[tuple[str, str]] = []
+
+        def login(self, user, password):
+            pass
+
+        def select(self, folder):
+            return "OK", ["1"]
+
+        def uid(self, command, *args):
+            if command == "search":
+                return "OK", [b"7"]
+            if command == "fetch":
+                return "OK", [(b"7 (BODY[] {10}", irrelevant)]
+            if command == "store":
+                self.stores.append((args[0], args[2]))
+            return "OK", [b"1"]
+
+        def close(self):
+            pass
+
+        def logout(self):
+            pass
+
+    fake = FakeFetcher()
+    monkeypatch.setattr(imaplib, "IMAP4_SSL", lambda *args, **kwargs: fake)
+
+    assert gmail_ingestion.fetch_unread_job_emails() == []
+    assert fake.stores == [("7", "\\Seen")]
 
 
 def test_settings_warns_not_fails_when_production_default_user_id_missing(caplog):

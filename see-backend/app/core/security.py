@@ -9,8 +9,8 @@ Implements:
 """
 
 import time
-from typing import Dict, Optional
-from fastapi import FastAPI, Request, HTTPException, status
+from typing import Dict
+from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 import logging
@@ -69,54 +69,62 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
-    """Simple in-memory rate limiting (use Redis for production)."""
+    """Simple in-memory rate limiting (use Redis for multi-instance production)."""
 
     def __init__(self, app: FastAPI):
         super().__init__(app)
-        self.requests: Dict[str, list] = {}
+        self.requests: Dict[str, list[float]] = {}
         self.limit_per_minute = 300  # Production default
+        self.max_tracked_clients = 10_000
+
+    @staticmethod
+    def _client_key(request: Request) -> str:
+        # Behind Render's proxy the socket peer is the proxy itself, so prefer
+        # the forwarded client address; otherwise every user shares one bucket.
+        forwarded = request.headers.get("x-forwarded-for", "")
+        if forwarded:
+            return forwarded.split(",")[0].strip()
+        return request.client.host if request.client else "unknown"
+
+    def _evict_stale(self, now: float) -> None:
+        for key in [key for key, times in self.requests.items() if not times or now - times[-1] >= 60]:
+            self.requests.pop(key, None)
 
     async def dispatch(self, request: Request, call_next):
         # Skip rate limiting for health checks
-        if request.url.path == "/health":
+        if request.url.path in {"/health", "/health/live", "/health/ready"}:
             return await call_next(request)
 
         # Rate limiting disabled in development
-        if not settings.APP_ENV in ["staging", "production"]:
+        if settings.APP_ENV not in ["staging", "production"]:
             return await call_next(request)
 
-        # Get client IP
-        client_ip = request.client.host if request.client else "unknown"
-
-        # Initialize tracking for this IP
-        if client_ip not in self.requests:
-            self.requests[client_ip] = []
-
-        # Current time in seconds
         now = time.time()
+        client_key = self._client_key(request)
 
-        # Remove requests older than 1 minute
-        self.requests[client_ip] = [
-            req_time for req_time in self.requests[client_ip]
-            if now - req_time < 60
-        ]
+        # Bound memory: drop idle buckets, then evict least-recently-seen clients.
+        if len(self.requests) >= self.max_tracked_clients:
+            self._evict_stale(now)
+            while len(self.requests) >= self.max_tracked_clients and self.requests:
+                oldest = min(self.requests, key=lambda key: self.requests[key][-1])
+                self.requests.pop(oldest, None)
 
-        # Check if limit exceeded
-        if len(self.requests[client_ip]) >= self.limit_per_minute:
-            logger.warning(f"Rate limit exceeded for IP: {client_ip}")
+        bucket = [req_time for req_time in self.requests.get(client_key, []) if now - req_time < 60]
+
+        if len(bucket) >= self.limit_per_minute:
+            self.requests[client_key] = bucket
+            logger.warning("Rate limit exceeded for client: %s", client_key)
             return JSONResponse(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
                 content={"detail": "Too many requests. Please try again later."},
             )
 
-        # Add current request
-        self.requests[client_ip].append(now)
+        bucket.append(now)
+        self.requests[client_key] = bucket
 
-        # Proceed
         response = await call_next(request)
 
-        # Add rate limit headers
-        remaining = self.limit_per_minute - len(self.requests[client_ip])
+        remaining = max(self.limit_per_minute - len(bucket), 0)
         response.headers["X-RateLimit-Limit"] = str(self.limit_per_minute)
         response.headers["X-RateLimit-Remaining"] = str(remaining)
         response.headers["X-RateLimit-Reset"] = str(int(now + 60))
@@ -141,49 +149,10 @@ class HTTPSEnforceMiddleware(BaseHTTPMiddleware):
         return await call_next(request)
 
 
-class RequestValidationMiddleware(BaseHTTPMiddleware):
-    """Validate incoming requests."""
-
-    async def dispatch(self, request: Request, call_next):
-        # Check for suspicious patterns in query parameters
-        for key, value in request.query_params.items():
-            if self._is_suspicious(key) or self._is_suspicious(value):
-                logger.warning(
-                    f"Suspicious query parameter detected: {key}={value}"
-                )
-                return JSONResponse(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    content={"detail": "Invalid request"},
-                )
-
-        return await call_next(request)
-
-    @staticmethod
-    def _is_suspicious(value: str) -> bool:
-        """Check for common injection patterns."""
-        suspicious_patterns = [
-            "script>",
-            "javascript:",
-            "onerror=",
-            "onload=",
-            "eval(",
-            "<iframe",
-            "onclick=",
-            "onmouseover=",
-            "--",  # SQL comment
-            "union select",  # SQL injection
-            "or 1=1",  # SQL injection
-        ]
-
-        value_lower = value.lower()
-        return any(pattern in value_lower for pattern in suspicious_patterns)
-
-
 def setup_security_middleware(app: FastAPI) -> None:
     """Configure all security middleware."""
 
     # Order matters: add in reverse order of execution
-    app.add_middleware(RequestValidationMiddleware)
     app.add_middleware(HTTPSEnforceMiddleware)
     app.add_middleware(RateLimitMiddleware)
     app.add_middleware(SecurityHeadersMiddleware)

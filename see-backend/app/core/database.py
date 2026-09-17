@@ -22,13 +22,13 @@ class Base(DeclarativeBase):
     metadata = metadata
 
 
-# Connection pool configuration
-# Development: smaller pool (local testing)
-# Production: larger pool (handle more concurrent requests)
+# Connection pool configuration. Keep the production pool deliberately small:
+# Render's free Postgres enforces a low connection cap and the API runs as a
+# single instance, so 20 + 40 overflow would exhaust the server.
 if settings.APP_ENV == "production":
-    pool_size = 20
-    max_overflow = 40
-    pool_recycle = 3600  # Recycle connections after 1 hour
+    pool_size = 5
+    max_overflow = 5
+    pool_recycle = 1800  # Recycle connections after 30 minutes
 else:
     pool_size = 10
     max_overflow = 20

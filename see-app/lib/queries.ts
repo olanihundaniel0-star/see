@@ -63,7 +63,6 @@ export type Event = {
   start_date: string;
   end_date: string | null;
   last_seen_at: string;
-  raw_source_ref: string | null;
   scraped_at: string;
 };
 

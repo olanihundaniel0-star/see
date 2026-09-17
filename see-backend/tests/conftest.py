@@ -239,6 +239,9 @@ class InMemoryAsyncSession:
     async def commit(self) -> None:
         return None
 
+    async def flush(self) -> None:
+        return None
+
     async def refresh(self, obj: Any) -> None:
         return None
 

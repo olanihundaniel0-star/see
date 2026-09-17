@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import html
 import logging
@@ -177,6 +178,7 @@ def _generate_email_extraction_with_gemini(
         extraction = EmailExtractionResult.model_validate_json(text)
         return extraction.model_copy(update={"raw_email_hash": normalized.raw_email_hash})
     except Exception:
+        logger.warning("Gemini email extraction failed; falling back to heuristics", exc_info=True)
         return None
 
 
@@ -439,7 +441,7 @@ async def _find_job_by_company(session, user_id, company: str | None) -> JobAppl
             func.lower(JobApplication.company) == company.lower(),
         )
     )
-    return result.scalar_one_or_none()
+    return result.scalars().first()
 
 
 async def persist_email_extraction(
@@ -462,7 +464,9 @@ async def persist_email_extraction(
         company = preview.entities.company or _company_from_sender(normalized.sender) or "Unknown Company"
         user_id = _parse_default_user_id(settings.DEFAULT_USER_ID)
         existing_job = await _find_job_by_company(session, user_id, company) if user_id else None
-        extraction = _generate_email_extraction_with_gemini(normalized, existing_job=existing_job)
+        extraction = await asyncio.to_thread(
+            _generate_email_extraction_with_gemini, normalized, existing_job
+        )
         if extraction is None:
             extraction = infer_email_extraction(normalized, existing_job=existing_job)
 
@@ -559,6 +563,8 @@ async def persist_email_extraction(
                 logger.warning("Skipping malformed email recommendation (%s): %s", recommendation.action, exc)
                 continue
 
+        # Flush so Python-side UUID defaults are assigned before linking.
+        await session.flush()
         record.linked_job_id = getattr(created_job, "id", None)
         record.linked_reminder_id = getattr(created_reminder, "id", None)
         record.linked_note_id = getattr(created_note, "id", None)

@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 import redis.asyncio as redis_async
@@ -36,8 +36,7 @@ app.include_router(api_router, prefix=settings.API_V1_STR)
 app.include_router(internal_router)
 
 
-@app.get("/health")
-async def health() -> dict[str, str]:
+async def _dependency_status() -> dict[str, str]:
     database_status = "ok"
     redis_status = "ok"
 
@@ -56,3 +55,24 @@ async def health() -> dict[str, str]:
 
     overall_status = "ok" if database_status == "ok" and redis_status == "ok" else "degraded"
     return {"status": overall_status, "database": database_status, "redis": redis_status}
+
+
+@app.get("/health")
+async def health() -> dict[str, str]:
+    """Liveness probe: the process is up and serving requests."""
+    return {"status": "ok"}
+
+
+@app.get("/health/live")
+async def health_live() -> dict[str, str]:
+    """Liveness probe alias used by orchestrators."""
+    return {"status": "ok"}
+
+
+@app.get("/health/ready")
+async def health_ready(response: Response) -> dict[str, str]:
+    """Readiness probe: 503 when a dependency is unreachable."""
+    dependency_status = await _dependency_status()
+    if dependency_status["status"] != "ok":
+        response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+    return dependency_status

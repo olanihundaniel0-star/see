@@ -3,6 +3,8 @@ from __future__ import annotations
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.exceptions import RequestValidationError
+from pydantic import BaseModel, ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import get_current_user_id
@@ -19,6 +21,14 @@ from app.schemas.reminder import ReminderCreate
 router = APIRouter()
 
 
+def _validated_data(model: type[BaseModel], data: dict) -> dict:
+    """Validate the free-form payload, surfacing failures as a 422 not a 500."""
+    try:
+        return model.model_validate(data).model_dump()
+    except ValidationError as exc:
+        raise RequestValidationError(exc.errors()) from exc
+
+
 @router.post("")
 async def quick_add(
     payload: QuickAddPayload,
@@ -29,17 +39,17 @@ async def quick_add(
         data = payload.data.copy()
         if payload.title and "company" not in data:
             data["company"] = payload.title
-        obj = JobApplication(user_id=user_id, **JobApplicationCreate.model_validate(data).model_dump())
+        obj = JobApplication(user_id=user_id, **_validated_data(JobApplicationCreate, data))
     elif payload.type == "note":
         data = payload.data.copy()
         if payload.title and "title" not in data:
             data["title"] = payload.title
-        obj = Note(user_id=user_id, **NoteCreate.model_validate(data).model_dump())
+        obj = Note(user_id=user_id, **_validated_data(NoteCreate, data))
     elif payload.type == "reminder":
         data = payload.data.copy()
         if payload.title and "title" not in data:
             data["title"] = payload.title
-        obj = Reminder(user_id=user_id, **ReminderCreate.model_validate(data).model_dump())
+        obj = Reminder(user_id=user_id, **_validated_data(ReminderCreate, data))
     else:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported quick-add type")
 

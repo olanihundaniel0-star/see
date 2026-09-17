@@ -34,7 +34,7 @@ async def list_notes(
 ) -> list[NoteRead]:
     stmt = select(Note).where(Note.user_id == user_id)
     if q:
-        stmt = stmt.where(Note.search_vector.match(q, postgresql_regconfig="english"))
+        stmt = stmt.where(Note.search_vector.op("@@")(func.websearch_to_tsquery("english", q)))
     if tags:
         tag_filters = [tag.strip() for tag in tags.split(",") if tag.strip()]
         for tag in tag_filters:

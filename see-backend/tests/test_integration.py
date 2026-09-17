@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import time
+from uuid import UUID
 
 import pytest
 from fastapi.testclient import TestClient
@@ -30,13 +31,11 @@ def client():
         yield test_client
 
 
-def test_health_returns_ok_and_security_headers(client):
+def test_health_is_liveness_and_sets_security_headers(client):
     response = client.get("/health")
 
     assert response.status_code == 200
-    payload = response.json()
-    assert {"status", "database", "redis"} <= payload.keys()
-    assert payload["status"] in {"ok", "degraded"}
+    assert response.json()["status"] == "ok"
 
     # Security headers from app.core.security.SecurityHeadersMiddleware
     assert response.headers.get("x-content-type-options") == "nosniff"
@@ -44,6 +43,16 @@ def test_health_returns_ok_and_security_headers(client):
     assert response.headers.get("x-xss-protection") == "1; mode=block"
     assert response.headers.get("referrer-policy") == "strict-origin-when-cross-origin"
     assert "default-src 'self'" in response.headers.get("content-security-policy", "")
+
+
+def test_health_ready_reflects_dependencies(client):
+    response = client.get("/health/ready")
+
+    payload = response.json()
+    assert {"status", "database", "redis"} <= payload.keys()
+    assert payload["status"] in {"ok", "degraded"}
+    # Degraded (no DB/Redis in CI) must surface as 503 so probes can react.
+    assert response.status_code == (200 if payload["status"] == "ok" else 503)
 
 
 def test_protected_endpoint_rejects_missing_token(client):
@@ -162,3 +171,24 @@ def test_internal_gmail_poll_runs_with_valid_token(client, monkeypatch):
     payload = response.json()
     assert payload["status"] == "ok"
     assert payload["result"] == {"found": 2, "processed": 1, "duplicates": 1, "failed": 0}
+
+
+def test_quick_add_invalid_data_returns_422_not_500(client):
+    from app.core.auth import get_current_user_id
+    from app.core.database import get_db
+
+    async def _user():
+        return UUID("11111111-1111-1111-1111-111111111111")
+
+    async def _db():
+        yield None
+
+    app.dependency_overrides[get_current_user_id] = _user
+    app.dependency_overrides[get_db] = _db
+    try:
+        response = client.post("/api/v1/quick-add", json={"type": "job", "data": {}})
+    finally:
+        app.dependency_overrides.pop(get_current_user_id, None)
+        app.dependency_overrides.pop(get_db, None)
+
+    assert response.status_code == 422
