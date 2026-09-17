@@ -38,7 +38,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
+          python-version: '3.14'
           cache: 'pip'
 
       - name: Install dependencies
@@ -72,7 +72,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18'
+          node-version: '20'
           cache: 'npm'
 
       - name: Install dependencies
@@ -165,9 +165,20 @@ jobs:
           fi
 
       - name: Verify staging deployment
+        env:
+          HEALTH_URL: ${{ secrets.STAGING_API_URL }}
+          RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_STAGING_BACKEND_DEPLOY_HOOK }}
         run: |
+          if [ -z "$RENDER_DEPLOY_HOOK" ]; then
+            echo "RENDER_DEPLOY_HOOK not configured; skipping staging health check"
+            exit 0
+          fi
+          if [ -z "$HEALTH_URL" ]; then
+            echo "STAGING_API_URL not configured; skipping staging health check"
+            exit 0
+          fi
           for i in {1..30}; do
-            if curl -f https://staging-api.your-domain.com/health > /dev/null 2>&1; then
+            if curl -f "$HEALTH_URL/health" > /dev/null 2>&1; then
               echo "Staging API is healthy"
               exit 0
             fi
@@ -178,14 +189,13 @@ jobs:
           exit 1
 
       - name: Notify staging deployment
-        if: success()
         uses: 8398a7/action-slack@v3
+        if: always()
         with:
           status: ${{ job.status }}
           text: '✅ Staging deployment successful'
           webhook_url: ${{ secrets.SLACK_WEBHOOK }}
           fields: repo,message,commit,author
-        if: always()
 
   deploy-production:
     needs: [build-docker, deploy-staging]
@@ -193,7 +203,7 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     environment:
       name: production
-      url: https://your-domain.com
+      url: ${{ secrets.PRODUCTION_API_URL }}
 
     steps:
       - uses: actions/checkout@v4
@@ -213,9 +223,20 @@ jobs:
           fi
 
       - name: Verify production deployment
+        env:
+          HEALTH_URL: ${{ secrets.PRODUCTION_API_URL }}
+          RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_PRODUCTION_BACKEND_DEPLOY_HOOK }}
         run: |
+          if [ -z "$RENDER_DEPLOY_HOOK" ]; then
+            echo "RENDER_DEPLOY_HOOK not configured; skipping production health check"
+            exit 0
+          fi
+          if [ -z "$HEALTH_URL" ]; then
+            echo "PRODUCTION_API_URL not configured; skipping production health check"
+            exit 0
+          fi
           for i in {1..30}; do
-            if curl -f https://api.your-domain.com/health > /dev/null 2>&1; then
+            if curl -f "$HEALTH_URL/health" > /dev/null 2>&1; then
               echo "Production API is healthy"
               exit 0
             fi
@@ -226,24 +247,22 @@ jobs:
           exit 1
 
       - name: Notify production deployment
-        if: success()
         uses: 8398a7/action-slack@v3
+        if: always()
         with:
           status: ${{ job.status }}
           text: '🚀 Production deployment successful'
           webhook_url: ${{ secrets.SLACK_WEBHOOK }}
           fields: repo,message,commit,author,ref
-        if: always()
 
       - name: Notify deployment failure
-        if: failure()
         uses: 8398a7/action-slack@v3
+        if: failure()
         with:
           status: ${{ job.status }}
           text: '❌ Production deployment failed - rollback instructions sent'
           webhook_url: ${{ secrets.SLACK_WEBHOOK }}
           fields: repo,message,commit,author
-        if: always()
 
   performance-test:
     runs-on: ubuntu-latest
@@ -254,11 +273,18 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Run performance baseline
+        env:
+          HEALTH_URL: ${{ secrets.STAGING_API_URL }}
         run: |
+          if [ -z "$HEALTH_URL" ]; then
+            echo "STAGING_API_URL not configured; skipping performance baseline"
+            exit 0
+          fi
+
           # Simple health check and response time test
           echo "Testing staging API performance..."
           start_time=$(date +%s%N)
-          response_code=$(curl -s -o /dev/null -w "%{http_code}" https://staging-api.your-domain.com/health)
+          response_code=$(curl -s -o /dev/null -w "%{http_code}" "$HEALTH_URL/health")
           end_time=$(date +%s%N)
           
           response_time_ms=$(( (end_time - start_time) / 1000000 ))
