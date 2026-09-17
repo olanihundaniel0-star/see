@@ -23,7 +23,7 @@ support web services and datastores, but not Background Workers or Cron Jobs.
    - `GEMINI_API_KEY`
    - `GMAIL_USER`
    - `GMAIL_APP_PASSWORD`
-   - `DEFAULT_USER_ID` (the UUID of the Supabase user who should receive Gmail-created records)
+   - `DEFAULT_USER_ID` (required in production; the UUID of the Supabase user who receives all Gmail-created records. Must be a valid UUID — the backend refuses to start without it.)
    - `INTERNAL_API_TOKEN` (a long random value shared with the GitHub Actions secret)
 5. Deploy the blueprint.
 

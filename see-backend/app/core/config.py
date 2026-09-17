@@ -1,4 +1,5 @@
 from functools import lru_cache
+from uuid import UUID
 
 from pydantic import SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -49,6 +50,17 @@ class Settings(BaseSettings):
     def _normalize_database_url(cls, value: str) -> str:
         return normalize_database_url(value)
 
+    @field_validator("DEFAULT_USER_ID", mode="after")
+    @classmethod
+    def _validate_default_user_id(cls, value: str) -> str:
+        value = value.strip()
+        if value:
+            try:
+                UUID(value)
+            except ValueError as exc:
+                raise ValueError(f"DEFAULT_USER_ID must be a valid UUID when set, got {value!r}") from exc
+        return value
+
     @model_validator(mode="after")
     def _validate_production_settings(self) -> "Settings":
         if self.APP_ENV.lower() == "production":
@@ -56,6 +68,10 @@ class Settings(BaseSettings):
                 raise ValueError("SUPABASE_URL or SUPABASE_ISSUER must be configured in production")
             if not self.supabase_jwks_url and self.SUPABASE_JWT_SECRET in {"", "replace-me"}:
                 raise ValueError("SUPABASE_JWT_SECRET or SUPABASE_JWKS_URL must be configured in production")
+            if not self.DEFAULT_USER_ID:
+                # Gmail-created jobs/notes/reminders are attributed to this single
+                # user; an empty value silently drops them from the pipeline.
+                raise ValueError("DEFAULT_USER_ID must be a valid Supabase Auth user UUID in production")
         return self
 
     @property
