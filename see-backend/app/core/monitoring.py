@@ -137,7 +137,9 @@ def setup_logging() -> None:
     """Set up structured logging for production."""
 
     logging.basicConfig(
-        level=logging.INFO if settings.APP_ENV != "development" else logging.DEBUG,
+        level=logging.DEBUG
+        if settings.APP_ENV == "development"
+        else getattr(logging, settings.LOG_LEVEL.upper(), logging.INFO),
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     )
 
@@ -145,9 +147,6 @@ def setup_logging() -> None:
     logging.getLogger("sqlalchemy").setLevel(logging.WARNING)
     logging.getLogger("alembic").setLevel(logging.INFO)
     logging.getLogger("urllib3").setLevel(logging.WARNING)
-
-    if settings.APP_ENV == "production":
-        logging.getLogger().setLevel(logging.WARNING)
 
 
 class SentryContextMiddleware(BaseHTTPMiddleware):

@@ -90,6 +90,23 @@ def test_webhook_ingest_rejects_bad_signature(client):
     assert response.status_code == 401
 
 
+def test_webhook_ingest_rejects_stale_timestamp(client, monkeypatch):
+    secret = "integration-secret"
+    stale_timestamp = str(int(time.time()) - settings.EMAIL_WEBHOOK_TOLERANCE_SECONDS - 60)
+    token = "abc123"
+    signature = _mailgun_signature(secret, stale_timestamp, token)
+
+    monkeypatch.setattr(settings, "MAILGUN_SIGNING_KEY", secret)
+    monkeypatch.setattr(settings, "EMAIL_WEBHOOK_SECRET", "")
+
+    response = client.post(
+        "/api/v1/webhooks/email",
+        json={"sender": "boss@example.com", "stripped_text": "hello"},
+        headers={"X-Timestamp": stale_timestamp, "X-Token": token, "X-Signature": signature},
+    )
+    assert response.status_code == 401
+
+
 def test_webhook_ingest_verifies_and_queues(client, monkeypatch):
     secret = "integration-secret"
     timestamp = str(int(time.time()))

@@ -18,8 +18,12 @@ module.exports = {
         }
       },
       fontFamily: {
-        sans: ["Space Grotesk", "Inter", "System"],
-        mono: ["Space Mono", "Courier New", "monospace"]
+        sans: ["SpaceGrotesk_400Regular", "System"],
+        "sans-medium": ["SpaceGrotesk_500Medium", "System"],
+        "sans-semibold": ["SpaceGrotesk_600SemiBold", "System"],
+        "sans-bold": ["SpaceGrotesk_700Bold", "System"],
+        mono: ["SpaceMono_400Regular", "Courier New", "monospace"],
+        "mono-bold": ["SpaceMono_700Bold", "Courier New", "monospace"]
       },
       boxShadow: {
         glass: "0 0 0 1px rgba(255,255,255,0.10), 0 20px 40px -20px rgba(0,0,0,0.85)"

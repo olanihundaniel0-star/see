@@ -11,15 +11,17 @@ type Props = ViewProps & {
 const toneClasses = {
   default: "border-white/10 bg-zinc-950/50",
   active: "border-white/20 bg-zinc-900/60",
-  danger: "border-white/20 bg-zinc-950/80"
+  danger: "border-[#ffb4ab]/40 bg-[#ffb4ab]/10"
 } as const;
 
 export function GlassPill({ label, value, tone = "default", children, className = "", ...props }: Props) {
   return (
-    <View className={`rounded-lg border px-3 py-2 ${toneClasses[tone]} ${className}`} {...props}>
-      <Text className="font-mono text-[10px] tracking-[0.18em] text-zinc-400">{label}</Text>
+    <View className={`rounded border px-3 py-2 ${toneClasses[tone]} ${className}`} {...props}>
+      <Text className="font-mono text-[10px] tracking-[0.08em] text-[#c5c6ca]">{label}</Text>
       {value !== undefined ? (
-        <Text className="mt-1 font-mono text-sm font-bold text-white">{value}</Text>
+        <Text className={`mt-1 font-mono-bold text-sm ${tone === "danger" ? "text-[#ffb4ab]" : "text-white"}`}>
+          {value}
+        </Text>
       ) : null}
       {children}
     </View>

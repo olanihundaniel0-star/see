@@ -10,9 +10,11 @@ from pydantic import BaseModel, Field
 class JobStatus(str, Enum):
     BOOKMARKED = "bookmarked"
     APPLIED = "applied"
+    ASSESSMENT = "assessment"
     INTERVIEWING = "interviewing"
     OFFER = "offer"
     REJECTED = "rejected"
+    ARCHIVED = "archived"
 
 
 class JobChecklistRead(BaseModel):

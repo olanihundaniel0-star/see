@@ -86,9 +86,9 @@ export default function AuthScreen() {
       <ScrollView className="flex-1 bg-black" contentContainerClassName="min-h-full px-4 pb-10 pt-16">
         <View className="flex-1 gap-5">
           <View className="gap-2">
-            <Text className="font-mono text-[10px] tracking-[0.2em] text-zinc-500">{"// SEE_OS"}</Text>
-            <Text className="text-4xl font-bold tracking-[-1px] text-white">SECURE_GATEWAY_AUTH</Text>
-            <Text className="font-mono text-[11px] leading-5 text-zinc-400">
+            <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">{"// SEE_OS"}</Text>
+            <Text className="text-4xl font-sans-bold tracking-[-1px] text-white">SECURE_GATEWAY_AUTH</Text>
+            <Text className="font-mono text-[11px] leading-5 text-[#c5c6ca]">
               Authenticate to access the career operations console.
             </Text>
           </View>
@@ -96,14 +96,14 @@ export default function AuthScreen() {
           <GlassCard className="gap-4">
             <View className="flex-row items-center justify-between">
               <GlassPill label="PROTOCOL" value="OAUTH2" tone="active" />
-              <Text className="font-mono text-[10px] tracking-[0.16em] text-zinc-500">{callbackReady ? "[READY]" : "[WAITING]"}</Text>
+              <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">{callbackReady ? "[READY]" : "[WAITING]"}</Text>
             </View>
             <Pressable
               disabled={Boolean(pendingProvider)}
               onPress={() => void signIn("google")}
               className="rounded-xl bg-white px-4 py-4 disabled:opacity-60"
             >
-              <Text className="text-center font-mono text-[12px] font-bold tracking-[0.08em] text-black">
+              <Text className="text-center font-mono-bold text-[12px] tracking-[0.08em] text-black">
                 {pendingProvider === "google" ? "[ AUTHENTICATING... ]" : "[ SIGN IN WITH GOOGLE ]"}
               </Text>
             </Pressable>
@@ -112,14 +112,14 @@ export default function AuthScreen() {
               onPress={() => void signIn("github")}
               className="rounded-xl border border-white/10 bg-zinc-900 px-4 py-4 disabled:opacity-60"
             >
-              <Text className="text-center font-mono text-[12px] font-bold tracking-[0.08em] text-white">
+              <Text className="text-center font-mono-bold text-[12px] tracking-[0.08em] text-white">
                 {pendingProvider === "github" ? "[ DISPATCHING... ]" : "CONTINUE_WITH_GITHUB"}
               </Text>
             </Pressable>
           </GlassCard>
 
           <View className="rounded-xl bg-zinc-950/80 p-4">
-            <Text className="font-mono text-[9px] tracking-[0.16em] text-zinc-600">{"// ARCHIVE_FRAGMENT_0x0"}</Text>
+            <Text className="font-mono text-[9px] tracking-[0.08em] text-zinc-600">{"// ARCHIVE_FRAGMENT_0x0"}</Text>
             <Text className="mt-4 text-center font-mono text-[9px] leading-[10px] text-zinc-700">
               {"    .sSSSSs.     .sSSSSs.\n  sSSSSSSSSSSs sSSSSSSSSSSs\n SSSSSSSSSSSSSSSSSSSSSSSSSSS\n  `SSSSSSSSSSSSSSSSSSSSS'\n    `SSSSSSSSSSSSSSSSS'\n      `SSSSSSSSSSSSS'\n        `SSSSSSSSS'\n          `SSSSS'"}
             </Text>
@@ -128,10 +128,10 @@ export default function AuthScreen() {
 
           <View className="mt-auto gap-2">
             <View className="flex-row items-center justify-between rounded-lg bg-zinc-900 px-3 py-2">
-              <Text className="font-mono text-[10px] text-zinc-400">EXPO_SECURE_STORE</Text>
+              <Text className="font-mono text-[10px] text-[#c5c6ca]">EXPO_SECURE_STORE</Text>
               <Text className="font-mono text-[10px] text-white">[ACTIVE]</Text>
             </View>
-            <Text className="text-center font-mono text-[10px] text-zinc-600">SECURED BY SUPABASE_AUTH // RSA_256</Text>
+            <Text className="text-center font-mono text-[10px] text-zinc-600">SECURED BY SUPABASE_AUTH</Text>
           </View>
         </View>
       </ScrollView>

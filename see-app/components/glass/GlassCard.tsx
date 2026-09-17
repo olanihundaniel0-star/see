@@ -8,7 +8,7 @@ type GlassCardProps = ViewProps & {
 export function GlassCard({ children, className = "", ...props }: GlassCardProps) {
   return (
     <View
-      className={`rounded-xl border border-white/10 bg-zinc-950/60 px-4 py-4 shadow-glass backdrop-blur-xl ${className}`}
+      className={`rounded-lg border border-white/[0.08] bg-zinc-950/60 px-4 py-4 shadow-glass backdrop-blur-xl ${className}`}
       {...props}
     >
       {children}

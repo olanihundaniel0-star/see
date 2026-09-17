@@ -61,6 +61,7 @@ async def today_dashboard(
         .where(
             JobApplication.user_id == user_id,
             JobApplication.status != JobStatus.REJECTED,
+            JobApplication.status != JobStatus.ARCHIVED,
             JobApplication.deadline.is_not(None),
             JobApplication.deadline <= horizon,
         )

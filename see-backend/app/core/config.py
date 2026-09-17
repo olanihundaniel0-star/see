@@ -30,6 +30,7 @@ class Settings(BaseSettings):
     SUPABASE_JWKS_URL: str = ""
     EMAIL_WEBHOOK_SECRET: str = "replace-me"
     MAILGUN_SIGNING_KEY: str = ""
+    EMAIL_WEBHOOK_TOLERANCE_SECONDS: int = 900
     GEMINI_API_KEY: str = ""
     GEMINI_MODEL: str = "gemini-2.5-flash"
     GEMINI_FALLBACK_MODEL: str = "gemini-2.5-flash-lite"
@@ -42,6 +43,8 @@ class Settings(BaseSettings):
     GMAIL_POLL_INTERVAL_MINUTES: int = 15
     GMAIL_IMAP_TIMEOUT_SECONDS: int = 20
     GMAIL_MAX_MESSAGES_PER_POLL: int = 5
+    EVENT_SCRAPE_INTERVAL_MINUTES: int = 360
+    LOG_LEVEL: str = "INFO"
     INTERNAL_API_TOKEN: SecretStr | None = None
     CORS_ORIGINS: str = "http://localhost:8081,http://localhost:19006,http://127.0.0.1:8081,http://127.0.0.1:19006"
     REDIS_URL: str = "redis://localhost:6379/0"

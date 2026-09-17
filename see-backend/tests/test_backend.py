@@ -3,6 +3,9 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import hmac
+import imaplib
+import json
+import logging
 from datetime import datetime, timezone
 from types import SimpleNamespace
 from uuid import UUID
@@ -16,7 +19,7 @@ from fastapi.security import HTTPAuthorizationCredentials
 from app.api import internal
 from app.api.v1.endpoints import events, jobs, notes, reminders, webhooks
 from app.core.auth import get_current_user_id
-from app.core.config import settings
+from app.core.config import Settings, settings
 from app.models.event import ScrapedEvent
 from app.models.job import JobApplication, JobStatus
 from app.models.reminder import Reminder, ReminderPriority
@@ -24,6 +27,7 @@ from app.schemas.event import EventRead
 from app.schemas.job import JobApplicationCreate, JobApplicationUpdate, JobChecklistCreate, JobChecklistUpdate
 from app.schemas.note import NoteCreate, NoteUpdate
 from app.schemas.reminder import ReminderCreate, ReminderPriority as ReminderPrioritySchema, ReminderUpdate
+from app.workers import gmail_ingestion
 from app.workers import ingest as worker_ingest
 from app.workers import email as worker_email
 from app.workers import tasks as worker_tasks
@@ -98,6 +102,29 @@ def test_internal_gmail_poll_returns_observable_result(monkeypatch):
     assert response["status"] == "ok"
     assert response["elapsed_ms"] >= 0
     assert response["result"] == {"found": 2, "processed": 1, "duplicates": 1, "failed": 0}
+
+
+def test_internal_scrape_events_requires_scheduler_token(monkeypatch):
+    monkeypatch.setattr(settings, "INTERNAL_API_TOKEN", SecretStr("scheduler-secret"))
+
+    with pytest.raises(HTTPException) as exc_info:
+        run(internal.trigger_event_scrape(x_internal_token="wrong-token"))
+
+    assert exc_info.value.status_code == 401
+
+
+def test_internal_scrape_events_returns_observable_result(monkeypatch):
+    monkeypatch.setattr(settings, "INTERNAL_API_TOKEN", SecretStr("scheduler-secret"))
+
+    async def fake_scrape():
+        return {"devpost": 3, "luma": 2}
+
+    monkeypatch.setattr(internal, "scrape_events_impl", fake_scrape)
+    response = run(internal.trigger_event_scrape(x_internal_token="scheduler-secret"))
+
+    assert response["status"] == "ok"
+    assert response["elapsed_ms"] >= 0
+    assert response["result"] == {"devpost": 3, "luma": 2}
 
 
 def test_webhook_verifies_and_queues_email(monkeypatch, fake_db):
@@ -294,6 +321,43 @@ def test_luma_page_scraper_discovers_event_pages(monkeypatch):
     assert captured[0]["source_url"] == event_url
 
 
+def test_scrape_events_impl_skips_unconfigured_sources(monkeypatch):
+    monkeypatch.setattr(worker_tasks.settings, "DEVPOST_HACKATHON_URL", "")
+    monkeypatch.setattr(worker_tasks.settings, "LUMA_PAGE_URLS", "")
+
+    called = {"devpost": 0, "luma": 0}
+
+    async def fake_devpost():
+        called["devpost"] += 1
+        return 5
+
+    async def fake_luma():
+        called["luma"] += 1
+        return 7
+
+    monkeypatch.setattr(worker_tasks.worker_ingest, "scrape_devpost_events", fake_devpost)
+    monkeypatch.setattr(worker_tasks.worker_ingest, "scrape_luma_events", fake_luma)
+
+    assert run(worker_tasks.scrape_events_impl()) == {"devpost": 0, "luma": 0}
+    assert called == {"devpost": 0, "luma": 0}
+
+
+def test_scrape_events_impl_aggregates_configured_sources(monkeypatch):
+    monkeypatch.setattr(worker_tasks.settings, "DEVPOST_HACKATHON_URL", "https://devpost.com/hackathons")
+    monkeypatch.setattr(worker_tasks.settings, "LUMA_PAGE_URLS", "https://luma.com/ai")
+
+    async def fake_devpost():
+        return 5
+
+    async def fake_luma():
+        return 7
+
+    monkeypatch.setattr(worker_tasks.worker_ingest, "scrape_devpost_events", fake_devpost)
+    monkeypatch.setattr(worker_tasks.worker_ingest, "scrape_luma_events", fake_luma)
+
+    assert run(worker_tasks.scrape_events_impl()) == {"devpost": 5, "luma": 7}
+
+
 def test_job_crud_and_checklists(fake_db):
     job = run(
         jobs.create_job(
@@ -369,6 +433,31 @@ def test_job_crud_and_checklists(fake_db):
 
     run(jobs.delete_job(job.id, user_id=USER_ID, db=fake_db))
     assert run(jobs.list_jobs(status_filter=None, page=1, page_size=20, user_id=USER_ID, db=fake_db)) == []
+
+
+def test_job_status_accepts_assessment_and_archived(fake_db):
+    job = run(
+        jobs.create_job(
+            JobApplicationCreate(company="Supabase", role="DX Engineer"),
+            user_id=USER_ID,
+            db=fake_db,
+        )
+    )
+
+    assessment = run(
+        jobs.update_job(job.id, JobApplicationUpdate(status="assessment"), user_id=USER_ID, db=fake_db)
+    )
+    assert assessment.status == JobStatus.ASSESSMENT
+
+    archived = run(
+        jobs.update_job(job.id, JobApplicationUpdate(status="archived"), user_id=USER_ID, db=fake_db)
+    )
+    assert archived.status == JobStatus.ARCHIVED
+
+    listed = run(
+        jobs.list_jobs(status_filter=JobStatus.ARCHIVED, page=1, page_size=20, user_id=USER_ID, db=fake_db)
+    )
+    assert [item.id for item in listed] == [job.id]
 
 
 def test_notes_crud_and_pagination(fake_db):
@@ -472,6 +561,29 @@ def test_dashboard_today_returns_items_and_headers(client, fake_db):
     assert [item["kind"] for item in payload["items"]] == ["job", "reminder"]
     assert payload["items"][0]["title"] == "Moniepoint • Backend Engineer"
     assert payload["items"][1]["title"] == "Follow up on interview"
+
+
+def test_dashboard_excludes_archived_jobs(client, fake_db):
+    deadline = datetime(2026, 9, 7, 18, 0, tzinfo=timezone.utc)
+    for status in (JobStatus.APPLIED, JobStatus.ARCHIVED):
+        fake_db.add(
+            JobApplication(
+                user_id=USER_ID,
+                company="Moniepoint",
+                role=f"{status.value} role",
+                location=None,
+                salary_range=None,
+                job_url=None,
+                status=status,
+                interview_notes=None,
+                deadline=deadline,
+            )
+        )
+
+    payload = client.get("/api/v1/dashboard/today").json()
+
+    assert payload["job_count"] == 1
+    assert [item["status"] for item in payload["items"]] == ["applied"]
 
 
 def test_events_endpoint_returns_cached_shape_and_headers(client, fake_db):
@@ -593,3 +705,166 @@ def test_cors_preflight_allows_configured_origin(client):
 
     assert response.status_code in {200, 204}
     assert response.headers["access-control-allow-origin"] == "http://localhost:8081"
+
+
+def test_email_entities_coerces_invalid_deadline_to_none():
+    entities = worker_email.EmailEntities(deadline="September tenth, whenever")
+    assert entities.deadline is None
+
+    entities = worker_email.EmailEntities(deadline=None)
+    assert entities.deadline is None
+
+    entities = worker_email.EmailEntities(deadline="2026-09-10T12:00:00")
+    assert entities.deadline is not None
+    parsed = datetime.fromisoformat(entities.deadline)
+    assert parsed.tzinfo is not None
+    assert parsed.utcoffset().total_seconds() == 0
+
+
+def test_persist_email_extraction_survives_malformed_gemini_payload(fake_db, monkeypatch):
+    monkeypatch.setattr(settings, "DEFAULT_USER_ID", str(USER_ID))
+
+    class FakeAsyncSessionFactory:
+        def __init__(self, session):
+            self.session = session
+
+        async def __aenter__(self):
+            return self.session
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+    monkeypatch.setattr(worker_email, "AsyncSessionLocal", lambda: FakeAsyncSessionFactory(fake_db))
+
+    class FakeResponse:
+        text = json.dumps(
+            {
+                "message_type": "interview",
+                "summary": "Interview scheduled",
+                "confidence": 0.91,
+                "entities": {
+                    "company": "Acme",
+                    "role": "Backend Engineer",
+                    "sender": "hr@acme.example",
+                    "recipient": "see@example.com",
+                    "location": None,
+                    "deadline": "next tuesday",  # invalid ISO — must not crash
+                    "event_title": None,
+                    "event_url": None,
+                },
+                "recommended_actions": [
+                    {"action": "create_job", "confidence": 0.92, "payload": {"status": "not-a-status"}},
+                    {
+                        "action": "create_reminder",
+                        "confidence": 0.5,
+                        "payload": {"title": "Follow up", "due_date": "someday", "priority": "not-a-priority"},
+                    },
+                ],
+                "tags": ["gmail", "interview"],
+                "raw_email_hash": "ignored",
+            }
+        )
+
+    class FakeModels:
+        def generate_content(self, **kwargs):
+            return FakeResponse()
+
+    class FakeClient:
+        models = FakeModels()
+
+    monkeypatch.setattr(worker_email, "_gemini_client", lambda: FakeClient())
+    monkeypatch.setattr(settings, "GEMINI_API_KEY", "test-key")
+
+    result = worker_tasks.extract_email(
+        {
+            "sender": "Acme HR <hr@acme.example>",
+            "recipient": "see@example.com",
+            "subject": "Interview scheduled",
+            "body_plain": "Interview scheduled.",
+            "stripped_text": "Interview scheduled.",
+            "raw_email_hash": "",
+        }
+    )
+
+    assert result["duplicate"] is False
+    jobs_stored = [item for item in fake_db.store.get(JobApplication, [])]
+    reminders_stored = [item for item in fake_db.store.get(Reminder, [])]
+    assert len(jobs_stored) == 1
+    assert jobs_stored[0].status == JobStatus.APPLIED  # invalid status fell back safely
+    assert len(reminders_stored) == 1
+    assert reminders_stored[0].priority == ReminderPriority.MEDIUM  # invalid priority fell back safely
+
+
+class FakeIMAPConnection:
+    def __init__(self, host, port, timeout):
+        self.host = host
+        self.port = port
+        self.timeout = timeout
+        self.stores: list[tuple[str, list[str]]] = []
+        self.logged_out = False
+
+    def login(self, user, password):
+        self.user = user
+        self.password = password
+
+    def select(self, folder):
+        return "OK", ["1"]
+
+    def uid(self, command, *args):
+        if command == "store" and len(args) >= 3:
+            self.stores.append((args[0], [args[2]]))
+        return "OK", [b"1"]
+
+    def close(self):
+        pass
+
+    def logout(self):
+        self.logged_out = True
+
+
+def test_mark_seen_by_uids_marks_only_persisted_messages(monkeypatch):
+    monkeypatch.setattr(settings, "GMAIL_USER", "me@example.com")
+    monkeypatch.setattr(settings, "GMAIL_APP_PASSWORD", SecretStr("app-password"))
+
+    fake = FakeIMAPConnection("imap.gmail.com", 993, 20)
+    monkeypatch.setattr(imaplib, "IMAP4_SSL", lambda host, port, timeout: fake)
+
+    gmail_ingestion.mark_seen_by_uids(["42", "43"])
+
+    assert fake.user == "me@example.com"
+    assert fake.logged_out is True
+    assert [uuid for uuid, flags in fake.stores] == ["42", "43"]
+    assert all(flags == ["\\Seen"] for _, flags in fake.stores)
+
+
+def test_fetch_unread_job_emails_does_not_mark_seen(monkeypatch):
+    monkeypatch.setattr(settings, "GMAIL_USER", "")
+    assert gmail_ingestion.fetch_unread_job_emails() == []
+
+
+def test_settings_warns_not_fails_when_production_default_user_id_missing(caplog):
+    with caplog.at_level(logging.WARNING, logger="app.core.config"):
+        parsed = Settings(
+            APP_ENV="production",
+            SUPABASE_ISSUER="https://example.supabase.co/auth/v1",
+            SUPABASE_JWT_SECRET="real-secret",
+            DEFAULT_USER_ID="",
+        )
+    assert parsed.DEFAULT_USER_ID == ""
+    assert any("DEFAULT_USER_ID is not set" in record.message for record in caplog.records)
+
+
+def test_settings_rejects_invalid_default_user_id():
+    with pytest.raises(ValueError, match="DEFAULT_USER_ID"):
+        Settings(APP_ENV="development", DEFAULT_USER_ID="not-a-uuid")
+
+
+def test_settings_accepts_valid_default_user_id():
+    parsed = Settings(APP_ENV="development", DEFAULT_USER_ID=str(USER_ID))
+    assert parsed.DEFAULT_USER_ID == str(USER_ID)
+
+
+def test_parse_default_user_id_handles_bad_config():
+    assert worker_email._parse_default_user_id("") is None
+    assert worker_email._parse_default_user_id("not-a-uuid") is None
+    assert worker_email._parse_default_user_id(str(USER_ID)) == USER_ID

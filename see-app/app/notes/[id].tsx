@@ -45,10 +45,10 @@ export default function NoteDetailScreen() {
           {note ? (
             <>
               <GlassCard className="gap-3">
-                <Text className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">{formatShortDateTime(note.updated_at)}</Text>
+                <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">{formatShortDateTime(note.updated_at)}</Text>
                 <GlassInput label="TITLE" value={title} onChangeText={setTitle} />
                 <View className="gap-2">
-                  <Text className="px-1 font-mono text-[10px] tracking-[0.18em] text-zinc-500">CONTENT</Text>
+                  <Text className="px-1 font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">CONTENT</Text>
                   <TextInput
                     multiline
                     value={content}
@@ -71,7 +71,7 @@ export default function NoteDetailScreen() {
                     }}
                     className="flex-1 rounded-lg border border-white/20 bg-white px-3 py-3 disabled:opacity-60"
                   >
-                    <Text className="text-center font-mono text-[10px] font-bold text-black">
+                    <Text className="text-center font-mono-bold text-[10px] text-black">
                       {updateNote.isPending ? "[SAVING]" : "[SAVE NOTE]"}
                     </Text>
                   </Pressable>
@@ -98,8 +98,8 @@ export default function NoteDetailScreen() {
               </GlassCard>
 
               <GlassCard className="gap-2">
-                <Text className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">{"// PREVIEW"}</Text>
-                <Text className="font-mono text-[11px] leading-5 text-zinc-300">{content}</Text>
+                <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">{"// PREVIEW"}</Text>
+                <Text className="font-mono text-[11px] leading-5 text-[#e2e2e2]">{content}</Text>
               </GlassCard>
             </>
           ) : null}

@@ -52,8 +52,8 @@ export default function ReminderDetailScreen() {
             <GlassCard className="gap-3">
               <View className="flex-row items-start justify-between gap-3">
                 <View className="gap-1">
-                  <Text className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">{formatShortDateTime(reminder.created_at)}</Text>
-                  <Text className="text-xl font-bold text-white">{reminder.title}</Text>
+                  <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">{formatShortDateTime(reminder.created_at)}</Text>
+                  <Text className="text-xl font-sans-bold text-white">{reminder.title}</Text>
                 </View>
                 <GlassPill label="PRIORITY" value={reminder.priority.toUpperCase()} tone={reminder.priority === "high" ? "danger" : "active"} />
               </View>
@@ -62,7 +62,7 @@ export default function ReminderDetailScreen() {
               <GlassInput label="DUE_DATE" value={dueDate} onChangeText={setDueDate} placeholder="2026-09-08T10:00:00Z" />
 
               <View className="gap-2">
-                <Text className="px-1 font-mono text-[10px] tracking-[0.18em] text-zinc-500">PRIORITY</Text>
+                <Text className="px-1 font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">PRIORITY</Text>
                 <View className="flex-row gap-2">
                   {priorityOptions.map((value) => {
                     const active = value === priority;
@@ -75,7 +75,7 @@ export default function ReminderDetailScreen() {
                         }}
                         className={`flex-1 rounded-lg border px-3 py-3 ${active ? "border-white/20 bg-white" : "border-white/10 bg-zinc-950/70"}`}
                       >
-                        <Text className={`text-center font-mono text-[10px] font-bold ${active ? "text-black" : "text-white"}`}>
+                        <Text className={`text-center font-mono-bold text-[10px] ${active ? "text-black" : "text-white"}`}>
                           {value.toUpperCase()}
                         </Text>
                       </Pressable>
@@ -90,20 +90,29 @@ export default function ReminderDetailScreen() {
                 <Pressable
                   disabled={updateReminder.isPending || !title.trim() || !dueDate.trim()}
                   onPress={async () => {
+                    const parsedDueDate = new Date(dueDate);
+                    if (Number.isNaN(parsedDueDate.getTime())) {
+                      Alert.alert("Invalid due date", "Enter a valid date, for example 2026-09-08T10:00:00Z.");
+                      return;
+                    }
                     await Haptics.selectionAsync();
-                    await updateReminder.mutateAsync({
-                      id: reminder.id,
-                      data: {
-                        title: title.trim(),
-                        due_date: new Date(dueDate).toISOString(),
-                        priority,
-                        is_completed: isCompleted
-                      }
-                    });
+                    try {
+                      await updateReminder.mutateAsync({
+                        id: reminder.id,
+                        data: {
+                          title: title.trim(),
+                          due_date: parsedDueDate.toISOString(),
+                          priority,
+                          is_completed: isCompleted
+                        }
+                      });
+                    } catch (mutationError) {
+                      Alert.alert("Save failed", mutationError instanceof Error ? mutationError.message : "Unable to save reminder.");
+                    }
                   }}
                   className="flex-1 rounded-lg border border-white/20 bg-white px-3 py-3 disabled:opacity-60"
                 >
-                  <Text className="text-center font-mono text-[10px] font-bold text-black">
+                  <Text className="text-center font-mono-bold text-[10px] text-black">
                     {updateReminder.isPending ? "[SAVING]" : "[SAVE REMINDER]"}
                   </Text>
                 </Pressable>

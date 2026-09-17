@@ -2,7 +2,7 @@ import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tansta
 
 import { api } from "@/lib/api";
 
-export type JobStatus = "bookmarked" | "applied" | "interviewing" | "offer" | "rejected";
+export type JobStatus = "bookmarked" | "applied" | "assessment" | "interviewing" | "offer" | "rejected" | "archived";
 export type ReminderPriority = "low" | "medium" | "high";
 const PAGE_SIZE = 20;
 
@@ -196,6 +196,7 @@ export function useToggleChecklist(jobId?: string) {
       ).data;
     },
     onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["jobs"] });
       await queryClient.invalidateQueries({ queryKey: ["jobs", jobId] });
     }
   });
@@ -218,6 +219,7 @@ export function useCreateChecklist(jobId?: string) {
       ).data;
     },
     onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["jobs"] });
       await queryClient.invalidateQueries({ queryKey: ["jobs", jobId] });
     }
   });

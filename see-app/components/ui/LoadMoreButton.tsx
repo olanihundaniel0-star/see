@@ -13,7 +13,7 @@ export function LoadMoreButton({ onPress, busy, label = "[ LOAD MORE ]" }: Props
       onPress={onPress}
       className="rounded-xl border border-white/20 bg-white px-4 py-4 disabled:opacity-60"
     >
-      <Text className="text-center font-mono text-[12px] font-bold tracking-[0.08em] text-black">
+      <Text className="text-center font-mono-bold text-[12px] tracking-[0.08em] text-black">
         {busy ? "[ LOADING MORE... ]" : label}
       </Text>
     </Pressable>

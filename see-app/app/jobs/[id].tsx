@@ -20,9 +20,17 @@ import {
   useUpdateJob
 } from "@/lib/queries";
 
-const stageNodes: JobStatus[] = ["bookmarked", "applied", "interviewing", "offer", "rejected"];
+const stageNodes: JobStatus[] = ["bookmarked", "applied", "assessment", "interviewing", "offer"];
+const terminalStatuses: JobStatus[] = ["rejected", "archived"];
+
+function isTerminal(status: JobStatus): boolean {
+  return terminalStatuses.includes(status);
+}
 
 function nextStage(status: JobStatus): JobStatus {
+  if (isTerminal(status)) {
+    return status;
+  }
   const index = stageNodes.indexOf(status);
   return stageNodes[Math.min(index + 1, stageNodes.length - 1)];
 }
@@ -50,7 +58,7 @@ export default function JobDossierScreen() {
   const items = checklistItems ?? job?.checklists ?? [];
   const completed = items.filter((item) => item.is_completed).length;
   const progress = formatProgress(completed, items.length);
-  const activeStage = job ? stageIndex(job.status) : 0;
+  const activeStage = job && !isTerminal(job.status) ? stageIndex(job.status) : -1;
   const deadline = job?.deadline ? formatShortDateTime(job.deadline) : "NO DEADLINE";
 
   const summaryRows = useMemo(
@@ -73,9 +81,9 @@ export default function JobDossierScreen() {
 
           {error ? (
             <GlassCard className="gap-3">
-              <Text className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">{"// DOSSIER_ERROR"}</Text>
-              <Text className="text-xl font-bold text-white">Unable to load this job.</Text>
-              <Text className="font-mono text-[11px] text-zinc-400">The backend did not return a dossier for this id.</Text>
+              <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">{"// DOSSIER_ERROR"}</Text>
+              <Text className="text-xl font-sans-bold text-white">Unable to load this job.</Text>
+              <Text className="font-mono text-[11px] text-[#c5c6ca]">The backend did not return a dossier for this id.</Text>
             </GlassCard>
           ) : null}
 
@@ -84,10 +92,14 @@ export default function JobDossierScreen() {
               <GlassCard className="gap-3">
                 <View className="flex-row items-start justify-between">
                   <View className="gap-1">
-                    <Text className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">{job.company.toUpperCase()}</Text>
-                    <Text className="text-2xl font-bold text-white">{job.role}</Text>
+                    <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">{job.company.toUpperCase()}</Text>
+                    <Text className="text-2xl font-sans-bold text-white">{job.role}</Text>
                   </View>
-                  <GlassPill label="STAGE" value={job.status.toUpperCase()} tone={job.status === "offer" ? "active" : "default"} />
+                  <GlassPill
+                    label="STAGE"
+                    value={job.status.toUpperCase()}
+                    tone={isTerminal(job.status) ? "danger" : job.status === "offer" ? "active" : "default"}
+                  />
                 </View>
 
                 <View className="flex-row gap-2">
@@ -100,22 +112,22 @@ export default function JobDossierScreen() {
                           active ? "border-white/20 bg-zinc-900/70" : "border-white/10 bg-zinc-950/50"
                         }`}
                       >
-                        <Text className="text-center font-mono text-[9px] tracking-[0.18em] text-white">{stage.toUpperCase()}</Text>
+                        <Text className="text-center font-mono text-[9px] tracking-[0.08em] text-white">{stage.toUpperCase()}</Text>
                       </View>
                     );
                   })}
                 </View>
 
                 <View className="gap-1">
-                  <Text className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">CHECKLIST_PROGRESS</Text>
-                  <Text className="font-mono text-[11px] tracking-[0.18em] text-white">
+                  <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">CHECKLIST_PROGRESS</Text>
+                  <Text className="font-mono text-[11px] tracking-[0.08em] text-white">
                     [{Math.min(completed, items.length).toString().padStart(2, "0")}/{items.length.toString().padStart(2, "0")}] {progress}%
                   </Text>
                 </View>
               </GlassCard>
 
               <GlassCard className="gap-3">
-                <Text className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">{"// METADATA_MATRIX"}</Text>
+                <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">{"// METADATA_MATRIX"}</Text>
                 <View className="flex-row flex-wrap gap-2">
                   {summaryRows.map((row) => (
                     <GlassPill key={row.label} label={row.label} value={row.value} className="basis-[48%] flex-1" />
@@ -130,15 +142,15 @@ export default function JobDossierScreen() {
                     }}
                     className="rounded-lg border border-white/20 bg-white px-3 py-2"
                   >
-                    <Text className="text-center font-mono text-[10px] font-bold text-black">[OPEN JOB POSTING]</Text>
+                    <Text className="text-center font-mono-bold text-[10px] text-black">[OPEN JOB POSTING]</Text>
                   </Pressable>
                 ) : null}
               </GlassCard>
 
               <GlassCard className="gap-3">
                 <View className="flex-row items-center justify-between">
-                  <Text className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">{"// CHECKLIST"}</Text>
-                  <Text className="font-mono text-[10px] tracking-[0.18em] text-zinc-400">
+                  <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">{"// CHECKLIST"}</Text>
+                  <Text className="font-mono text-[10px] tracking-[0.08em] text-[#c5c6ca]">
                     [{completed}/{items.length}]
                   </Text>
                 </View>
@@ -170,7 +182,7 @@ export default function JobDossierScreen() {
                     }}
                     className="rounded-lg border border-white/20 bg-white px-3 py-2 disabled:opacity-60"
                   >
-                    <Text className="text-center font-mono text-[10px] font-bold text-black">
+                    <Text className="text-center font-mono-bold text-[10px] text-black">
                       {createChecklist.isPending ? "[ADDING]" : "[+ ADD TASK]"}
                     </Text>
                   </Pressable>
@@ -179,8 +191,8 @@ export default function JobDossierScreen() {
 
               <GlassCard className="gap-3">
                 <View className="flex-row items-center justify-between">
-                  <Text className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">{"// SCRATCHPAD"}</Text>
-                  <Text className="font-mono text-[10px] tracking-[0.18em] text-zinc-400">INTERVIEW_NOTES</Text>
+                  <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">{"// SCRATCHPAD"}</Text>
+                  <Text className="font-mono text-[10px] tracking-[0.08em] text-[#c5c6ca]">INTERVIEW_NOTES</Text>
                 </View>
                 <TextInput
                   multiline
@@ -203,14 +215,14 @@ export default function JobDossierScreen() {
                   }}
                   className="rounded-lg border border-white/20 bg-white px-3 py-2 disabled:opacity-60"
                 >
-                  <Text className="text-center font-mono text-[10px] font-bold text-black">
+                  <Text className="text-center font-mono-bold text-[10px] text-black">
                     {updateJob.isPending ? "[SAVING]" : "[SAVE NOTES]"}
                   </Text>
                 </Pressable>
               </GlassCard>
 
               <GlassCard className="gap-2">
-                <Text className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">{"// ACTION_STACK"}</Text>
+                <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">{"// ACTION_STACK"}</Text>
                 <View className="flex-row gap-2">
                   <Pressable
                     disabled={updateJob.isPending}
@@ -231,7 +243,7 @@ export default function JobDossierScreen() {
                       await Haptics.selectionAsync();
                       await updateJob.mutateAsync({
                         id: job.id,
-                        data: { status: "rejected" }
+                        data: { status: "archived" }
                       });
                     }}
                     className="flex-1 rounded-lg border border-white/10 bg-zinc-950/70 px-3 py-3 disabled:opacity-60"
@@ -256,7 +268,7 @@ export default function JobDossierScreen() {
                   }}
                   className="rounded-lg border border-white/20 bg-white px-3 py-3 disabled:opacity-60"
                 >
-                  <Text className="text-center font-mono text-[10px] font-bold text-black">[DELETE DOSSIER]</Text>
+                  <Text className="text-center font-mono-bold text-[10px] text-black">[DELETE DOSSIER]</Text>
                 </Pressable>
               </GlassCard>
             </>
@@ -264,10 +276,10 @@ export default function JobDossierScreen() {
 
           {!job && !isLoading && !error ? (
             <GlassCard className="gap-3">
-              <Text className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">{"// NOT_FOUND"}</Text>
-              <Text className="text-xl font-bold text-white">This dossier no longer exists.</Text>
+              <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">{"// NOT_FOUND"}</Text>
+              <Text className="text-xl font-sans-bold text-white">This dossier no longer exists.</Text>
               <Pressable onPress={() => router.back()} className="rounded-lg border border-white/20 bg-white px-3 py-2">
-                <Text className="text-center font-mono text-[10px] font-bold text-black">[RETURN]</Text>
+                <Text className="text-center font-mono-bold text-[10px] text-black">[RETURN]</Text>
               </Pressable>
             </GlassCard>
           ) : null}

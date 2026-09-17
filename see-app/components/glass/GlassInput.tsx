@@ -14,7 +14,7 @@ export const GlassInput = forwardRef<any, Props>(function GlassInput(
       {label ? <TextInputLabel label={label} /> : null}
       <TextInput
         ref={ref}
-        className={`rounded-lg border border-white/10 bg-zinc-950/70 px-3 py-3 font-mono text-white placeholder:text-zinc-600 ${className}`}
+        className={`rounded border border-white/[0.08] bg-zinc-950/70 px-3 py-3 font-mono text-white placeholder:text-zinc-600 ${className}`}
         placeholderTextColor="#52525B"
         {...props}
       />
@@ -25,7 +25,7 @@ export const GlassInput = forwardRef<any, Props>(function GlassInput(
 function TextInputLabel({ label }: { label: string }) {
   return (
     <View className="px-1">
-      <Text className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">{label}</Text>
+      <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">{label}</Text>
     </View>
   );
 }

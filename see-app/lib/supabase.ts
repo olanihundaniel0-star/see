@@ -1,3 +1,4 @@
+import * as Linking from "expo-linking";
 import * as SecureStore from "expo-secure-store";
 import { createClient } from "@supabase/supabase-js";
 
@@ -28,4 +29,7 @@ export const supabase =
       })
     : null;
 
-export const supabaseRedirectUrl = "see://auth";
+// OAuth callback URL. Built with expo-linking so it works in Expo Go
+// (exp://<host>:8081/--/auth) AND in development/production builds (see://auth).
+// Add the resolved URL to Supabase: Auth -> URL Configuration -> Redirect URLs.
+export const supabaseRedirectUrl = Linking.createURL("/auth");

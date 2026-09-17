@@ -41,14 +41,17 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
                 "max-age=31536000; includeSubDomains; preload"
             )
 
-        # Content Security Policy (strict)
+        # Content Security Policy (strict). connect-src must include the
+        # configured Supabase project so the app can reach auth/storage.
+        supabase_origin = settings.SUPABASE_URL.rstrip("/")
+        connect_src = "'self'" + (f" {supabase_origin}" if supabase_origin else "")
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; "
             "script-src 'self'; "
             "style-src 'self' 'unsafe-inline'; "
             "img-src 'self' data: https:; "
             "font-src 'self'; "
-            "connect-src 'self' https://nvdhvesydakhkjamfkfs.supabase.co"
+            f"connect-src {connect_src}"
         )
 
         # Referrer policy

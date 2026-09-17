@@ -17,11 +17,13 @@ const filters: { label: string; value: JobStatus | "all" }[] = [
   { label: "ALL", value: "all" },
   { label: "BOOKMARKED", value: "bookmarked" },
   { label: "APPLIED", value: "applied" },
+  { label: "ASSESSMENT", value: "assessment" },
   { label: "INTERVIEWING", value: "interviewing" },
-  { label: "OFFER", value: "offer" }
+  { label: "OFFER", value: "offer" },
+  { label: "ARCHIVED", value: "archived" }
 ];
 
-const statusOrder: JobStatus[] = ["bookmarked", "applied", "interviewing", "offer", "rejected"];
+const statusOrder: JobStatus[] = ["bookmarked", "applied", "assessment", "interviewing", "offer", "rejected"];
 
 function nextStage(status: JobStatus): JobStatus {
   const index = statusOrder.indexOf(status);
@@ -55,7 +57,7 @@ export default function JobsScreen() {
       statusOrder.reduce<Record<JobStatus, number>>((acc, status) => {
         acc[status] = jobs.filter((job) => job.status === status).length;
         return acc;
-      }, { bookmarked: 0, applied: 0, interviewing: 0, offer: 0, rejected: 0 }),
+      }, { bookmarked: 0, applied: 0, assessment: 0, interviewing: 0, offer: 0, rejected: 0, archived: 0 }),
     [jobs]
   );
 
@@ -84,7 +86,7 @@ export default function JobsScreen() {
                 }}
                 className={`rounded-lg border px-4 py-2 ${active ? "border-white/20 bg-zinc-900/70" : "border-white/10 bg-zinc-950/50"}`}
               >
-                <Text className="font-mono text-[10px] tracking-[0.18em] text-white">
+                <Text className="font-mono text-[10px] tracking-[0.08em] text-white">
                   {filter.label}
                   {filter.value !== "all" ? ` ${counts[filter.value]}` : ""}
                 </Text>
@@ -117,20 +119,24 @@ export default function JobsScreen() {
                   <GlassCard key={job.id} className="gap-3">
                     <View className="flex-row items-start justify-between gap-4">
                       <View className="flex-1 gap-1">
-                        <Text className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">{job.company.toUpperCase()}</Text>
-                        <Text className="text-xl font-bold text-white">{job.role}</Text>
-                        <Text className="font-mono text-[11px] text-zinc-400">
+                        <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">{job.company.toUpperCase()}</Text>
+                        <Text className="text-xl font-sans-bold text-white">{job.role}</Text>
+                        <Text className="font-mono text-[11px] text-[#c5c6ca]">
                           {job.location ?? "REMOTE"} · {job.salary_range ?? "SALARY N/A"}
                         </Text>
                       </View>
-                      <GlassPill label="STAGE" value={stageLabel} tone={job.status === "offer" ? "active" : "default"} />
+                      <GlassPill
+                        label="STAGE"
+                        value={stageLabel}
+                        tone={job.status === "rejected" || job.status === "archived" ? "danger" : job.status === "offer" ? "active" : "default"}
+                      />
                     </View>
 
                     <ProgressBar value={stats.progress} label="CHECKLIST" />
 
                     <View className="flex-row items-center justify-between">
-                      <Text className="font-mono text-[10px] text-zinc-500">{job.deadline ? `DUE ${deadline}` : formatRelativePast(job.applied_at)}</Text>
-                      <Text className="font-mono text-[10px] text-zinc-300">
+                      <Text className="font-mono text-[10px] text-[#8f9194]">{job.deadline ? `DUE ${deadline}` : formatRelativePast(job.applied_at)}</Text>
+                      <Text className="font-mono text-[10px] text-[#e2e2e2]">
                         [{stats.completed}/{stats.total}] {stats.progress}%
                       </Text>
                     </View>
@@ -167,13 +173,13 @@ export default function JobsScreen() {
                         await updateJob.mutateAsync({
                           id: job.id,
                           data: {
-                            status: "rejected"
+                            status: "archived"
                           }
                         });
                       }}
                       className="rounded-lg border border-white/20 bg-white px-3 py-2 disabled:opacity-60"
                     >
-                      <Text className="text-center font-mono text-[10px] font-bold text-black">[ARCHIVE]</Text>
+                      <Text className="text-center font-mono-bold text-[10px] text-black">[ARCHIVE]</Text>
                     </Pressable>
                   </GlassCard>
                 );

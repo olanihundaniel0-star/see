@@ -16,6 +16,7 @@ export const theme = {
     pipeline: "// PIPELINE",
     radar: "// RADAR",
     vault: "// VAULT",
+    alerts: "// ALERTS",
     dossier: "// DOSSIER"
   }
 } as const;

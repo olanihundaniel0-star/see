@@ -4,8 +4,10 @@ from typing import Any
 
 from sqlalchemy.exc import IntegrityError
 
+from app.core.config import settings
 from app.workers import email as worker_email
 from app.workers import gmail_ingestion
+from app.workers import ingest as worker_ingest
 from app.workers.celery_app import celery_app
 
 logger = logging.getLogger(__name__)
@@ -20,6 +22,30 @@ def extract_email(payload: dict) -> dict:
 @celery_app.task(name="app.workers.tasks.poll_gmail_inbox")
 def poll_gmail_inbox() -> dict[str, int]:
     return asyncio.run(poll_gmail_inbox_impl())
+
+
+@celery_app.task(name="app.workers.tasks.scrape_events")
+def scrape_events() -> dict[str, int]:
+    return asyncio.run(scrape_events_impl())
+
+
+async def scrape_events_impl() -> dict[str, int]:
+    """Scrape configured Devpost/Luma sources and upsert events."""
+    scraped = {"devpost": 0, "luma": 0}
+
+    if settings.DEVPOST_HACKATHON_URL:
+        try:
+            scraped["devpost"] = await worker_ingest.scrape_devpost_events()
+        except Exception:
+            logger.exception("Devpost event scrape failed")
+
+    if settings.LUMA_PAGE_URLS:
+        try:
+            scraped["luma"] = await worker_ingest.scrape_luma_events()
+        except Exception:
+            logger.exception("Luma event scrape failed")
+
+    return scraped
 
 
 async def poll_gmail_inbox_impl() -> dict[str, int]:

@@ -1,4 +1,4 @@
-import { useDeferredValue, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { router } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { Alert, Pressable, ScrollView, Text, TextInput, View } from "react-native";
@@ -33,19 +33,23 @@ export default function NotesScreen() {
 
   const notes = useMemo(() => data?.pages.flatMap((page) => page) ?? [], [data]);
 
-  const tags = useMemo(() => {
-    const values = new Set<string>(["ALL"]);
-    for (const note of notes) {
-      for (const tag of note.tags?.split(",") ?? []) {
-        const value = tag.trim();
-        if (value) {
-          values.add(value);
+  const [knownTags, setKnownTags] = useState<string[]>(["ALL"]);
+  useEffect(() => {
+    setKnownTags((current) => {
+      const values = new Set(current);
+      for (const note of notes) {
+        for (const tag of note.tags?.split(",") ?? []) {
+          const value = tag.trim();
+          if (value) {
+            values.add(value);
+          }
         }
       }
-    }
-    return Array.from(values);
+      return values.size === current.length ? current : Array.from(values);
+    });
   }, [notes]);
 
+  const tags = knownTags;
   const filteredNotes = notes;
 
   return (
@@ -54,7 +58,7 @@ export default function NotesScreen() {
         <AsciiBanner title={theme.ascii.vault} subtitle="Searchable markdown snippets and scratch notes" right={isLoading ? "[INDEXING]" : "[VAULT]"} />
 
         <GlassCard className="gap-3">
-          <Text className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">&gt; grep search notes...</Text>
+          <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">&gt; grep search notes...</Text>
           <TextInput
             value={search}
             onChangeText={setSearch}
@@ -76,7 +80,7 @@ export default function NotesScreen() {
                 }}
                 className={`rounded-lg border px-3 py-2 ${active ? "border-white/20 bg-zinc-900/70" : "border-white/10 bg-zinc-950/50"}`}
               >
-                <Text className="font-mono text-[10px] tracking-[0.16em] text-white">{tag}</Text>
+                <Text className="font-mono text-[10px] tracking-[0.08em] text-white">{tag}</Text>
               </Pressable>
             );
           })}
@@ -105,10 +109,10 @@ export default function NotesScreen() {
                       className="gap-3"
                     >
                       <View className="gap-1">
-                        <Text className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">
+                        <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">
                           {formatShortDateTime(note.updated_at)}
                         </Text>
-                        <Text className="text-xl font-bold text-white">{note.title}</Text>
+                        <Text className="text-xl font-sans-bold text-white">{note.title}</Text>
                       </View>
 
                       <View className="rounded-lg border border-white/10 bg-zinc-950/80 px-3 py-3">
@@ -143,7 +147,7 @@ export default function NotesScreen() {
                         }}
                         className="rounded-lg border border-white/20 bg-white px-3 py-2 disabled:opacity-60"
                       >
-                        <Text className="font-mono text-[10px] font-bold text-black">[DELETE]</Text>
+                        <Text className="font-mono-bold text-[10px] text-black">[DELETE]</Text>
                       </Pressable>
                     </View>
                   </GlassCard>

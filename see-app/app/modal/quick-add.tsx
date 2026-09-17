@@ -173,9 +173,9 @@ export default function QuickAddModal() {
           <KeyboardAvoidingView behavior={Platform.select({ ios: "padding", android: undefined })} className="flex-1">
             <View className="flex-1 gap-4">
               <View className="flex-row items-center justify-between">
-                <Text className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">{"// QUICK_ADD"}</Text>
+                <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">{"// QUICK_ADD"}</Text>
                 <Pressable onPress={() => router.back()}>
-                  <Text className="font-mono text-[10px] tracking-[0.18em] text-white">[x CLOSE]</Text>
+                  <Text className="font-mono text-[10px] tracking-[0.08em] text-white">[x CLOSE]</Text>
                 </Pressable>
               </View>
 
@@ -193,7 +193,7 @@ export default function QuickAddModal() {
                         active ? "border-white/20 bg-zinc-900/70" : "border-white/10 bg-zinc-950/50"
                       }`}
                     >
-                      <Text className="text-center font-mono text-[10px] tracking-[0.18em] text-white">{entry.label}</Text>
+                      <Text className="text-center font-mono text-[10px] tracking-[0.08em] text-white">{entry.label}</Text>
                     </Pressable>
                   );
                 })}
@@ -209,12 +209,12 @@ export default function QuickAddModal() {
                     }}
                     className="rounded-lg border border-white/10 bg-zinc-950/70 px-3 py-2"
                   >
-                    <Text className="font-mono text-[10px] tracking-[0.16em] text-white">
+                    <Text className="font-mono text-[10px] tracking-[0.08em] text-white">
                       {syncEnabled ? "[SYNC ENABLED]" : "[SYNC DISABLED]"}
                     </Text>
                   </Pressable>
                 </View>
-                <Text className="font-mono text-[11px] text-zinc-400">
+                <Text className="font-mono text-[11px] text-[#c5c6ca]">
                   Optimistic capture writes directly into the backend collections and refreshes dashboards after commit.
                 </Text>
               </GlassCard>
@@ -313,7 +313,7 @@ export default function QuickAddModal() {
                 disabled={saving}
                 className="mt-auto rounded-xl border border-white/20 bg-white px-4 py-4 disabled:opacity-60"
               >
-                <Text className="text-center font-mono text-[10px] font-bold text-black">
+                <Text className="text-center font-mono-bold text-[10px] text-black">
                   {saving ? "[ CAPTURING... ]" : `[ CAPTURE -> ${mode.toUpperCase()} ]`}
                 </Text>
               </Pressable>

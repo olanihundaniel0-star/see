@@ -41,12 +41,12 @@ export default function RemindersScreen() {
   return (
     <ScrollView className="flex-1 bg-black" contentContainerClassName="px-4 pb-28 pt-4">
       <View className="gap-4">
-        <AsciiBanner title={theme.ascii.pipeline} subtitle="Reminder inbox and completion queue" right={isLoading ? "[SYNC]" : "[REMINDERS]"} />
+        <AsciiBanner title={theme.ascii.alerts} subtitle="Reminder inbox and completion queue" right={isLoading ? "[SYNC]" : "[REMINDERS]"} />
 
         <GlassCard className="gap-3">
           <View className="flex-row items-center justify-between">
-            <Text className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">{"// FILTERS"}</Text>
-            <Text className="font-mono text-[10px] tracking-[0.18em] text-zinc-400">[{counts.all}] ITEMS</Text>
+            <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">{"// FILTERS"}</Text>
+            <Text className="font-mono text-[10px] tracking-[0.08em] text-[#c5c6ca]">[{counts.all}] ITEMS</Text>
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2">
             {filters.map((filter) => {
@@ -61,7 +61,7 @@ export default function RemindersScreen() {
                   }}
                   className={`rounded-lg border px-4 py-2 ${active ? "border-white/20 bg-zinc-900/70" : "border-white/10 bg-zinc-950/50"}`}
                 >
-                  <Text className="font-mono text-[10px] tracking-[0.18em] text-white">
+                  <Text className="font-mono text-[10px] tracking-[0.08em] text-white">
                     {filter.label} {count}
                   </Text>
                 </Pressable>
@@ -88,10 +88,10 @@ export default function RemindersScreen() {
                   <Pressable onPress={() => router.push(`/reminders/${reminder.id}`)} className="gap-3">
                     <View className="flex-row items-start justify-between gap-3">
                       <View className="flex-1 gap-1">
-                        <Text className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">
+                        <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">
                           {reminder.is_completed ? "COMPLETED" : "PENDING"}
                         </Text>
-                        <Text className={`text-xl font-bold ${reminder.is_completed ? "text-zinc-500 line-through" : "text-white"}`}>
+                        <Text className={`text-xl font-sans-bold ${reminder.is_completed ? "text-[#8f9194] line-through" : "text-white"}`}>
                           {reminder.title}
                         </Text>
                       </View>
@@ -116,7 +116,7 @@ export default function RemindersScreen() {
                       }}
                       className="flex-1 rounded-lg border border-white/20 bg-white px-3 py-2 disabled:opacity-60"
                     >
-                      <Text className="text-center font-mono text-[10px] font-bold text-black">
+                      <Text className="text-center font-mono-bold text-[10px] text-black">
                         {reminder.is_completed ? "[ MARK OPEN ]" : "[ MARK DONE ]"}
                       </Text>
                     </Pressable>

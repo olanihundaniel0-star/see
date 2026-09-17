@@ -72,9 +72,9 @@ export default function AccountScreen() {
         <GlassCard className="gap-4">
           <View className="flex-row items-start justify-between gap-3">
             <View className="gap-1">
-              <Text className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">{"// AUTH_SUBJECT"}</Text>
-              <Text className="text-xl font-bold text-white">{user?.email ?? "Unknown account"}</Text>
-              <Text className="font-mono text-[11px] text-zinc-400">{user?.id ?? "No active session"}</Text>
+              <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">{"// AUTH_SUBJECT"}</Text>
+              <Text className="text-xl font-sans-bold text-white">{user?.email ?? "Unknown account"}</Text>
+              <Text className="font-mono text-[11px] text-[#c5c6ca]">{user?.id ?? "No active session"}</Text>
             </View>
             <GlassPill label="PROVIDER" value={provider} tone="active" />
           </View>
@@ -85,8 +85,8 @@ export default function AccountScreen() {
           </View>
 
           <View className="rounded-lg border border-white/10 bg-zinc-950/80 px-3 py-3">
-            <Text className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">{"// TIMESTAMPS"}</Text>
-            <Text className="mt-2 font-mono text-[11px] leading-5 text-zinc-300">
+            <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">{"// TIMESTAMPS"}</Text>
+            <Text className="mt-2 font-mono text-[11px] leading-5 text-[#e2e2e2]">
               {user?.created_at ? `Created: ${formatShortDateTime(user.created_at)}` : "Created: unknown"}
               {"\n"}
               {session?.expires_at ? `Expires: ${formatShortDateTime(new Date(session.expires_at * 1000).toISOString())}` : "Expires: unknown"}
@@ -98,15 +98,15 @@ export default function AccountScreen() {
             onPress={() => void onSignOut()}
             className="rounded-xl border border-white/20 bg-white px-4 py-4 disabled:opacity-50"
           >
-            <Text className="text-center font-mono text-[12px] font-bold tracking-[0.08em] text-black">
+            <Text className="text-center font-mono-bold text-[12px] tracking-[0.08em] text-black">
               {signingOut ? "[ SIGNING OUT... ]" : "[ SIGN OUT ]"}
             </Text>
           </Pressable>
         </GlassCard>
 
         <GlassCard className="gap-3">
-          <Text className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">{"// SESSION_NOTES"}</Text>
-          <Text className="font-mono text-[11px] leading-5 text-zinc-400">
+          <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">{"// SESSION_NOTES"}</Text>
+          <Text className="font-mono text-[11px] leading-5 text-[#c5c6ca]">
             This screen exists so the app has a clear exit path from the authenticated shell. Signing out clears the Supabase
             session and returns you to the login gateway.
           </Text>

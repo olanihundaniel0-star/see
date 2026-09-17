@@ -67,8 +67,8 @@ export default function EventsScreen() {
 
         <GlassCard className="gap-3">
           <View className="flex-row items-center justify-between">
-            <Text className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">{"// SOURCE_FILTERS"}</Text>
-            <Text className="font-mono text-[10px] tracking-[0.18em] text-zinc-400">[{counts.all}] DETECTED</Text>
+            <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">{"// SOURCE_FILTERS"}</Text>
+            <Text className="font-mono text-[10px] tracking-[0.08em] text-[#c5c6ca]">[{counts.all}] DETECTED</Text>
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2">
             {filters.map((filter) => {
@@ -89,7 +89,7 @@ export default function EventsScreen() {
                   }}
                   className={`rounded-lg border px-4 py-2 ${active ? "border-white/20 bg-zinc-900/70" : "border-white/10 bg-zinc-950/50"}`}
                 >
-                  <Text className="font-mono text-[10px] tracking-[0.16em] text-white">{label}</Text>
+                  <Text className="font-mono text-[10px] tracking-[0.08em] text-white">{label}</Text>
                 </Pressable>
               );
             })}
@@ -116,16 +116,16 @@ export default function EventsScreen() {
               <GlassCard key={event.id} className="gap-3">
                 <View className="flex-row items-start justify-between gap-4">
                   <View className="flex-1 gap-1">
-                    <Text className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">{event.source.toUpperCase()}</Text>
-                    <Text className="text-2xl font-bold text-white">{event.title}</Text>
-                    <Text className="font-mono text-[11px] text-zinc-400">
+                    <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">{event.source.toUpperCase()}</Text>
+                    <Text className="text-2xl font-sans-bold text-white">{event.title}</Text>
+                    <Text className="font-mono text-[11px] text-[#c5c6ca]">
                       {event.location ?? (event.is_virtual ? "REMOTE" : "LOCATION PENDING")}
                     </Text>
                   </View>
                   <GlassPill label="COUNTDOWN" value={formatCountdown(event.start_date)} tone={event.is_virtual ? "active" : "default"} />
                 </View>
 
-                {event.description ? <Text className="font-mono text-[11px] leading-5 text-zinc-300">{event.description}</Text> : null}
+                {event.description ? <Text className="font-mono text-[11px] leading-5 text-[#e2e2e2]">{event.description}</Text> : null}
 
                 <View className="flex-row flex-wrap gap-2">
                   <GlassPill label="START" value={formatShortDate(event.start_date)} />
@@ -153,7 +153,7 @@ export default function EventsScreen() {
                     }}
                     className="flex-1 rounded-lg border border-white/20 bg-white px-3 py-2 active:scale-[0.99]"
                   >
-                    <Text className="text-center font-mono text-[10px] font-bold text-black">[SYNC CALENDAR]</Text>
+                    <Text className="text-center font-mono-bold text-[10px] text-black">[SYNC CALENDAR]</Text>
                   </Pressable>
                 </View>
               </GlassCard>

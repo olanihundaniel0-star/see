@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
+import time
 from dataclasses import dataclass
 from urllib.parse import parse_qsl
 
@@ -33,6 +34,16 @@ def _verify_signature(timestamp: str | None, token: str | None, signature: str |
     secret = _webhook_secret()
     if not secret or not timestamp or not token or not signature:
         return False
+
+    # Reject replayed requests: Mailgun signs only "{timestamp}{token}", so a
+    # captured payload would otherwise be valid forever.
+    try:
+        age = abs(time.time() - int(timestamp))
+    except ValueError:
+        return False
+    if age > settings.EMAIL_WEBHOOK_TOLERANCE_SECONDS:
+        return False
+
     digest = hmac.new(secret.encode("utf-8"), f"{timestamp}{token}".encode("utf-8"), hashlib.sha256).hexdigest()
     return hmac.compare_digest(digest, signature)
 

@@ -14,9 +14,11 @@ from app.core.database import Base
 class JobStatus(str, Enum):
     BOOKMARKED = "bookmarked"
     APPLIED = "applied"
+    ASSESSMENT = "assessment"
     INTERVIEWING = "interviewing"
     OFFER = "offer"
     REJECTED = "rejected"
+    ARCHIVED = "archived"
 
 
 class JobApplication(Base):

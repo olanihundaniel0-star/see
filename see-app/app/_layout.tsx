@@ -2,18 +2,34 @@ import "@/global.css";
 
 import { useEffect, useState } from "react";
 import { Stack } from "expo-router";
+import { useFonts } from "expo-font";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { StatusBar } from "react-native";
 import type { Session } from "@supabase/supabase-js";
+import {
+  SpaceGrotesk_400Regular,
+  SpaceGrotesk_500Medium,
+  SpaceGrotesk_600SemiBold,
+  SpaceGrotesk_700Bold
+} from "@expo-google-fonts/space-grotesk";
+import { SpaceMono_400Regular, SpaceMono_700Bold } from "@expo-google-fonts/space-mono";
 
 import { supabase } from "@/lib/supabase";
 
 const queryClient = new QueryClient();
 
 export default function RootLayout() {
+  const [fontsLoaded, fontError] = useFonts({
+    SpaceGrotesk_400Regular,
+    SpaceGrotesk_500Medium,
+    SpaceGrotesk_600SemiBold,
+    SpaceGrotesk_700Bold,
+    SpaceMono_400Regular,
+    SpaceMono_700Bold
+  });
   const [client] = useState(queryClient);
   const [session, setSession] = useState<Session | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
@@ -37,6 +53,10 @@ export default function RootLayout() {
     return () => data.subscription.unsubscribe();
   }, []);
 
+  if (!fontsLoaded && !fontError) {
+    return null;
+  }
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
@@ -48,7 +68,9 @@ export default function RootLayout() {
                 contentStyle: { backgroundColor: "#000000" } as any
               }}
             >
-              <Stack.Screen name="auth" />
+              <Stack.Protected guard={!authLoading && !session}>
+                <Stack.Screen name="auth" />
+              </Stack.Protected>
               <Stack.Protected guard={!authLoading && !!session}>
                 <Stack.Screen name="(tabs)" />
                 <Stack.Screen

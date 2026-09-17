@@ -6,8 +6,6 @@ import { Pressable, ScrollView, Text, View } from "react-native";
 import { GlassCard } from "@/components/glass/GlassCard";
 import { GlassPill } from "@/components/glass/GlassPill";
 import { AsciiBanner } from "@/components/ui/AsciiBanner";
-import { Checkbox } from "@/components/ui/Checkbox";
-import { ProgressBar } from "@/components/ui/ProgressBar";
 import { theme } from "@/constants/theme";
 import { formatCountdown, formatLagosClock, formatShortDateTime } from "@/lib/format";
 import { useToday, useUpdateReminder } from "@/lib/queries";
@@ -45,12 +43,12 @@ export default function TodayScreen() {
       <View className="gap-4">
         <View className="flex-row items-start justify-between">
           <View className="gap-1">
-            <Text className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">{theme.ascii.devHub}</Text>
+            <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">{theme.ascii.devHub}</Text>
             <Text className="font-mono text-[11px] text-white">{theme.ascii.online}</Text>
           </View>
           <View className="items-end">
             <Text className="font-mono text-lg text-white">{time} WAT</Text>
-            <Text className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">{day}</Text>
+            <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">{day}</Text>
           </View>
         </View>
 
@@ -61,32 +59,31 @@ export default function TodayScreen() {
             <GlassPill label="JOBS" value={data?.job_count ?? 0} tone="active" className="flex-1" />
             <GlassPill label="WINDOW" value={`${data?.window_hours ?? 48}H`} className="flex-1" />
           </View>
-          <ProgressBar label="QUEUE SATURATION" value={Math.min(100, (urgentItems.length / 8) * 100)} />
         </GlassCard>
 
         <View className="flex-row items-center justify-between px-1">
-          <Text className="font-mono text-[10px] tracking-[0.2em] text-white">{"// URGENT_HORIZON (<= 48H)"}</Text>
-          <Text className="font-mono text-[10px] tracking-[0.2em] text-zinc-400">[{urgentItems.length}] ITEMS</Text>
+          <Text className="font-mono text-[10px] tracking-[0.08em] text-white">{"// URGENT_HORIZON (<= 48H)"}</Text>
+          <Text className="font-mono text-[10px] tracking-[0.08em] text-[#c5c6ca]">[{urgentItems.length}] ITEMS</Text>
         </View>
 
         {error ? (
           <GlassCard className="gap-3">
-            <Text className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">{"// DASHBOARD_ERROR"}</Text>
+            <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">{"// DASHBOARD_ERROR"}</Text>
             <Text className="text-lg text-white">Unable to load today&apos;s queue.</Text>
             <Pressable
               onPress={() => void refetch()}
               className="self-start rounded-lg border border-white/20 bg-white px-4 py-2"
             >
-              <Text className="font-mono text-[10px] font-bold text-black">[ RETRY ]</Text>
+              <Text className="font-mono-bold text-[10px] text-black">[ RETRY ]</Text>
             </Pressable>
           </GlassCard>
         ) : null}
 
         {!error && urgentItems.length === 0 ? (
           <GlassCard className="gap-3">
-            <Text className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">{"// EMPTY_QUEUE"}</Text>
-            <Text className="text-xl font-bold text-white">No items due inside the next 48 hours.</Text>
-            <Text className="font-mono text-[11px] text-zinc-400">Use quick add to capture a reminder or job application.</Text>
+            <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">{"// EMPTY_QUEUE"}</Text>
+            <Text className="text-xl font-sans-bold text-white">No items due inside the next 48 hours.</Text>
+            <Text className="font-mono text-[11px] text-[#c5c6ca]">Use quick add to capture a reminder or job application.</Text>
             <View className="flex-row gap-2">
               <Pressable
                 onPress={async () => {
@@ -95,7 +92,7 @@ export default function TodayScreen() {
                 }}
                 className="rounded-lg border border-white/20 bg-white px-3 py-2"
               >
-                <Text className="font-mono text-[10px] font-bold text-black">[+ QUICK ADD]</Text>
+                <Text className="font-mono-bold text-[10px] text-black">[+ QUICK ADD]</Text>
               </Pressable>
             </View>
           </GlassCard>
@@ -106,11 +103,11 @@ export default function TodayScreen() {
             <GlassCard key={item.id} className="gap-3">
               <View className="flex-row items-start justify-between gap-4">
                 <View className="flex-1 gap-1">
-                  <Text className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">
+                  <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">
                     {item.kind === "job" ? "JOB" : "REMINDER"}
                   </Text>
-                  <Text className="text-2xl font-bold text-white">{item.title}</Text>
-                  {item.subtitle ? <Text className="font-mono text-[11px] text-zinc-400">{item.subtitle}</Text> : null}
+                  <Text className="text-2xl font-sans-bold text-white">{item.title}</Text>
+                  {item.subtitle ? <Text className="font-mono text-[11px] text-[#c5c6ca]">{item.subtitle}</Text> : null}
                 </View>
                 <GlassPill
                   label="COUNTDOWN"
@@ -120,7 +117,7 @@ export default function TodayScreen() {
               </View>
 
               <View className="flex-row items-center justify-between gap-3">
-                <Text className="font-mono text-[10px] text-zinc-500">
+                <Text className="font-mono text-[10px] text-[#8f9194]">
                   DUE {formatShortDateTime(item.due_at)}
                 </Text>
                 {item.kind === "job" ? (
@@ -141,7 +138,7 @@ export default function TodayScreen() {
                     }}
                     className="rounded-lg border border-white/20 bg-white px-3 py-2 disabled:opacity-60"
                   >
-                    <Text className="font-mono text-[10px] font-bold text-black">
+                    <Text className="font-mono-bold text-[10px] text-black">
                       {updateReminder.isPending ? "[UPDATING]" : "[MARK DONE]"}
                     </Text>
                   </Pressable>
@@ -153,8 +150,8 @@ export default function TodayScreen() {
 
         <GlassCard className="gap-3">
           <View className="flex-row items-center justify-between">
-            <Text className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">{"// SESSION_STATUS"}</Text>
-            <Text className="font-mono text-[10px] tracking-[0.18em] text-zinc-400">
+            <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">{"// SESSION_STATUS"}</Text>
+            <Text className="font-mono text-[10px] tracking-[0.08em] text-[#c5c6ca]">
               {latestGenerated ? `GEN ${latestGenerated}` : "GEN WAITING"}
             </Text>
           </View>
@@ -162,20 +159,7 @@ export default function TodayScreen() {
             <GlassPill label="REMINDER ITEMS" value={reminderItems.length} className="flex-1" />
             <GlassPill label="JOB ITEMS" value={jobItems.length} tone="active" className="flex-1" />
           </View>
-          <Text className="font-mono text-[11px] leading-5 text-zinc-400">
-            Today is fed by the backend dashboard window, so the items here always reflect the next 48 hours of reminders and
-            job deadlines.
-          </Text>
         </GlassCard>
-
-        <View className="gap-3 px-1">
-          <Text className="font-mono text-[10px] tracking-[0.2em] text-white">{"// DAILY_TASKS_QUEUE"}</Text>
-          <View className="gap-2">
-            <Checkbox checked label="Inbox sync is handled by the dashboard feed" onChange={() => undefined} />
-            <Checkbox checked={Boolean(data?.items.length)} label="Open items are surfaced from backend state" onChange={() => undefined} />
-            <Checkbox checked={Boolean(data?.generated_at)} label="Queue generation timestamp captured" onChange={() => undefined} />
-          </View>
-        </View>
       </View>
     </ScrollView>
   );
