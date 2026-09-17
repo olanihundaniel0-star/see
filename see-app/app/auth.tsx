@@ -86,7 +86,7 @@ export default function AuthScreen() {
       <ScrollView className="flex-1 bg-black" contentContainerClassName="min-h-full px-4 pb-10 pt-16">
         <View className="flex-1 gap-5">
           <View className="gap-2">
-            <Text className="font-mono text-[10px] tracking-[0.2em] text-zinc-500">// SEE_OS</Text>
+            <Text className="font-mono text-[10px] tracking-[0.2em] text-zinc-500">{"// SEE_OS"}</Text>
             <Text className="text-4xl font-bold tracking-[-1px] text-white">SECURE_GATEWAY_AUTH</Text>
             <Text className="font-mono text-[11px] leading-5 text-zinc-400">
               Authenticate to access the career operations console.
@@ -119,7 +119,7 @@ export default function AuthScreen() {
           </GlassCard>
 
           <View className="rounded-xl bg-zinc-950/80 p-4">
-            <Text className="font-mono text-[9px] tracking-[0.16em] text-zinc-600">// ARCHIVE_FRAGMENT_0x0</Text>
+            <Text className="font-mono text-[9px] tracking-[0.16em] text-zinc-600">{"// ARCHIVE_FRAGMENT_0x0"}</Text>
             <Text className="mt-4 text-center font-mono text-[9px] leading-[10px] text-zinc-700">
               {"    .sSSSSs.     .sSSSSs.\n  sSSSSSSSSSSs sSSSSSSSSSSs\n SSSSSSSSSSSSSSSSSSSSSSSSSSS\n  `SSSSSSSSSSSSSSSSSSSSS'\n    `SSSSSSSSSSSSSSSSS'\n      `SSSSSSSSSSSSS'\n        `SSSSSSSSS'\n          `SSSSS'"}
             </Text>

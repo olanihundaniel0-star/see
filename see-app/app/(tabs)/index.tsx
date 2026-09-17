@@ -65,13 +65,13 @@ export default function TodayScreen() {
         </GlassCard>
 
         <View className="flex-row items-center justify-between px-1">
-          <Text className="font-mono text-[10px] tracking-[0.2em] text-white">// URGENT_HORIZON (&lt;= 48H)</Text>
+          <Text className="font-mono text-[10px] tracking-[0.2em] text-white">{"// URGENT_HORIZON (<= 48H)"}</Text>
           <Text className="font-mono text-[10px] tracking-[0.2em] text-zinc-400">[{urgentItems.length}] ITEMS</Text>
         </View>
 
         {error ? (
           <GlassCard className="gap-3">
-            <Text className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">// DASHBOARD_ERROR</Text>
+            <Text className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">{"// DASHBOARD_ERROR"}</Text>
             <Text className="text-lg text-white">Unable to load today&apos;s queue.</Text>
             <Pressable
               onPress={() => void refetch()}
@@ -84,7 +84,7 @@ export default function TodayScreen() {
 
         {!error && urgentItems.length === 0 ? (
           <GlassCard className="gap-3">
-            <Text className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">// EMPTY_QUEUE</Text>
+            <Text className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">{"// EMPTY_QUEUE"}</Text>
             <Text className="text-xl font-bold text-white">No items due inside the next 48 hours.</Text>
             <Text className="font-mono text-[11px] text-zinc-400">Use quick add to capture a reminder or job application.</Text>
             <View className="flex-row gap-2">
@@ -153,7 +153,7 @@ export default function TodayScreen() {
 
         <GlassCard className="gap-3">
           <View className="flex-row items-center justify-between">
-            <Text className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">// SESSION_STATUS</Text>
+            <Text className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">{"// SESSION_STATUS"}</Text>
             <Text className="font-mono text-[10px] tracking-[0.18em] text-zinc-400">
               {latestGenerated ? `GEN ${latestGenerated}` : "GEN WAITING"}
             </Text>
@@ -169,7 +169,7 @@ export default function TodayScreen() {
         </GlassCard>
 
         <View className="gap-3 px-1">
-          <Text className="font-mono text-[10px] tracking-[0.2em] text-white">// DAILY_TASKS_QUEUE</Text>
+          <Text className="font-mono text-[10px] tracking-[0.2em] text-white">{"// DAILY_TASKS_QUEUE"}</Text>
           <View className="gap-2">
             <Checkbox checked label="Inbox sync is handled by the dashboard feed" onChange={() => undefined} />
             <Checkbox checked={Boolean(data?.items.length)} label="Open items are surfaced from backend state" onChange={() => undefined} />

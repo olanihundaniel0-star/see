@@ -72,7 +72,7 @@ export default function AccountScreen() {
         <GlassCard className="gap-4">
           <View className="flex-row items-start justify-between gap-3">
             <View className="gap-1">
-              <Text className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">// AUTH_SUBJECT</Text>
+              <Text className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">{"// AUTH_SUBJECT"}</Text>
               <Text className="text-xl font-bold text-white">{user?.email ?? "Unknown account"}</Text>
               <Text className="font-mono text-[11px] text-zinc-400">{user?.id ?? "No active session"}</Text>
             </View>
@@ -85,7 +85,7 @@ export default function AccountScreen() {
           </View>
 
           <View className="rounded-lg border border-white/10 bg-zinc-950/80 px-3 py-3">
-            <Text className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">// TIMESTAMPS</Text>
+            <Text className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">{"// TIMESTAMPS"}</Text>
             <Text className="mt-2 font-mono text-[11px] leading-5 text-zinc-300">
               {user?.created_at ? `Created: ${formatShortDateTime(user.created_at)}` : "Created: unknown"}
               {"\n"}
@@ -105,7 +105,7 @@ export default function AccountScreen() {
         </GlassCard>
 
         <GlassCard className="gap-3">
-          <Text className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">// SESSION_NOTES</Text>
+          <Text className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">{"// SESSION_NOTES"}</Text>
           <Text className="font-mono text-[11px] leading-5 text-zinc-400">
             This screen exists so the app has a clear exit path from the authenticated shell. Signing out clears the Supabase
             session and returns you to the login gateway.

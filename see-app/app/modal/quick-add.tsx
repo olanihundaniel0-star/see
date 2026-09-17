@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
-import { Alert, KeyboardAvoidingView, Platform, Pressable, Text, TextInput, type TextInputProps, View } from "react-native";
+import { Alert, KeyboardAvoidingView, Platform, Pressable, Text, type TextInputProps, View } from "react-native";
 import { router, Stack } from "expo-router";
 import * as Haptics from "expo-haptics";
 import {
@@ -173,7 +173,7 @@ export default function QuickAddModal() {
           <KeyboardAvoidingView behavior={Platform.select({ ios: "padding", android: undefined })} className="flex-1">
             <View className="flex-1 gap-4">
               <View className="flex-row items-center justify-between">
-                <Text className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">// QUICK_ADD</Text>
+                <Text className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">{"// QUICK_ADD"}</Text>
                 <Pressable onPress={() => router.back()}>
                   <Text className="font-mono text-[10px] tracking-[0.18em] text-white">[x CLOSE]</Text>
                 </Pressable>

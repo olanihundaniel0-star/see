@@ -98,7 +98,7 @@ export default function NoteDetailScreen() {
               </GlassCard>
 
               <GlassCard className="gap-2">
-                <Text className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">// PREVIEW</Text>
+                <Text className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">{"// PREVIEW"}</Text>
                 <Text className="font-mono text-[11px] leading-5 text-zinc-300">{content}</Text>
               </GlassCard>
             </>

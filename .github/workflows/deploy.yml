@@ -76,16 +76,16 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --legacy-peer-deps
 
       - name: Type check
-        run: npm run typecheck 2>/dev/null || echo "No typecheck script"
+        run: npm run typecheck
 
       - name: Lint
-        run: npm run lint 2>/dev/null || echo "No lint script"
+        run: npm run lint
 
       - name: Run tests
-        run: npm test 2>/dev/null || echo "No test script"
+        run: echo "No frontend unit test suite configured"
 
   security-scan:
     runs-on: ubuntu-latest

@@ -13,7 +13,7 @@ import { theme } from "@/constants/theme";
 import { formatProgress, formatRelativePast, formatShortDateTime } from "@/lib/format";
 import { Job, JobStatus, useInfiniteJobs, useUpdateJob } from "@/lib/queries";
 
-const filters: Array<{ label: string; value: JobStatus | "all" }> = [
+const filters: { label: string; value: JobStatus | "all" }[] = [
   { label: "ALL", value: "all" },
   { label: "BOOKMARKED", value: "bookmarked" },
   { label: "APPLIED", value: "applied" },

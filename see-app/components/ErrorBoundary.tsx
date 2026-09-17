@@ -52,7 +52,7 @@ export class ErrorBoundary extends Component<Props, State> {
             <View className="gap-4">
               <View className="gap-2">
                 <Text className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">
-                  // ERROR_BOUNDARY
+                  {"// ERROR_BOUNDARY"}
                 </Text>
                 <Text className="text-2xl font-bold text-white">
                   Something went wrong

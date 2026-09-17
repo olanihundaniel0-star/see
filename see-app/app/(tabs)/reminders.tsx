@@ -10,9 +10,9 @@ import { LoadMoreButton } from "@/components/ui/LoadMoreButton";
 import { ScreenState } from "@/components/ui/ScreenState";
 import { theme } from "@/constants/theme";
 import { formatCountdown, formatShortDateTime } from "@/lib/format";
-import { Reminder, useInfiniteReminders, useUpdateReminder } from "@/lib/queries";
+import { useInfiniteReminders, useUpdateReminder } from "@/lib/queries";
 
-const filters: Array<{ label: string; value: "all" | "open" | "completed" }> = [
+const filters: { label: string; value: "all" | "open" | "completed" }[] = [
   { label: "ALL", value: "all" },
   { label: "OPEN", value: "open" },
   { label: "DONE", value: "completed" }
@@ -45,7 +45,7 @@ export default function RemindersScreen() {
 
         <GlassCard className="gap-3">
           <View className="flex-row items-center justify-between">
-            <Text className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">// FILTERS</Text>
+            <Text className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">{"// FILTERS"}</Text>
             <Text className="font-mono text-[10px] tracking-[0.18em] text-zinc-400">[{counts.all}] ITEMS</Text>
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2">

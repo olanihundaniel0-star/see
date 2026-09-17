@@ -73,7 +73,7 @@ export default function JobDossierScreen() {
 
           {error ? (
             <GlassCard className="gap-3">
-              <Text className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">// DOSSIER_ERROR</Text>
+              <Text className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">{"// DOSSIER_ERROR"}</Text>
               <Text className="text-xl font-bold text-white">Unable to load this job.</Text>
               <Text className="font-mono text-[11px] text-zinc-400">The backend did not return a dossier for this id.</Text>
             </GlassCard>
@@ -115,7 +115,7 @@ export default function JobDossierScreen() {
               </GlassCard>
 
               <GlassCard className="gap-3">
-                <Text className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">// METADATA_MATRIX</Text>
+                <Text className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">{"// METADATA_MATRIX"}</Text>
                 <View className="flex-row flex-wrap gap-2">
                   {summaryRows.map((row) => (
                     <GlassPill key={row.label} label={row.label} value={row.value} className="basis-[48%] flex-1" />
@@ -137,7 +137,7 @@ export default function JobDossierScreen() {
 
               <GlassCard className="gap-3">
                 <View className="flex-row items-center justify-between">
-                  <Text className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">// CHECKLIST</Text>
+                  <Text className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">{"// CHECKLIST"}</Text>
                   <Text className="font-mono text-[10px] tracking-[0.18em] text-zinc-400">
                     [{completed}/{items.length}]
                   </Text>
@@ -179,7 +179,7 @@ export default function JobDossierScreen() {
 
               <GlassCard className="gap-3">
                 <View className="flex-row items-center justify-between">
-                  <Text className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">// SCRATCHPAD</Text>
+                  <Text className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">{"// SCRATCHPAD"}</Text>
                   <Text className="font-mono text-[10px] tracking-[0.18em] text-zinc-400">INTERVIEW_NOTES</Text>
                 </View>
                 <TextInput
@@ -210,7 +210,7 @@ export default function JobDossierScreen() {
               </GlassCard>
 
               <GlassCard className="gap-2">
-                <Text className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">// ACTION_STACK</Text>
+                <Text className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">{"// ACTION_STACK"}</Text>
                 <View className="flex-row gap-2">
                   <Pressable
                     disabled={updateJob.isPending}
@@ -264,7 +264,7 @@ export default function JobDossierScreen() {
 
           {!job && !isLoading && !error ? (
             <GlassCard className="gap-3">
-              <Text className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">// NOT_FOUND</Text>
+              <Text className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">{"// NOT_FOUND"}</Text>
               <Text className="text-xl font-bold text-white">This dossier no longer exists.</Text>
               <Pressable onPress={() => router.back()} className="rounded-lg border border-white/20 bg-white px-3 py-2">
                 <Text className="text-center font-mono text-[10px] font-bold text-black">[RETURN]</Text>
