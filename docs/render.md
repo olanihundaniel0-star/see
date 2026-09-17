@@ -8,8 +8,17 @@ This repo ships with a Render Blueprint in [render.yaml](../render.yaml).
 - `see-redis`: Render Key Value instance
 - `see-postgres`: Render Postgres instance
 
-This blueprint intentionally targets Render's free tier. Free Render instances
-support web services and datastores, but not Background Workers or Cron Jobs.
+This blueprint targets Render's free tier, which supports web services and
+datastores but **not** Background Workers or Cron Jobs. Background work (Gmail
+polling and event scraping) is therefore triggered by free GitHub Actions
+schedules that call protected internal endpoints on the web service:
+
+- [`.github/workflows/poll-gmail.yml`](../.github/workflows/poll-gmail.yml) runs
+  every 15 minutes and calls `POST /internal/poll-gmail`.
+- [`.github/workflows/scrape-events.yml`](../.github/workflows/scrape-events.yml)
+  runs every 6 hours and calls `POST /internal/scrape-events`.
+
+No Celery worker or beat is required in this mode.
 
 ## Deploy Steps
 
@@ -25,6 +34,8 @@ support web services and datastores, but not Background Workers or Cron Jobs.
    - `GMAIL_APP_PASSWORD`
    - `DEFAULT_USER_ID` (recommended in production; the UUID of the Supabase user who receives all Gmail-created records. If left empty the backend starts with a warning instead of failing, and Gmail records are ingested without a user. Must be a valid UUID if set.)
    - `INTERNAL_API_TOKEN` (a long random value shared with the GitHub Actions secret)
+   - `CORS_ORIGINS` (comma-separated browser origins; required for web builds, not native apps)
+   - `LUMA_PAGE_URLS` (optional; Luma pages to scrape for events)
 5. Deploy the blueprint.
 
 The web service runs `alembic upgrade head` before Uvicorn starts. This keeps
@@ -45,30 +56,38 @@ to `./start.sh` so Render does not need to parse an inline shell command.
    - Sign in
    - Create a job, note, and reminder
    - Verify Gmail polling only after the credentials are set
+5. Add these GitHub Actions repository secrets so the scheduled workflows can
+   reach the backend:
+   - `BACKEND_URL`: the Render web service URL, e.g.
+     `https://see-backend.onrender.com` (no trailing slash, no `/api/v1`)
+   - `INTERNAL_API_TOKEN`: the same value set on the backend
+6. Trigger each workflow once from the Actions tab (`Run workflow`) to confirm
+   it returns `{"status": "ok", ...}`.
 
 ## Notes
 
-- The free blueprint does not run Celery worker or beat. Webhook jobs can still
-  be published to Redis, but they will not be processed until you choose one of
-  the worker options below.
+- Scheduled GitHub Actions are the free-tier substitute for Celery beat. GitHub
+  disables `schedule` triggers on repositories with no activity for 60 days; if
+  polling silently stops, re-enable the workflow in the Actions tab.
+- GitHub's cron scheduler is best-effort and can run late under load; treat
+  `GMAIL_POLL_INTERVAL_MINUTES`/`EVENT_SCRAPE_INTERVAL_MINUTES` as guidance for
+  the workflow cron expressions, not a hard guarantee.
+- The Mailgun webhook path publishes to Redis via Celery. With no worker on the
+  free tier those queued jobs are not processed, so rely on the Gmail poll
+  workflow (which fetches and persists directly) for email ingestion.
 - Do not rely on the free Key Value instance for durable queued jobs: it is
   in-memory and may be restarted.
 - If you add new required env vars, update both `render.yaml` and `see-backend/.env.example`.
 
-## Worker And Scheduler Options
+## Optional: Run A Real Celery Worker
 
-1. **Recommended for reliable production processing:** upgrade the Render
-   worker and scheduler to paid services. Run a Celery worker continuously and
-   use a Render Cron Job to enqueue `app.workers.tasks.poll_gmail_inbox` every
-   15 minutes. This keeps the current Celery implementation unchanged.
-2. **Host the worker elsewhere:** run `celery -A app.workers.celery_app worker
-   -l info` on another always-on host and configure it with the same
-   `REDIS_URL`, database, and application secrets. Replace Celery beat with an
-   external scheduler that enqueues `app.workers.tasks.poll_gmail_inbox` every
-   15 minutes. Use this only with a Redis endpoint the external host can reach.
-3. **Serverless polling (now supported):** use GitHub Actions, a cloud
-   scheduler, or another timer to `POST /internal/poll-gmail` every 15 minutes.
-   Send the shared `X-Internal-Token` header. The endpoint runs a bounded
-   polling and persistence path directly, without a Celery worker, and returns
-   JSON containing the elapsed time plus found, processed, duplicate, and
-   failed counts.
+If you later move off the free tier (or host a worker elsewhere), you can run a
+continuous worker instead of the scheduled workflows:
+
+1. **Render Background Worker:** create a worker service with
+   `celery -A app.workers.celery_app worker -B -l info` and the same `REDIS_URL`,
+   database, and application secrets. Keep it to a single instance because beat
+   runs in-process.
+2. **Another always-on host:** run the same command with the same secrets, and
+   replace Celery beat with an external scheduler if the host cannot run beat.
+   Use this only with a Redis endpoint the host can reach.
