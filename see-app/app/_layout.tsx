@@ -48,18 +48,19 @@ export default function RootLayout() {
                 contentStyle: { backgroundColor: "#000000" } as any
               }}
             >
-              {authLoading ? <Stack.Screen name="auth" /> : null}
-              {!authLoading && !session ? <Stack.Screen name="auth" /> : null}
-              {!authLoading && session ? <Stack.Screen name="(tabs)" /> : null}
-              {!authLoading && session ? (
+              <Stack.Screen name="auth" />
+              <Stack.Protected guard={!authLoading && !!session}>
+                <Stack.Screen name="(tabs)" />
                 <Stack.Screen
                   name="modal/quick-add"
                   options={{
                     presentation: "modal"
                   }}
                 />
-              ) : null}
-              {!authLoading && session ? <Stack.Screen name="jobs/[id]" /> : null}
+                <Stack.Screen name="jobs/[id]" />
+                <Stack.Screen name="notes/[id]" />
+                <Stack.Screen name="reminders/[id]" />
+              </Stack.Protected>
             </Stack>
             <StatusBar barStyle="light-content" />
           </BottomSheetModalProvider>
