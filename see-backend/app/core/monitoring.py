@@ -15,6 +15,7 @@ from fastapi import FastAPI, Request
 from sentry_sdk.integrations.fastapi import FastApiIntegration
 from sentry_sdk.integrations.celery import CeleryIntegration
 from sentry_sdk.integrations.redis import RedisIntegration
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.core.config import settings
 
@@ -149,13 +150,10 @@ def setup_logging() -> None:
         logging.getLogger().setLevel(logging.WARNING)
 
 
-class SentryContextMiddleware:
+class SentryContextMiddleware(BaseHTTPMiddleware):
     """Middleware to add contextual information to Sentry events."""
 
-    def __init__(self, app: FastAPI):
-        self.app = app
-
-    async def __call__(self, request: Request, call_next):
+    async def dispatch(self, request: Request, call_next):
         # Add request ID to Sentry context
         request_id = request.headers.get("X-Request-ID", "unknown")
         sentry_sdk.set_tag("request_id", request_id)
