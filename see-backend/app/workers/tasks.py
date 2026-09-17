@@ -33,11 +33,13 @@ async def poll_gmail_inbox_impl() -> dict[str, int]:
     duplicates = 0
     failed = 0
     seen_hashes: set[str] = set()
+    persisted_uids: list[str] = []
 
     for message in messages:
         normalized = worker_email.normalize_mailgun_webhook_payload(message)
         if normalized.raw_email_hash in seen_hashes:
             duplicates += 1
+            persisted_uids.append(message.get("uid") or "")
             continue
         seen_hashes.add(normalized.raw_email_hash)
 
@@ -47,15 +49,24 @@ async def poll_gmail_inbox_impl() -> dict[str, int]:
             # The unique raw_email_hash index makes overlapping triggers safe.
             duplicates += 1
             logger.info("Gmail message was inserted concurrently; treating it as a duplicate")
+            persisted_uids.append(message.get("uid") or "")
+            continue
         except Exception:
             failed += 1
             logger.exception("Failed to persist a Gmail message during polling")
             continue
 
+        persisted_uids.append(message.get("uid") or "")
         if result.get("duplicate"):
             duplicates += 1
         else:
             processed += 1
+
+    # Only mark messages as read once their content is safely persisted.
+    # Unread messages that failed to persist stay flagged and are retried on the next poll.
+    successful_uids = [uid for uid in persisted_uids if uid]
+    if successful_uids:
+        await asyncio.to_thread(gmail_ingestion.mark_seen_by_uids, successful_uids)
 
     return {
         "found": len(messages),

@@ -67,15 +67,15 @@ def fetch_unread_job_emails() -> list[dict[str, Any]]:
         return []
 
     try:
-        status, messages = mail.search(None, "UNSEEN")
+        status, messages = mail.uid("search", None, "UNSEEN")
         if status != "OK" or not messages or not messages[0]:
             return []
 
         parsed_emails: list[dict[str, Any]] = []
         # Keep each scheduled invocation bounded. Remaining unread messages are handled next run.
-        message_ids = messages[0].split()[-max(settings.GMAIL_MAX_MESSAGES_PER_POLL, 1) :]
-        for e_id in message_ids:
-            res, data = mail.fetch(e_id, "(RFC822)")
+        uids = [uid.decode("ascii") for uid in messages[0].split()[-max(settings.GMAIL_MAX_MESSAGES_PER_POLL, 1) :]]
+        for uid in uids:
+            res, data = mail.uid("fetch", uid, "(RFC822)")
             if res != "OK" or not data or not data[0]:
                 continue
 
@@ -92,6 +92,7 @@ def fetch_unread_job_emails() -> list[dict[str, Any]]:
             raw_email = f"<raw_email>{stripped_text}</raw_email>"
             parsed_emails.append(
                 {
+                    "uid": uid,
                     "sender": sender,
                     "recipient": clean_header(msg.get("To")) or None,
                     "subject": subject,
@@ -101,9 +102,46 @@ def fetch_unread_job_emails() -> list[dict[str, Any]]:
                     "raw_email_hash": "",
                 }
             )
-            mail.store(e_id, "+FLAGS", "\\Seen")
 
         return parsed_emails
+    finally:
+        try:
+            mail.close()
+        except Exception:
+            pass
+        try:
+            mail.logout()
+        except Exception:
+            pass
+
+
+def mark_seen_by_uids(uids: list[str]) -> None:
+    """Mark messages as \\Seen only after they have been persisted successfully."""
+    if not uids:
+        return
+
+    gmail_user = settings.GMAIL_USER
+    gmail_password = settings.GMAIL_APP_PASSWORD.get_secret_value() if settings.GMAIL_APP_PASSWORD else None
+    if not gmail_user or not gmail_password:
+        return
+
+    mail = imaplib.IMAP4_SSL(
+        DEFAULT_IMAP_HOST,
+        DEFAULT_IMAP_PORT,
+        timeout=max(settings.GMAIL_IMAP_TIMEOUT_SECONDS, 1),
+    )
+    try:
+        mail.login(gmail_user, gmail_password)
+        mail.select("inbox")
+    except imaplib.IMAP4.error:
+        return
+
+    try:
+        for uid in uids:
+            try:
+                mail.uid("store", uid, "+FLAGS", "\\Seen")
+            except imaplib.IMAP4.error:
+                continue
     finally:
         try:
             mail.close()

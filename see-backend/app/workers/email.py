@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import html
+import logging
 import re
 from datetime import datetime, timedelta, timezone
 from typing import Any
@@ -29,11 +30,59 @@ from app.schemas.job import JobApplicationCreate
 from app.schemas.note import NoteCreate
 from app.schemas.reminder import ReminderCreate
 
+logger = logging.getLogger(__name__)
+
 
 def _clean_text(value: Any) -> str:
     if value is None:
         return ""
     return " ".join(str(value).split()).strip()
+
+
+def _safe_enum_value(enum_cls: type, value: Any, default: Any) -> Any:
+    """Coerce a raw value to an enum member without raising on bad input."""
+    if value is None:
+        return default
+    try:
+        return enum_cls(value)
+    except (ValueError, TypeError):
+        return default
+
+
+def _parse_default_user_id(raw: str | None) -> UUID | None:
+    """Parse the configured owner UUID for Gmail-created items; never raises.
+
+    Config validation rejects malformed values at startup, but worker settings can
+    still drift at runtime, so a bad value degrades to "unattributed ingestion"
+    instead of crashing the whole extraction.
+    """
+    if not raw or not raw.strip():
+        return None
+    try:
+        return UUID(raw.strip())
+    except (ValueError, AttributeError):
+        logger.warning(
+            "DEFAULT_USER_ID is not a valid UUID (%r); Gmail items will be ingested without attribution",
+            raw,
+        )
+        return None
+
+
+def _coerce_utc_datetime(value: Any) -> datetime | None:
+    """Parse a datetime from an LLM action payload; never raises."""
+    if not value:
+        return None
+    text = _clean_text(value)
+    if not text:
+        return None
+    candidate = text.replace("Z", "+00:00")
+    try:
+        parsed = datetime.fromisoformat(candidate)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed
 
 
 def normalize_mailgun_webhook_payload(payload: dict[str, Any]) -> NormalizedEmailIngestPayload:
@@ -411,7 +460,7 @@ async def persist_email_extraction(
 
         preview = infer_email_extraction(normalized)
         company = preview.entities.company or _company_from_sender(normalized.sender) or "Unknown Company"
-        user_id = UUID(settings.DEFAULT_USER_ID) if settings.DEFAULT_USER_ID else None
+        user_id = _parse_default_user_id(settings.DEFAULT_USER_ID)
         existing_job = await _find_job_by_company(session, user_id, company) if user_id else None
         extraction = _generate_email_extraction_with_gemini(normalized, existing_job=existing_job)
         if extraction is None:
@@ -437,7 +486,7 @@ async def persist_email_extraction(
 
         company = extraction.entities.company or _company_from_sender(normalized.sender) or "Unknown Company"
         role = extraction.entities.role or "Unspecified Role"
-        deadline = datetime.fromisoformat(extraction.entities.deadline) if extraction.entities.deadline else None
+        deadline = _coerce_utc_datetime(extraction.entities.deadline)
 
         if user_id is None:
             record.extraction_result = extraction.model_dump(mode="json")
@@ -455,48 +504,60 @@ async def persist_email_extraction(
             }
 
         for recommendation in extraction.recommended_actions:
-            if recommendation.action in {EmailActionType.CREATE_JOB, EmailActionType.UPDATE_JOB}:
-                existing_job = await _find_job_by_company(session, user_id, company)
-                if existing_job is None:
-                    existing_job = JobApplication(
+            # LLM-produced payloads are free-form; a single malformed
+            # recommendation must never crash the whole extraction.
+            try:
+                if recommendation.action in {EmailActionType.CREATE_JOB, EmailActionType.UPDATE_JOB}:
+                    existing_job = await _find_job_by_company(session, user_id, company)
+                    if existing_job is None:
+                        existing_job = JobApplication(
+                            user_id=user_id,
+                            company=company,
+                            role=role,
+                            status=_safe_enum_value(JobStatus, recommendation.payload.get("status"), JobStatus.APPLIED),
+                            interview_notes=recommendation.payload.get("interview_notes"),
+                            deadline=deadline,
+                        )
+                        session.add(existing_job)
+                        created_job = existing_job
+                    else:
+                        existing_job.company = company or existing_job.company
+                        if role and (not existing_job.role or existing_job.role == "Unspecified Role"):
+                            existing_job.role = role
+                        status_value = recommendation.payload.get("status")
+                        if status_value:
+                            existing_job.status = _safe_enum_value(JobStatus, status_value, existing_job.status)
+                        if recommendation.payload.get("interview_notes"):
+                            existing_job.interview_notes = recommendation.payload["interview_notes"]
+                        if deadline is not None:
+                            existing_job.deadline = deadline
+                        created_job = existing_job
+                elif recommendation.action == EmailActionType.CREATE_REMINDER:
+                    reminder_due = deadline or _coerce_utc_datetime(recommendation.payload.get("due_date"))
+                    if reminder_due is None:
+                        reminder_due = datetime.now(timezone.utc) + timedelta(days=1)
+                    created_reminder = Reminder(
                         user_id=user_id,
-                        company=company,
-                        role=role,
-                        status=JobStatus(recommendation.payload.get("status", JobStatus.APPLIED.value)),
-                        interview_notes=recommendation.payload.get("interview_notes"),
-                        deadline=deadline,
+                        title=recommendation.payload.get("title", extraction.summary),
+                        due_date=reminder_due,
+                        priority=_safe_enum_value(
+                            ReminderPriority,
+                            recommendation.payload.get("priority"),
+                            ReminderPriority.MEDIUM,
+                        ),
                     )
-                    session.add(existing_job)
-                    created_job = existing_job
-                else:
-                    existing_job.company = company or existing_job.company
-                    if role and (not existing_job.role or existing_job.role == "Unspecified Role"):
-                        existing_job.role = role
-                    status_value = recommendation.payload.get("status")
-                    if status_value:
-                        existing_job.status = JobStatus(status_value)
-                    if recommendation.payload.get("interview_notes"):
-                        existing_job.interview_notes = recommendation.payload["interview_notes"]
-                    if deadline is not None:
-                        existing_job.deadline = deadline
-                    created_job = existing_job
-            elif recommendation.action == EmailActionType.CREATE_REMINDER:
-                reminder_due = deadline or datetime.fromisoformat(recommendation.payload["due_date"])
-                created_reminder = Reminder(
-                    user_id=user_id,
-                    title=recommendation.payload.get("title", extraction.summary),
-                    due_date=reminder_due,
-                    priority=ReminderPriority(recommendation.payload.get("priority", ReminderPriority.MEDIUM.value)),
-                )
-                session.add(created_reminder)
-            elif recommendation.action == EmailActionType.CREATE_NOTE:
-                created_note = Note(
-                    user_id=user_id,
-                    title=recommendation.payload.get("title", extraction.summary),
-                    content=recommendation.payload.get("content", normalized.body_plain or normalized.stripped_text),
-                    tags=recommendation.payload.get("tags"),
-                )
-                session.add(created_note)
+                    session.add(created_reminder)
+                elif recommendation.action == EmailActionType.CREATE_NOTE:
+                    created_note = Note(
+                        user_id=user_id,
+                        title=recommendation.payload.get("title", extraction.summary),
+                        content=recommendation.payload.get("content", normalized.body_plain or normalized.stripped_text),
+                        tags=recommendation.payload.get("tags"),
+                    )
+                    session.add(created_note)
+            except (KeyError, TypeError, ValueError) as exc:
+                logger.warning("Skipping malformed email recommendation (%s): %s", recommendation.action, exc)
+                continue
 
         record.linked_job_id = getattr(created_job, "id", None)
         record.linked_reminder_id = getattr(created_reminder, "id", None)

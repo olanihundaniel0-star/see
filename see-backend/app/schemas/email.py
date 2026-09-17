@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class EmailMessageType(str, Enum):
@@ -33,6 +34,24 @@ class EmailEntities(BaseModel):
     deadline: str | None = None
     event_title: str | None = None
     event_url: str | None = None
+
+    @field_validator("deadline", mode="before")
+    @classmethod
+    def _normalize_deadline(cls, value: object) -> str | None:
+        if value is None:
+            return None
+        text = str(value).strip()
+        if not text:
+            return None
+        candidate = text.replace("Z", "+00:00")
+        try:
+            parsed = datetime.fromisoformat(candidate)
+        except ValueError:
+            # LLM output is free-form; a non-ISO deadline is not actionable.
+            return None
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=timezone.utc)
+        return parsed.isoformat()
 
 
 class EmailActionRecommendation(BaseModel):
