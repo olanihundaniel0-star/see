@@ -1,8 +1,11 @@
+import logging
 from functools import lru_cache
 from uuid import UUID
 
 from pydantic import SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+logger = logging.getLogger(__name__)
 
 
 def normalize_database_url(url: str) -> str:
@@ -70,8 +73,12 @@ class Settings(BaseSettings):
                 raise ValueError("SUPABASE_JWT_SECRET or SUPABASE_JWKS_URL must be configured in production")
             if not self.DEFAULT_USER_ID:
                 # Gmail-created jobs/notes/reminders are attributed to this single
-                # user; an empty value silently drops them from the pipeline.
-                raise ValueError("DEFAULT_USER_ID must be a valid Supabase Auth user UUID in production")
+                # user. It is an optional integration, so warn loudly instead of
+                # failing startup (which would also block Alembic migrations).
+                logger.warning(
+                    "DEFAULT_USER_ID is not set: Gmail-created records will be ingested "
+                    "without being attached to any user"
+                )
         return self
 
     @property

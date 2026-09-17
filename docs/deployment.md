@@ -65,7 +65,7 @@ Backend:
 - `GEMINI_API_KEY`
 - `GMAIL_USER`
 - `GMAIL_APP_PASSWORD`
-- `DEFAULT_USER_ID` (required; the Supabase Auth user UUID that receives every Gmail-created job/reminder/note — the Gmail pipeline attributes all ingested emails to this single user, and an empty value silently drops them. Must be a valid UUID.)
+- `DEFAULT_USER_ID` (recommended in production; the Supabase Auth user UUID that receives every Gmail-created job/reminder/note — the Gmail pipeline attributes all ingested emails to this single user. If unset, the backend starts with a warning and Gmail records are ingested unattributed. Must be a valid UUID if set.)
 - `INTERNAL_API_TOKEN` (also set as the `INTERNAL_API_TOKEN` GitHub Actions secret)
 - `GMAIL_POLL_INTERVAL_MINUTES`
 - `CORS_ORIGINS`
