@@ -34,7 +34,7 @@ jobs:
       APP_ENV: development
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/see_test
       REDIS_URL: redis://localhost:6379/0
-      SUPABASE_JWT_SECRET: replace-me
+      SUPABASE_JWT_SECRET: dev-secret-key-for-testing-only-not-for-production
       EMAIL_WEBHOOK_SECRET: replace-me
       CORS_ORIGINS: http://localhost:8081
       GMAIL_USER: ""
