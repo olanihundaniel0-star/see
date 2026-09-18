@@ -15,89 +15,75 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./see-backend
-
+        working-directory: see-backend
     services:
       postgres:
-        image: postgres:15
+        image: postgres:16-alpine
         env:
           POSTGRES_DB: see_test
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
         ports:
           - 5432:5432
-
+        options: >-
+          --health-cmd "pg_isready -U postgres -d see_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      APP_ENV: development
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/see_test
+      REDIS_URL: redis://localhost:6379/0
+      SUPABASE_JWT_SECRET: replace-me
+      EMAIL_WEBHOOK_SECRET: replace-me
+      CORS_ORIGINS: http://localhost:8081
+      GMAIL_USER: ""
+      GMAIL_APP_PASSWORD: ""
     steps:
       - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
-          python-version: '3.14'
-          cache: 'pip'
-
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: see-backend/requirements.txt
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install pytest pytest-asyncio pytest-cov
-
+      - name: Run migrations
+        run: alembic upgrade head
       - name: Run backend tests
-        env:
-          DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/see_test
-          APP_ENV: test
-        run: |
-          pytest tests/ -v --cov=app --cov-report=xml
-
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
-        with:
-          files: ./coverage.xml
-          fail_ci_if_error: false
+        run: pytest tests/ --cov=app --cov-report=xml
 
   test-frontend:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./see-app
-
+        working-directory: see-app
     steps:
       - uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
+      - uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
-
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: see-app/package-lock.json
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
-
-      - name: Type check
+      - name: Typecheck
         run: npm run typecheck
-
       - name: Lint
         run: npm run lint
-
-      - name: Run tests
-        run: echo "No frontend unit test suite configured"
 
   security-scan:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - name: Run npm audit
-        working-directory: ./see-app
+        working-directory: see-app
         run: npm audit --audit-level=moderate 2>/dev/null || true
-
       - name: Run Python safety check
-        working-directory: ./see-backend
+        working-directory: see-backend
         run: |
           pip install safety
           safety check 2>/dev/null || true
@@ -109,33 +95,27 @@ jobs:
     permissions:
       contents: read
       packages: write
-
     steps:
       - uses: actions/checkout@v4
-
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-
+        uses: docker/setup-buildx-action@v3
       - name: Log in to Container Registry
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Extract metadata
         id: meta
-        uses: docker/metadata-action@v4
+        uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend
           tags: |
             type=ref,event=branch
             type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
             type=sha
-
       - name: Build and push backend Docker image
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v6
         with:
           context: ./see-backend
           push: true
@@ -145,40 +125,33 @@ jobs:
           cache-to: type=gha,mode=max
 
   deploy-staging:
-    needs: [test-backend, test-frontend, security-scan]
+    needs: [build-docker]
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     environment: staging
-
     steps:
       - uses: actions/checkout@v4
-
       - name: Deploy backend to staging
         env:
           RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_STAGING_BACKEND_DEPLOY_HOOK }}
         run: |
-          if [ -n "$RENDER_DEPLOY_HOOK" ]; then
-            curl -X POST "$RENDER_DEPLOY_HOOK"
-            echo "Deployment triggered"
-          else
-            echo "RENDER_DEPLOY_HOOK not configured"
+          if [ -z "$RENDER_DEPLOY_HOOK" ]; then
+            echo "RENDER_STAGING_BACKEND_DEPLOY_HOOK not configured; skipping"
+            exit 0
           fi
-
+          curl --fail-with-body --silent --show-error --connect-timeout 25 --max-time 40 -X POST "$RENDER_DEPLOY_HOOK"
+          echo "Deployment triggered"
       - name: Verify staging deployment
         env:
           HEALTH_URL: ${{ secrets.STAGING_API_URL }}
           RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_STAGING_BACKEND_DEPLOY_HOOK }}
         run: |
-          if [ -z "$RENDER_DEPLOY_HOOK" ]; then
-            echo "RENDER_DEPLOY_HOOK not configured; skipping staging health check"
-            exit 0
-          fi
           if [ -z "$HEALTH_URL" ]; then
-            echo "STAGING_API_URL not configured; skipping staging health check"
+            echo "STAGING_API_URL not configured; skipping health check"
             exit 0
           fi
           for i in {1..30}; do
-            if curl -f "$HEALTH_URL/health" > /dev/null 2>&1; then
+            if curl -f --connect-timeout 25 --max-time 40 "$HEALTH_URL/health" >/dev/null 2>&1; then
               echo "Staging API is healthy"
               exit 0
             fi
@@ -187,56 +160,46 @@ jobs:
           done
           echo "Staging API did not become healthy"
           exit 1
-
       - name: Notify staging deployment
-        uses: 8398a7/action-slack@v3
         if: always()
-        with:
-          status: ${{ job.status }}
-          text: '✅ Staging deployment successful'
-          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
-          fields: repo,message,commit,author
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+        run: |
+          if [ -n "$SLACK_WEBHOOK" ]; then
+            curl -sS -X POST -H 'Content-type: application/json' \
+              --data "{\"text\":\"Staging deployment status: ${{ job.status }}\"}" \
+              "$SLACK_WEBHOOK" >/dev/null 2>&1 || true
+          fi
 
   deploy-production:
-    needs: [build-docker, deploy-staging]
+    needs: [deploy-staging]
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     environment:
       name: production
-      url: ${{ secrets.PRODUCTION_API_URL }}
-
     steps:
       - uses: actions/checkout@v4
-
-      - name: Wait for approval
-        run: echo "Production deployment requires manual approval"
-
       - name: Deploy backend to production
         env:
           RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_PRODUCTION_BACKEND_DEPLOY_HOOK }}
         run: |
-          if [ -n "$RENDER_DEPLOY_HOOK" ]; then
-            curl -X POST "$RENDER_DEPLOY_HOOK"
-            echo "Production deployment triggered"
-          else
-            echo "RENDER_DEPLOY_HOOK not configured"
+          if [ -z "$RENDER_DEPLOY_HOOK" ]; then
+            echo "RENDER_PRODUCTION_BACKEND_DEPLOY_HOOK not configured; skipping"
+            exit 0
           fi
-
+          curl --fail-with-body --silent --show-error --connect-timeout 25 --max-time 40 -X POST "$RENDER_DEPLOY_HOOK"
+          echo "Production deployment triggered"
       - name: Verify production deployment
         env:
           HEALTH_URL: ${{ secrets.PRODUCTION_API_URL }}
           RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_PRODUCTION_BACKEND_DEPLOY_HOOK }}
         run: |
-          if [ -z "$RENDER_DEPLOY_HOOK" ]; then
-            echo "RENDER_DEPLOY_HOOK not configured; skipping production health check"
-            exit 0
-          fi
           if [ -z "$HEALTH_URL" ]; then
-            echo "PRODUCTION_API_URL not configured; skipping production health check"
+            echo "PRODUCTION_API_URL not configured; skipping health check"
             exit 0
           fi
           for i in {1..30}; do
-            if curl -f "$HEALTH_URL/health" > /dev/null 2>&1; then
+            if curl -f --connect-timeout 25 --max-time 40 "$HEALTH_URL/health" >/dev/null 2>&1; then
               echo "Production API is healthy"
               exit 0
             fi
@@ -245,33 +208,23 @@ jobs:
           done
           echo "Production API did not become healthy"
           exit 1
-
       - name: Notify production deployment
-        uses: 8398a7/action-slack@v3
         if: always()
-        with:
-          status: ${{ job.status }}
-          text: '🚀 Production deployment successful'
-          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
-          fields: repo,message,commit,author,ref
-
-      - name: Notify deployment failure
-        uses: 8398a7/action-slack@v3
-        if: failure()
-        with:
-          status: ${{ job.status }}
-          text: '❌ Production deployment failed - rollback instructions sent'
-          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
-          fields: repo,message,commit,author
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+        run: |
+          if [ -n "$SLACK_WEBHOOK" ]; then
+            curl -sS -X POST -H 'Content-type: application/json' \
+              --data "{\"text\":\"Production deployment status: ${{ job.status }}\"}" \
+              "$SLACK_WEBHOOK" >/dev/null 2>&1 || true
+          fi
 
   performance-test:
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: deploy-staging
-
     steps:
       - uses: actions/checkout@v4
-
       - name: Run performance baseline
         env:
           HEALTH_URL: ${{ secrets.STAGING_API_URL }}
@@ -280,23 +233,17 @@ jobs:
             echo "STAGING_API_URL not configured; skipping performance baseline"
             exit 0
           fi
-
-          # Simple health check and response time test
           echo "Testing staging API performance..."
           start_time=$(date +%s%N)
-          response_code=$(curl -s -o /dev/null -w "%{http_code}" "$HEALTH_URL/health")
+          response_code=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 25 --max-time 40 "$HEALTH_URL/health")
           end_time=$(date +%s%N)
-          
           response_time_ms=$(( (end_time - start_time) / 1000000 ))
-          
           echo "Response time: ${response_time_ms}ms"
           echo "Response code: $response_code"
-          
           if [ "$response_code" != "200" ]; then
             echo "Health check failed"
             exit 1
           fi
-          
           if [ "$response_time_ms" -gt "1000" ]; then
             echo "Warning: Response time exceeds 1000ms"
           fi
@@ -305,10 +252,8 @@ jobs:
     runs-on: ubuntu-latest
     if: always()
     needs: [test-backend, test-frontend]
-
     steps:
       - name: Clean up build artifacts
         run: echo "Cleanup complete"
-
       - name: Send summary
         run: echo "CI/CD pipeline completed"
