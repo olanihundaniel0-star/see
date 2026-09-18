@@ -5,17 +5,34 @@ on:
     - cron: '0 */6 * * *'
   workflow_dispatch: {}
 
+permissions:
+  contents: read
+
 jobs:
   scrape:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      BACKEND_URL: ${{ secrets.BACKEND_URL }}
+      INTERNAL_API_TOKEN: ${{ secrets.INTERNAL_API_TOKEN }}
     steps:
+      - name: Wake backend
+        run: |
+          test -n "$BACKEND_URL" || { echo "BACKEND_URL secret is not set" >&2; exit 1; }
+          for attempt in 1 2 3 4 5 6 7 8 9 10 11 12; do
+            if curl --fail --silent --show-error --connect-timeout 25 --max-time 40 "$BACKEND_URL/health" >/dev/null; then
+              echo "backend healthy on attempt $attempt"
+              exit 0
+            fi
+            echo "backend not reachable yet (attempt $attempt); Render free tier may be waking up..."
+            sleep 10
+          done
+          echo "backend did not become healthy" >&2
+          exit 1
       - name: Trigger event scrape
         run: |
-          backend_url="${{ secrets.BACKEND_URL }}"
-          backend_url="${backend_url%/}"
-          test -n "$backend_url"
-          test -n "${{ secrets.INTERNAL_API_TOKEN }}"
+          test -n "$INTERNAL_API_TOKEN" || { echo "INTERNAL_API_TOKEN secret is not set" >&2; exit 1; }
           curl --fail-with-body --show-error --silent \
-            --retry 2 --retry-all-errors --connect-timeout 20 --max-time 600 \
-            -X POST "$backend_url/internal/scrape-events" \
-            -H "X-Internal-Token: ${{ secrets.INTERNAL_API_TOKEN }}"
+            --retry 1 --retry-all-errors --connect-timeout 25 --max-time 600 \
+            -X POST "$BACKEND_URL/internal/scrape-events" \
+            -H "X-Internal-Token: $INTERNAL_API_TOKEN"

@@ -140,7 +140,14 @@ export default function EventsScreen() {
                   <Pressable
                     onPress={async () => {
                       await Haptics.selectionAsync();
-                      await Linking.openURL(event.url);
+                      try {
+                        await Linking.openURL(event.url);
+                      } catch (error) {
+                        Alert.alert(
+                          "Unable to open event",
+                          error instanceof Error ? error.message : "The event link could not be opened."
+                        );
+                      }
                     }}
                     className="flex-1 rounded-lg border border-white/10 bg-zinc-950/70 px-3 py-2 active:scale-[0.99]"
                   >

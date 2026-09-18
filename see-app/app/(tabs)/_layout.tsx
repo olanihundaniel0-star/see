@@ -33,7 +33,7 @@ export default function TabsLayout() {
       <Link href="/modal/quick-add" asChild>
         <Pressable
           onPress={() => void Haptics.selectionAsync()}
-          className="absolute bottom-5 right-5 h-14 w-14 items-center justify-center rounded-xl border border-white/20 bg-zinc-950/90 shadow-glass"
+          className="absolute bottom-24 right-5 z-10 h-14 w-14 items-center justify-center rounded-xl border border-white/20 bg-zinc-950/90 shadow-glass"
         >
           <Text className="font-mono text-lg text-white">[+]</Text>
         </Pressable>

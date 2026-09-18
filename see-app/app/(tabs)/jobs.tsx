@@ -23,9 +23,12 @@ const filters: { label: string; value: JobStatus | "all" }[] = [
   { label: "ARCHIVED", value: "archived" }
 ];
 
-const statusOrder: JobStatus[] = ["bookmarked", "applied", "assessment", "interviewing", "offer", "rejected"];
+const statusOrder: JobStatus[] = ["bookmarked", "applied", "assessment", "interviewing", "offer", "rejected", "archived"];
 
 function nextStage(status: JobStatus): JobStatus {
+  if (status === "rejected" || status === "archived") {
+    return status;
+  }
   const index = statusOrder.indexOf(status);
   return statusOrder[Math.min(index + 1, statusOrder.length - 1)];
 }

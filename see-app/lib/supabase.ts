@@ -24,7 +24,8 @@ export const supabase =
           storage,
           persistSession: true,
           autoRefreshToken: true,
-          detectSessionInUrl: false
+          detectSessionInUrl: false,
+          flowType: "pkce"
         }
       })
     : null;

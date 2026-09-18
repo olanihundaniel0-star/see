@@ -6,6 +6,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
+    "icon": "./assets/icon.png",
     "splash": {
       "backgroundColor": "#000000"
     },
@@ -16,7 +17,8 @@
       "expo-router",
       "expo-secure-store",
       "expo-notifications",
-      "expo-calendar"
+      "expo-calendar",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true
@@ -40,7 +42,7 @@
         "ACCESS_NETWORK_STATE"
       ],
       "adaptiveIcon": {
-        "foregroundImage": "./assets/icon.png",
+        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#000000"
       }
     },

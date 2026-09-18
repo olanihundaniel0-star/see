@@ -38,11 +38,20 @@ function SheetInput({ inputRef, ...props }: TextInputProps & { inputRef?: RefObj
 export default function QuickAddModal() {
   const sheetRef = useRef<BottomSheetModal>(null);
   const firstFieldRef = useRef<any>(null);
+  const closingRef = useRef(false);
   const snapPoints = useMemo(() => ["84%"], []);
   const quickAdd = useQuickAdd();
   const [mode, setMode] = useState<Mode>("job");
   const [saving, setSaving] = useState(false);
   const [syncEnabled, setSyncEnabled] = useState(true);
+
+  const closeModal = () => {
+    if (closingRef.current) {
+      return;
+    }
+    closingRef.current = true;
+    router.back();
+  };
 
   const [jobForm, setJobForm] = useState({
     company: "",
@@ -147,7 +156,7 @@ export default function QuickAddModal() {
       }
 
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      router.back();
+      closeModal();
     } catch (error) {
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       Alert.alert("Capture failed", error instanceof Error ? error.message : "Unable to submit quick add.");
@@ -167,14 +176,14 @@ export default function QuickAddModal() {
         backdropComponent={(props) => <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} />}
         backgroundStyle={{ backgroundColor: "rgba(9, 9, 11, 0.96)" } as any}
         handleIndicatorStyle={{ backgroundColor: "rgba(255,255,255,0.25)" } as any}
-        onDismiss={() => router.back()}
+        onDismiss={closeModal}
       >
         <BottomSheetView className="flex-1 px-4 pb-6">
           <KeyboardAvoidingView behavior={Platform.select({ ios: "padding", android: undefined })} className="flex-1">
             <View className="flex-1 gap-4">
               <View className="flex-row items-center justify-between">
                 <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">{"// QUICK_ADD"}</Text>
-                <Pressable onPress={() => router.back()}>
+                <Pressable onPress={closeModal}>
                   <Text className="font-mono text-[10px] tracking-[0.08em] text-white">[x CLOSE]</Text>
                 </Pressable>
               </View>

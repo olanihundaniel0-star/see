@@ -53,7 +53,7 @@ export default function RootLayout() {
     return () => data.subscription.unsubscribe();
   }, []);
 
-  if (!fontsLoaded && !fontError) {
+  if ((!fontsLoaded && !fontError) || authLoading) {
     return null;
   }
 

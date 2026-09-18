@@ -138,7 +138,14 @@ export default function JobDossierScreen() {
                   <Pressable
                     onPress={async () => {
                       await Haptics.selectionAsync();
-                      await Linking.openURL(job.job_url ?? "");
+                      try {
+                        await Linking.openURL(job.job_url ?? "");
+                      } catch (error) {
+                        Alert.alert(
+                          "Unable to open job posting",
+                          error instanceof Error ? error.message : "The job link could not be opened."
+                        );
+                      }
                     }}
                     className="rounded-lg border border-white/20 bg-white px-3 py-2"
                   >

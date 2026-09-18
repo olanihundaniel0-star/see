@@ -1,10 +1,13 @@
 import { useEffect, useState } from "react";
 import { Alert, Linking, Pressable, ScrollView, Text, View } from "react-native";
 import { Stack } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
 
 import { GlassCard } from "@/components/glass/GlassCard";
 import { GlassPill } from "@/components/glass/GlassPill";
 import { supabase, supabaseRedirectUrl } from "@/lib/supabase";
+
+WebBrowser.maybeCompleteAuthSession();
 
 function readAuthParams(url: string) {
   const parsed = new URL(url);
@@ -72,7 +75,12 @@ export default function AuthScreen() {
         }
       });
       if (error) throw error;
-      if (data.url) await Linking.openURL(data.url);
+      if (!data.url) throw new Error("Unable to start OAuth sign in.");
+
+      const result = await WebBrowser.openAuthSessionAsync(data.url, supabaseRedirectUrl);
+      if (result.type === "success" && result.url) {
+        await completeOAuth(result.url);
+      }
     } catch (error) {
       Alert.alert("Authentication failed", error instanceof Error ? error.message : "Unable to start OAuth sign in.");
     } finally {

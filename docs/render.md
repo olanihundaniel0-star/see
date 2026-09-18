@@ -59,7 +59,7 @@ to `./start.sh` so Render does not need to parse an inline shell command.
 5. Add these GitHub Actions repository secrets so the scheduled workflows can
    reach the backend:
    - `BACKEND_URL`: the Render web service URL, e.g.
-     `https://see-backend.onrender.com` (no trailing slash, no `/api/v1`)
+     `https://see-backend-dgoe.onrender.com` (no trailing slash, no `/api/v1`)
    - `INTERNAL_API_TOKEN`: the same value set on the backend
 6. Trigger each workflow once from the Actions tab (`Run workflow`) to confirm
    it returns `{"status": "ok", ...}`.
