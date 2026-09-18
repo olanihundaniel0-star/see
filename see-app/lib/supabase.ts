@@ -1,21 +1,35 @@
 import * as Linking from "expo-linking";
 import * as SecureStore from "expo-secure-store";
+import { Platform } from "react-native";
 import { createClient } from "@supabase/supabase-js";
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL ?? "";
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? "";
 
-const storage = {
-  async getItem(key: string) {
-    return SecureStore.getItemAsync(key);
-  },
-  async setItem(key: string, value: string) {
-    await SecureStore.setItemAsync(key, value);
-  },
-  async removeItem(key: string) {
-    await SecureStore.deleteItemAsync(key);
-  }
-};
+const storage =
+  Platform.OS === "web"
+    ? {
+        getItem: (key: string) => Promise.resolve(localStorage.getItem(key)),
+        setItem: (key: string, value: string) => {
+          localStorage.setItem(key, value);
+          return Promise.resolve();
+        },
+        removeItem: (key: string) => {
+          localStorage.removeItem(key);
+          return Promise.resolve();
+        }
+      }
+    : {
+        async getItem(key: string) {
+          return SecureStore.getItemAsync(key);
+        },
+        async setItem(key: string, value: string) {
+          await SecureStore.setItemAsync(key, value);
+        },
+        async removeItem(key: string) {
+          await SecureStore.deleteItemAsync(key);
+        }
+      };
 
 export const supabase =
   supabaseUrl && supabaseAnonKey

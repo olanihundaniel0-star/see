@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
-import { Alert, KeyboardAvoidingView, Platform, Pressable, Text, type TextInputProps, View } from "react-native";
+import { useEffect, useMemo, useRef, useState, type ComponentRef, type RefObject } from "react";
+import { Alert, KeyboardAvoidingView, Platform, Pressable, Text, TextInput, type TextInputProps, View } from "react-native";
 import { router, Stack } from "expo-router";
 import * as Haptics from "expo-haptics";
 import {
@@ -24,11 +24,26 @@ const modes: { id: Mode; label: string }[] = [
 
 const priorityOptions = ["low", "medium", "high"] as const;
 
-function SheetInput({ inputRef, ...props }: TextInputProps & { inputRef?: RefObject<any> }) {
+type SheetInputRef = NonNullable<ComponentRef<typeof BottomSheetTextInput>>;
+type SheetInputProps = TextInputProps & { inputRef?: RefObject<SheetInputRef | null> };
+
+const sheetInputClassName = "rounded-lg border border-white/10 bg-zinc-950/70 px-3 py-3 font-mono text-white placeholder:text-zinc-600";
+
+function SheetInput({ inputRef, ...props }: SheetInputProps) {
+  if (Platform.OS === "web") {
+    return (
+      <TextInput
+        ref={inputRef}
+        className={sheetInputClassName}
+        placeholderTextColor="#52525B"
+        {...props}
+      />
+    );
+  }
   return (
     <BottomSheetTextInput
       ref={inputRef}
-      className="rounded-lg border border-white/10 bg-zinc-950/70 px-3 py-3 font-mono text-white placeholder:text-zinc-600"
+      className={sheetInputClassName}
       placeholderTextColor="#52525B"
       {...props}
     />
@@ -37,7 +52,7 @@ function SheetInput({ inputRef, ...props }: TextInputProps & { inputRef?: RefObj
 
 export default function QuickAddModal() {
   const sheetRef = useRef<BottomSheetModal>(null);
-  const firstFieldRef = useRef<any>(null);
+  const firstFieldRef = useRef<SheetInputRef>(null);
   const closingRef = useRef(false);
   const snapPoints = useMemo(() => ["84%"], []);
   const quickAdd = useQuickAdd();

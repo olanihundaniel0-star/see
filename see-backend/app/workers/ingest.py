@@ -6,7 +6,7 @@ import json
 import re
 from datetime import datetime, timezone
 from typing import Any
-from urllib.parse import urljoin, urlparse
+from urllib.parse import parse_qsl, urlencode, urljoin, urlparse
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 from zoneinfo import ZoneInfo
@@ -320,55 +320,131 @@ async def _upsert_events(records: list[dict[str, Any]]) -> int:
     return len(records)
 
 
+def _parse_submission_period(value: Any) -> tuple[datetime | None, datetime | None]:
+    text = _clean_text(value)
+    if not text:
+        return None, None
+
+    def month_number(name: str) -> int | None:
+        for fmt in ("%b", "%B"):
+            try:
+                return datetime.strptime(name, fmt).month
+            except ValueError:
+                continue
+        return None
+
+    match = re.fullmatch(
+        r"(?P<m1>[A-Za-z]{3,9}) (?P<d1>\d{1,2}), (?P<y1>\d{4}) - (?P<m2>[A-Za-z]{3,9}) (?P<d2>\d{1,2}), (?P<y2>\d{4})",
+        text,
+    )
+    if match:
+        month1 = month_number(match.group("m1"))
+        month2 = month_number(match.group("m2"))
+        if month1 is None or month2 is None:
+            return None, None
+        start = datetime(int(match.group("y1")), month1, int(match.group("d1")), tzinfo=timezone.utc)
+        end = datetime(int(match.group("y2")), month2, int(match.group("d2")), tzinfo=timezone.utc)
+        return start, end
+
+    match = re.fullmatch(
+        r"(?P<m>[A-Za-z]{3,9}) (?P<d1>\d{1,2}) - (?P<d2>\d{1,2}), (?P<y>\d{4})",
+        text,
+    )
+    if match:
+        month = month_number(match.group("m"))
+        if month is None:
+            return None, None
+        year = int(match.group("y"))
+        start = datetime(year, month, int(match.group("d1")), tzinfo=timezone.utc)
+        end = datetime(year, month, int(match.group("d2")), tzinfo=timezone.utc)
+        return start, end
+
+    match = re.fullmatch(r"(?P<m>[A-Za-z]{3,9}) (?P<d>\d{1,2}), (?P<y>\d{4})", text)
+    if match:
+        month = month_number(match.group("m"))
+        if month is None:
+            return None, None
+        day = datetime(int(match.group("y")), month, int(match.group("d")), tzinfo=timezone.utc)
+        return day, day
+
+    return None, None
+
+
 async def scrape_devpost_events() -> int:
+    if not settings.DEVPOST_HACKATHON_URL:
+        return 0
+
+    parsed = urlparse(settings.DEVPOST_HACKATHON_URL)
+    params: dict[str, list[str]] = {}
+    for key, value in parse_qsl(parsed.query):
+        params.setdefault(key, []).append(value)
+    params.setdefault("status", []).append("upcoming")
+    params.setdefault("per_page", []).append("100")
+    api_url = f"{parsed.scheme}://{parsed.netloc}/api/hackathons?{urlencode([(key, value) for key, values in params.items() for value in values])}"
+
     try:
-        content_type, body = await asyncio.to_thread(_fetch_url, settings.DEVPOST_HACKATHON_URL)
+        content_type, body = await asyncio.to_thread(_fetch_url, api_url)
     except (HTTPError, URLError):
         return 0
 
-    if "html" not in content_type and "xml" not in content_type:
+    if "json" not in content_type:
         return 0
 
-    soup = BeautifulSoup(body, "html.parser")
+    try:
+        payload = json.loads(body)
+    except (TypeError, ValueError):
+        return 0
+
     records: list[dict[str, Any]] = []
-    for tile in soup.select(".hackathon-tile"):
-        link = tile.select_one("a.block-wrapper[href]")
-        if link is None:
+    for hackathon in payload.get("hackathons") or []:
+        if not isinstance(hackathon, dict):
             continue
 
-        relative_url = link.get("href", "")
-        source_url = urljoin(settings.DEVPOST_HACKATHON_URL, relative_url)
-        title_node = tile.select_one(".main-content h3")
-        title = _clean_text(title_node.get_text(" ", strip=True) if title_node else link.get_text(" ", strip=True))
-        if not title:
+        open_state = _clean_text(hackathon.get("open_state")).lower()
+        if open_state and open_state not in {"open", "upcoming"}:
             continue
 
-        deadline_node = tile.select_one(".submission-period")
-        prize_node = tile.select_one(".prize-amount")
-        description_node = tile.select_one(".main-content p")
+        external_id = hackathon.get("id")
+        title = _clean_text(hackathon.get("title"))
+        if not external_id or not title:
+            continue
 
-        deadline = _parse_flexible_text_datetime(deadline_node.get_text(" ", strip=True) if deadline_node else None)
-        if deadline is None:
-            deadline = datetime.now(timezone.utc)
+        source_url = _clean_text(hackathon.get("url"))
+        slug = _slug_from_url(source_url) if source_url else str(external_id)
 
-        categories = _dedupe_preserve_order(
-            ["hackathon", *_parse_categories(title, description_node.get_text(" ", strip=True) if description_node else None, prize_node.get_text(" ", strip=True) if prize_node else None)],
-        )
+        location_node = hackathon.get("displayed_location")
+        location = _clean_text(location_node.get("location") if isinstance(location_node, dict) else None)
 
-        slug = _slug_from_url(source_url)
+        themes = hackathon.get("themes") or []
+        theme_names = [
+            _clean_text(theme.get("name"))
+            for theme in themes
+            if isinstance(theme, dict) and _clean_text(theme.get("name"))
+        ]
+        categories = _dedupe_preserve_order(["hackathon", *theme_names])
+
+        prize_html = _clean_text(hackathon.get("prize_amount"))
+        prize_pool = _clean_text(re.sub(r"<[^>]+>", "", prize_html)) if prize_html else None
+
+        start, end = _parse_submission_period(hackathon.get("submission_period_dates"))
+        if start is None:
+            start = datetime.now(timezone.utc)
+        if end is None:
+            end = start
+
         record = _normalize_event_record(
             source="devpost",
-            external_id=f"devpost:{slug}",
+            external_id=f"devpost:{external_id}",
             title=title,
-            description=_clean_text(description_node.get_text(" ", strip=True) if description_node else None) or None,
-            url=source_url,
-            source_url=source_url,
-            location=None,
-            is_virtual=True,
+            description=None,
+            url=source_url or f"https://devpost.com/software/{slug}",
+            source_url=source_url or None,
+            location=location or None,
+            is_virtual=location is None or "online" in location.lower(),
             categories=categories,
-            prize_pool=_clean_text(prize_node.get_text(" ", strip=True) if prize_node else None) or None,
-            start_date=deadline,
-            end_date=deadline,
+            prize_pool=prize_pool or None,
+            start_date=start,
+            end_date=end,
             raw_source_ref=slug,
         )
         records.append(record)
