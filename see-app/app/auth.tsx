@@ -126,12 +126,12 @@ export default function AuthScreen() {
             </Pressable>
           </GlassCard>
 
-          <View className="rounded-xl bg-zinc-950/80 p-4">
+<View className="rounded-xl bg-zinc-950/80 p-4">
             <Text className="font-mono text-[9px] tracking-[0.08em] text-zinc-600">{"// ARCHIVE_FRAGMENT_0x0"}</Text>
             <Text className="mt-4 text-center font-mono text-[9px] leading-[10px] text-zinc-700">
-              {"    .sSSSSs.     .sSSSSs.\n  sSSSSSSSSSSs sSSSSSSSSSSs\n SSSSSSSSSSSSSSSSSSSSSSSSSSS\n  `SSSSSSSSSSSSSSSSSSSSS'\n    `SSSSSSSSSSSSSSSSS'\n      `SSSSSSSSSSSSS'\n        `SSSSSSSSS'\n          `SSSSS'"}
+              {"     ____________________\n    | > ./see_os --gate  |\n    | > gw ........ [OK]  |\n    | > radar ... [SWEEP] |\n    | > _                  |\n     \\____________________/"}
             </Text>
-            <Text className="mt-4 text-center font-mono text-[11px] text-zinc-600">Career trajectories encrypted in obsidian memory banks.</Text>
+            <Text className="mt-4 text-center font-mono text-[11px] text-zinc-600">Gateway online. Sweeping career signals from the dark.</Text>
           </View>
 
           <View className="mt-auto gap-2">

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Stack } from "expo-router";
 import { useFonts } from "expo-font";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { SafeAreaProvider } from "react-native-safe-area-context";
+import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { StatusBar } from "react-native";
@@ -18,6 +18,8 @@ import {
 import { SpaceMono_400Regular, SpaceMono_700Bold } from "@expo-google-fonts/space-mono";
 
 import { supabase } from "@/lib/supabase";
+import BootScreen from "@/components/ui/BootScreen";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 const queryClient = new QueryClient();
 
@@ -53,41 +55,60 @@ export default function RootLayout() {
     return () => data.subscription.unsubscribe();
   }, []);
 
-  if ((!fontsLoaded && !fontError) || authLoading) {
-    return null;
-  }
+  const [bootDone, setBootDone] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => setBootDone(true), 10_000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const fontsReady = fontsLoaded || fontError;
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <QueryClientProvider client={client}>
           <BottomSheetModalProvider>
-            <Stack
-              screenOptions={{
-                headerShown: false,
-                contentStyle: { backgroundColor: "#000000" } as any
-              }}
-            >
-              <Stack.Protected guard={!authLoading && !session}>
-                <Stack.Screen name="auth" />
-              </Stack.Protected>
-              <Stack.Protected guard={!authLoading && !!session}>
-                <Stack.Screen name="(tabs)" />
-                <Stack.Screen
-                  name="modal/quick-add"
-                  options={{
-                    presentation: "modal"
-                  }}
-                />
-                <Stack.Screen name="jobs/[id]" />
-                <Stack.Screen name="notes/[id]" />
-                <Stack.Screen name="reminders/[id]" />
-              </Stack.Protected>
-            </Stack>
-            <StatusBar barStyle="light-content" />
+            {!bootDone || !fontsReady ? (
+              <BootScreen />
+            ) : (
+              <ErrorBoundary>
+                <AppNavigator session={session} authLoading={authLoading} />
+              </ErrorBoundary>
+            )}
           </BottomSheetModalProvider>
         </QueryClientProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
+  );
+}
+
+function AppNavigator({ session, authLoading }: { session: Session | null; authLoading: boolean }) {
+  const insets = useSafeAreaInsets();
+  return (
+    <>
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: "#000000", paddingTop: insets.top } as any
+        }}
+      >
+        <Stack.Protected guard={!authLoading && !session}>
+          <Stack.Screen name="auth" />
+        </Stack.Protected>
+        <Stack.Protected guard={!authLoading && !!session}>
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen
+            name="modal/quick-add"
+            options={{
+              presentation: "modal"
+            }}
+          />
+          <Stack.Screen name="jobs/[id]" />
+          <Stack.Screen name="notes/[id]" />
+          <Stack.Screen name="reminders/[id]" />
+        </Stack.Protected>
+      </Stack>
+      <StatusBar barStyle="light-content" />
+    </>
   );
 }

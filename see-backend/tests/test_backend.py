@@ -57,6 +57,8 @@ class FakeRequest:
 
 
 def test_auth_me_returns_user_id(monkeypatch):
+    monkeypatch.setattr("app.core.auth.jwt.get_unverified_header", lambda token: {"alg": "HS256"})
+    monkeypatch.setattr(settings, "SUPABASE_JWT_SECRET", "test-secret")
     monkeypatch.setattr("app.core.auth.jwt.decode", lambda token, secret, algorithms, **kwargs: {"sub": str(USER_ID)})
 
     credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials="test-token")
@@ -64,6 +66,8 @@ def test_auth_me_returns_user_id(monkeypatch):
 
 
 def test_auth_me_rejects_invalid_token(monkeypatch):
+    monkeypatch.setattr("app.core.auth.jwt.get_unverified_header", lambda token: {"alg": "HS256"})
+    monkeypatch.setattr(settings, "SUPABASE_JWT_SECRET", "test-secret")
     monkeypatch.setattr(
         "app.core.auth.jwt.decode",
         lambda token, secret, algorithms, **kwargs: (_ for _ in ()).throw(jwt.PyJWTError("bad token")),
