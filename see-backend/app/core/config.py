@@ -38,6 +38,7 @@ class Settings(BaseSettings):
     DEVPOST_HACKATHON_URL: str = ""
     LUMA_PAGE_URLS: str = ""
     LUMA_ICS_FEEDS: str = ""
+    LUMA_SITEMAP_LIMIT: int = 30
     GMAIL_USER: str = ""
     GMAIL_APP_PASSWORD: SecretStr | None = None
     GMAIL_POLL_INTERVAL_MINUTES: int = 15

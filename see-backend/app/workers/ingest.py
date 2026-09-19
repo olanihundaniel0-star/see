@@ -725,9 +725,45 @@ def _normalize_luma_page_event(soup: BeautifulSoup, page_url: str) -> dict[str, 
     )
 
 
+def _luma_sitemap_urls(limit: int) -> list[str]:
+    if limit <= 0:
+        return []
+
+    def fetch_sitemap(url: str) -> list[str]:
+        try:
+            _, body = _fetch_url(url)
+        except (HTTPError, URLError):
+            return []
+        return [value.strip() for value in re.findall(r"<loc>\s*(.*?)\s*</loc>", body)]
+
+    sources = (
+        fetch_sitemap("https://sitemap.luma.com/sitemap-0.xml"),
+        fetch_sitemap("https://sitemap.luma.com/sitemap-1.xml"),
+    )
+    seen: set[str] = set()
+    result: list[str] = []
+    index = 0
+    while len(result) < limit and any(index < len(source) for source in sources):
+        for source in sources:
+            if index >= len(source):
+                continue
+            url = source[index]
+            if url.startswith("https://luma.com/"):
+                url = f"https://lu.ma/{url[len('https://luma.com/'):]}"
+            if url not in seen:
+                seen.add(url)
+                result.append(url)
+                if len(result) >= limit:
+                    break
+        index += 1
+    return result
+
+
 async def scrape_luma_events() -> int:
     records: list[dict[str, Any]] = []
     page_urls = _split_env_list(settings.LUMA_PAGE_URLS)
+    if not page_urls:
+        page_urls = _luma_sitemap_urls(settings.LUMA_SITEMAP_LIMIT)
     if not page_urls:
         return 0
 

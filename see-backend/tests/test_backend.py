@@ -338,8 +338,8 @@ def test_scrape_events_impl_skips_unconfigured_sources(monkeypatch):
     monkeypatch.setattr(worker_tasks.worker_ingest, "scrape_devpost_events", fake_devpost)
     monkeypatch.setattr(worker_tasks.worker_ingest, "scrape_luma_events", fake_luma)
 
-    assert run(worker_tasks.scrape_events_impl()) == {"devpost": 0, "luma": 0}
-    assert called == {"devpost": 0, "luma": 0}
+    assert run(worker_tasks.scrape_events_impl()) == {"devpost": 0, "luma": 7}
+    assert called == {"devpost": 0, "luma": 1}
 
 
 def test_scrape_events_impl_aggregates_configured_sources(monkeypatch):

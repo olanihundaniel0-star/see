@@ -39,11 +39,10 @@ async def scrape_events_impl() -> dict[str, int]:
         except Exception:
             logger.exception("Devpost event scrape failed")
 
-    if settings.LUMA_PAGE_URLS:
-        try:
-            scraped["luma"] = await worker_ingest.scrape_luma_events()
-        except Exception:
-            logger.exception("Luma event scrape failed")
+    try:
+        scraped["luma"] = await worker_ingest.scrape_luma_events()
+    except Exception:
+        logger.exception("Luma event scrape failed")
 
     return scraped
 
