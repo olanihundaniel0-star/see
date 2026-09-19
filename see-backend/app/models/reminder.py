@@ -25,7 +25,12 @@ class Reminder(Base):
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     due_date: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True, nullable=False)
     priority: Mapped[ReminderPriority] = mapped_column(
-        PGEnum(ReminderPriority, name="priority_level", create_type=False),
+        PGEnum(
+            ReminderPriority,
+            name="priority_level",
+            values_callable=lambda enum_cls: [member.value for member in enum_cls],
+            create_type=False,
+        ),
         default=ReminderPriority.MEDIUM,
         nullable=False,
     )

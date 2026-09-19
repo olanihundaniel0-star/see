@@ -32,7 +32,12 @@ class JobApplication(Base):
     salary_range: Mapped[str | None] = mapped_column(String(100), nullable=True)
     job_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     status: Mapped[JobStatus] = mapped_column(
-        PGEnum(JobStatus, name="job_status", create_type=False),
+        PGEnum(
+            JobStatus,
+            name="job_status",
+            values_callable=lambda enum_cls: [member.value for member in enum_cls],
+            create_type=False,
+        ),
         default=JobStatus.APPLIED,
         nullable=False,
     )
