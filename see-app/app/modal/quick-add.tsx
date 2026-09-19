@@ -30,9 +30,9 @@ type SheetInputProps = TextInputProps & { inputRef?: RefObject<SheetInputRef | n
 const sheetInputClassName = "rounded-lg border border-white/10 bg-zinc-950/70 px-3 py-3 font-mono text-white placeholder:text-zinc-600";
 
 function SheetInput({ inputRef, ...props }: SheetInputProps) {
-  if (Platform.OS === "web") {
+  if (Platform.OS === "ios") {
     return (
-      <TextInput
+      <BottomSheetTextInput
         ref={inputRef}
         className={sheetInputClassName}
         placeholderTextColor="#52525B"
@@ -41,7 +41,7 @@ function SheetInput({ inputRef, ...props }: SheetInputProps) {
     );
   }
   return (
-    <BottomSheetTextInput
+    <TextInput
       ref={inputRef}
       className={sheetInputClassName}
       placeholderTextColor="#52525B"
@@ -194,7 +194,7 @@ export default function QuickAddModal() {
         onDismiss={closeModal}
       >
         <BottomSheetView className="flex-1 px-4 pb-6">
-          <KeyboardAvoidingView behavior={Platform.select({ ios: "padding", android: undefined })} className="flex-1">
+          <KeyboardAvoidingView behavior={Platform.select({ ios: "padding", android: "padding" })} className="flex-1">
             <View className="flex-1 gap-4">
               <View className="flex-row items-center justify-between">
                 <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">{"// QUICK_ADD"}</Text>
@@ -247,7 +247,6 @@ export default function QuickAddModal() {
                 <View className="gap-3">
                   <SheetInput
                     inputRef={firstFieldRef}
-                    autoFocus
                     placeholder="Company"
                     value={jobForm.company}
                     onChangeText={(company) => setJobForm((current) => ({ ...current, company }))}
@@ -287,7 +286,6 @@ export default function QuickAddModal() {
                 <View className="gap-3">
                   <SheetInput
                     inputRef={firstFieldRef}
-                    autoFocus
                     placeholder="Note title"
                     value={noteForm.title}
                     onChangeText={(title) => setNoteForm((current) => ({ ...current, title }))}
@@ -312,7 +310,6 @@ export default function QuickAddModal() {
                 <View className="gap-3">
                   <SheetInput
                     inputRef={firstFieldRef}
-                    autoFocus
                     placeholder="Reminder title"
                     value={reminderForm.title}
                     onChangeText={(title) => setReminderForm((current) => ({ ...current, title }))}
