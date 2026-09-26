@@ -4,12 +4,9 @@ import * as Calendar from "expo-calendar";
 import * as Haptics from "expo-haptics";
 
 import { GlassCard } from "@/components/glass/GlassCard";
-import { GlassPill } from "@/components/glass/GlassPill";
-import { AsciiBanner } from "@/components/ui/AsciiBanner";
 import { LoadMoreButton } from "@/components/ui/LoadMoreButton";
 import { ScreenState } from "@/components/ui/ScreenState";
-import { theme } from "@/constants/theme";
-import { formatCountdown, formatShortDate } from "@/lib/format";
+import { formatCountdown, formatRelativePast, formatShortDate } from "@/lib/format";
 import { useInfiniteEvents } from "@/lib/queries";
 
 const filters = [
@@ -86,39 +83,40 @@ export default function EventsScreen() {
 
   return (
     <ScrollView className="flex-1 bg-black" contentContainerClassName="px-4 pb-28 pt-4">
-      <View className="gap-4">
-        <AsciiBanner title={theme.ascii.radar} subtitle="Hackathons, meetups, and live scans" right={isLoading ? "[SCAN]" : "[RADAR]"} />
-
-        <GlassCard className="gap-3">
-          <View className="flex-row items-center justify-between">
-            <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">{"// SOURCE_FILTERS"}</Text>
-            <Text className="font-mono text-[10px] tracking-[0.08em] text-[#c5c6ca]">[{counts.all}] DETECTED</Text>
+      <View className="gap-3">
+        <View className="flex-row items-center justify-between px-1">
+          <View className="flex-row items-center gap-2">
+            <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">{"// RADAR_FEED"}</Text>
+            <Text className="font-mono-bold text-[10px] tracking-[0.08em] text-white">[● LIVE]</Text>
           </View>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2">
-            {filters.map((filter) => {
-              const active = filter.value === activeFilter;
-              const label =
-                filter.label === "ALL"
-                  ? `ALL ${counts.all}`
-                  : filter.label === "VIRTUAL"
-                    ? `VIRTUAL ${counts.virtual}`
-                    : `IN-PERSON ${counts.inPerson}`;
+          <View className="flex-row items-center gap-1 rounded border border-white/[0.08] bg-[#2a2a2a] px-2 py-1">
+            <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">TARGETS:</Text>
+            <Text className="font-mono-bold text-[10px] tracking-[0.08em] text-white">{events.length}_DETECTED</Text>
+          </View>
+        </View>
 
-              return (
-                <Pressable
-                  key={filter.label}
-                  onPress={async () => {
-                    await Haptics.selectionAsync();
-                    setActiveFilter(filter.value);
-                  }}
-                  className={`rounded-lg border px-4 py-2 ${active ? "border-white/20 bg-zinc-900/70" : "border-white/10 bg-zinc-950/50"}`}
-                >
-                  <Text className="font-mono text-[10px] tracking-[0.08em] text-white">{label}</Text>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-        </GlassCard>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2">
+          {filters.map((filter) => {
+            const active = filter.value === activeFilter;
+            const count = filter.label === "ALL" ? counts.all : filter.label === "VIRTUAL" ? counts.virtual : counts.inPerson;
+            return (
+              <Pressable
+                key={filter.label}
+                onPress={async () => {
+                  await Haptics.selectionAsync();
+                  setActiveFilter(filter.value);
+                }}
+                className={`rounded border px-3 py-2 active:scale-95 ${
+                  active ? "border-transparent bg-white" : "border-white/[0.08] bg-[#2a2a2a]"
+                }`}
+              >
+                <Text className={`font-mono text-[10px] tracking-[0.08em] ${active ? "font-mono-bold text-black" : "text-white"}`}>
+                  [{filter.label} {count}]
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
 
         {error ? (
           <ScreenState
@@ -134,31 +132,83 @@ export default function EventsScreen() {
         <View className="gap-3">
           {!error && !isLoading
             ? events.map((event) => {
-            const categories = event.categories ?? [];
             const urlValid = isOpenableUrl(event.url);
+            const seenAt = event.scraped_at ?? event.last_seen_at;
 
             return (
-              <GlassCard key={event.id} className="gap-3">
-                <View className="flex-row items-start justify-between gap-4">
-                  <View className="flex-1 gap-1">
-                    <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">{event.source.toUpperCase()}</Text>
-                    <Text className="text-2xl font-sans-bold text-white">{event.title}</Text>
-                    <Text className="font-mono text-[11px] text-[#c5c6ca]">
-                      {event.location ?? (event.is_virtual ? "REMOTE" : "LOCATION PENDING")}
+              <GlassCard key={event.id} className="gap-3" style={{ padding: 12 }}>
+                <View className="flex-row items-center justify-between gap-2">
+                  <View className="flex-row flex-wrap items-center gap-2">
+                    <View className="rounded border border-white/[0.08] bg-[#353535] px-2 py-1">
+                      <Text className="font-mono text-[10px] tracking-[0.08em] text-white">
+                        [{event.source.toUpperCase().slice(0, 18)}]
+                      </Text>
+                    </View>
+                    <View className="rounded border border-white/[0.08] bg-[#1f1f1f] px-2 py-1">
+                      <Text className="font-mono text-[10px] tracking-[0.08em] text-[#c5c6ca]">
+                        {event.is_virtual ? "[VIRTUAL // GLOBAL]" : `[${(event.location ?? "ONSITE").toUpperCase().slice(0, 14)} // IN-PERSON]`}
+                      </Text>
+                    </View>
+                  </View>
+                  <View className="shrink-0 rounded border border-white/[0.08] bg-[#1f1f1f] px-2 py-1">
+                    <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">
+                      ID_{event.external_id.slice(0, 8).toUpperCase()}
                     </Text>
                   </View>
-                  <GlassPill label="COUNTDOWN" value={formatCountdown(event.start_date)} tone={event.is_virtual ? "active" : "default"} />
                 </View>
 
-                {event.description ? <Text className="font-mono text-[11px] leading-5 text-[#e2e2e2]">{event.description}</Text> : null}
+                <Text className="text-xl font-sans-bold text-white">{event.title}</Text>
 
-                <View className="flex-row flex-wrap gap-2">
-                  <GlassPill label="START" value={formatShortDate(event.start_date)} />
-                  <GlassPill label="VALUE" value={event.prize_pool ?? "NETWORK"} tone="active" />
-                  <GlassPill label="MODE" value={event.is_virtual ? "VIRTUAL" : "IN-PERSON"} />
-                  {categories.slice(0, 2).map((category) => (
-                    <GlassPill key={category} label="TAG" value={category.toUpperCase()} />
-                  ))}
+                {event.description ? (
+                  <Text className="font-mono text-[11px] leading-5 text-[#e2e2e2]" numberOfLines={4}>
+                    {event.description}
+                  </Text>
+                ) : null}
+
+                <View className="gap-2 rounded border border-white/[0.08] bg-[rgba(9,9,11,0.70)] px-3 py-3">
+                  {event.is_virtual ? (
+                    <>
+                      <View className="flex-row items-center justify-between">
+                        <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">STATUS</Text>
+                        <Text className="font-mono-bold text-[12px] tracking-[0.05em] text-white">
+                          STARTS IN {formatCountdown(event.start_date)}
+                        </Text>
+                      </View>
+                      <View className="flex-row items-center justify-between">
+                        <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">DEADLINE</Text>
+                        <Text className="font-mono text-[12px] tracking-[0.05em] text-[#e2e2e2]">
+                          {formatShortDate(event.end_date ?? event.start_date).toUpperCase()}
+                        </Text>
+                      </View>
+                      <View className="flex-row items-center justify-between">
+                        <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">PRIZE_POOL</Text>
+                        <Text className="font-mono-bold text-[12px] tracking-[0.05em] text-white">
+                          {(event.prize_pool ?? "NETWORK").toUpperCase()}
+                        </Text>
+                      </View>
+                    </>
+                  ) : (
+                    <>
+                      <View className="flex-row items-center justify-between">
+                        <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">SCHEDULE</Text>
+                        <Text className="font-mono-bold text-[12px] tracking-[0.05em] text-white">
+                          {formatShortDate(event.start_date).toUpperCase()}
+                        </Text>
+                      </View>
+                      <View className="flex-row items-center justify-between gap-3">
+                        <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">LOCATION</Text>
+                        <Text className="flex-1 text-right font-mono text-[12px] tracking-[0.05em] text-[#e2e2e2]" numberOfLines={1}>
+                          {(event.location ?? "LOCATION PENDING").toUpperCase()}
+                        </Text>
+                      </View>
+                      <View className="flex-row items-center justify-between">
+                        <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">STARTS IN</Text>
+                        <Text className="font-mono-bold text-[12px] tracking-[0.05em] text-white">
+                          {formatCountdown(event.start_date)}
+                        </Text>
+                      </View>
+                    </>
+                  )}
                 </View>
 
                 <View className="flex-row gap-2">
@@ -168,19 +218,27 @@ export default function EventsScreen() {
                       await Haptics.selectionAsync();
                       await openExternalUrl(event.url, "Unable to open event");
                     }}
-                    className={`flex-1 rounded-lg border border-white/10 bg-zinc-950/70 px-3 py-2 active:scale-[0.99] ${urlValid ? "" : "opacity-40"}`}
+                    className={`flex-1 rounded border border-white/[0.10] bg-transparent px-3 py-2 active:scale-[0.99] ${urlValid ? "" : "opacity-40"}`}
                   >
-                    <Text className="text-center font-mono text-[10px] text-white">[OPEN SOURCE]</Text>
+                    <Text className="text-center font-mono text-[10px] tracking-[0.08em] text-white">[OPEN SOURCE]</Text>
                   </Pressable>
                   <Pressable
                     onPress={async () => {
                       await Haptics.selectionAsync();
                       await syncCalendar(event.title, event.start_date, event.end_date, event.url, event.location);
                     }}
-                    className="flex-1 rounded-lg border border-white/20 bg-white px-3 py-2 active:scale-[0.99]"
+                    className="flex-1 rounded border border-white/[0.14] bg-[#2a2a2a] px-3 py-2 active:scale-[0.99]"
                   >
-                    <Text className="text-center font-mono-bold text-[10px] text-black">[SYNC CALENDAR]</Text>
+                    <Text className="text-center font-mono-bold text-[10px] tracking-[0.08em] text-white">[+ SYNC CALENDAR]</Text>
                   </Pressable>
+                </View>
+
+                <View className="flex-row items-center justify-between">
+                  <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">
+                    {"// SYNCED "}
+                    {seenAt ? formatRelativePast(seenAt) : "PENDING"}
+                  </Text>
+                  <Text className="font-mono-bold text-[10px] tracking-[0.08em] text-white">[200 OK]</Text>
                 </View>
               </GlassCard>
             );
