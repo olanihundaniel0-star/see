@@ -1,11 +1,15 @@
 from __future__ import annotations
 
 import imaplib
+import logging
 from email import message_from_bytes
 from email.header import decode_header
 from typing import Any
 
 from app.core.config import settings
+
+
+logger = logging.getLogger(__name__)
 
 
 DEFAULT_IMAP_HOST = "imap.gmail.com"
@@ -64,6 +68,7 @@ def fetch_unread_job_emails() -> list[dict[str, Any]]:
         mail.login(gmail_user, gmail_password)
         mail.select("inbox")
     except imaplib.IMAP4.error:
+        logger.error("Gmail IMAP login/select failed; returning no messages")
         return []
 
     try:
@@ -143,6 +148,7 @@ def mark_seen_by_uids(uids: list[str]) -> None:
         mail.login(gmail_user, gmail_password)
         mail.select("inbox")
     except imaplib.IMAP4.error:
+        logger.warning("Gmail IMAP login/select failed in mark_seen_by_uids; uids left unseen")
         return
 
     try:

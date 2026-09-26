@@ -99,6 +99,11 @@ async def update_job(
     updates = payload.model_dump(exclude_unset=True, exclude={"checklists"})
     for key, value in updates.items():
         setattr(job, key, value)
+    # Partial PATCH without the `checklists` key must not wipe existing items:
+    # JobApplicationUpdate.checklists is Optional (None = absent), so only
+    # replace the collection when explicitly provided. NOTE: full replacement
+    # without optimistic concurrency (e.g. version/etag) can clobber concurrent
+    # checklist edits; a future improvement is conditional updates.
     if payload.checklists is not None:
         job.checklists = [JobChecklist(title=item.title, is_completed=item.is_completed) for item in payload.checklists]
     await db.commit()

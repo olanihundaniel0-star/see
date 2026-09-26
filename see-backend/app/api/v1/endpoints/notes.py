@@ -23,6 +23,11 @@ async def _get_note_or_404(note_id: UUID, user_id: UUID, db: AsyncSession) -> No
     return note
 
 
+def _escape_like_literal(value: str) -> str:
+    """Escape LIKE wildcards so user tags match literally."""
+    return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
 @router.get("")
 async def list_notes(
     q: str | None = Query(default=None),
@@ -38,7 +43,8 @@ async def list_notes(
     if tags:
         tag_filters = [tag.strip() for tag in tags.split(",") if tag.strip()]
         for tag in tag_filters:
-            stmt = stmt.where(Note.tags.ilike(f"%{tag}%"))
+            escaped = _escape_like_literal(tag)
+            stmt = stmt.where(Note.tags.ilike(f"%{escaped}%", escape="\\"))
     if q:
         stmt = stmt.order_by(func.ts_rank(Note.search_vector, func.websearch_to_tsquery("english", q)).desc())
     else:

@@ -31,18 +31,30 @@ def scrape_events() -> dict[str, int]:
 
 async def scrape_events_impl() -> dict[str, int]:
     """Scrape configured Devpost/Luma sources and upsert events."""
-    scraped = {"devpost": 0, "luma": 0}
+    scraped: dict[str, int] = {"devpost": 0, "luma": 0}
+    devpost_configured = bool(settings.DEVPOST_HACKATHON_URL)
+    devpost_ok = True
+    luma_ok = True
 
-    if settings.DEVPOST_HACKATHON_URL:
+    if devpost_configured:
         try:
             scraped["devpost"] = await worker_ingest.scrape_devpost_events()
         except Exception:
+            devpost_ok = False
             logger.exception("Devpost event scrape failed")
 
     try:
         scraped["luma"] = await worker_ingest.scrape_luma_events()
     except Exception:
+        luma_ok = False
         logger.exception("Luma event scrape failed")
+
+    failed = int(devpost_configured and not devpost_ok) + int(not luma_ok)
+    if failed:
+        if devpost_configured and not devpost_ok and not luma_ok:
+            logger.error("All configured event sources failed (devpost + luma)")
+        # Keep devpost/luma keys for compat; expose failure count for observability.
+        scraped["failed"] = failed
 
     return scraped
 
@@ -64,7 +76,10 @@ async def poll_gmail_inbox_impl() -> dict[str, int]:
         normalized = worker_email.normalize_mailgun_webhook_payload(message)
         if normalized.raw_email_hash in seen_hashes:
             duplicates += 1
-            persisted_uids.append(message.get("uid") or "")
+            # Do NOT mark the duplicate-batch uid as persisted here: a hash
+            # collision must not mark the second UID seen unless the first
+            # message was actually persisted (marking happens below from
+            # persisted_uids only).
             continue
         seen_hashes.add(normalized.raw_email_hash)
 

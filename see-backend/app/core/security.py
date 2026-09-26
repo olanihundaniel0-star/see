@@ -71,18 +71,33 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 class RateLimitMiddleware(BaseHTTPMiddleware):
     """Simple in-memory rate limiting (use Redis for multi-instance production)."""
 
+    # NOTE: `self.requests` is an in-memory per-process dict, suitable for dev
+    # and single-instance use only. It does not share state across workers or
+    # instances; use a shared Redis token bucket for multi-instance production.
+    # TODO: replace with Redis-backed rate limiting for production.
+
     def __init__(self, app: FastAPI):
         super().__init__(app)
         self.requests: Dict[str, list[float]] = {}
         self.limit_per_minute = 300  # Production default
         self.max_tracked_clients = 10_000
+        logger.warning(
+            "RateLimitMiddleware uses per-process in-memory state (dev-only); "
+            "use Redis for shared rate limiting in production."
+        )
 
     @staticmethod
     def _client_key(request: Request) -> str:
+        # trust_proxy guard: only honor x-forwarded-for when running behind a
+        # trusted proxy in staging/production. The header is trivially
+        # spoofable by direct clients, so never trust it in dev/untrusted
+        # deployments. TODO: use Redis-backed limiting + explicit trusted-proxy
+        # allowlist when moving to multi-instance production.
+        trust_proxy = settings.APP_ENV in ("staging", "production")
         # Behind Render's proxy the socket peer is the proxy itself, so prefer
         # the forwarded client address; otherwise every user shares one bucket.
         forwarded = request.headers.get("x-forwarded-for", "")
-        if forwarded:
+        if trust_proxy and forwarded:
             return forwarded.split(",")[0].strip()
         return request.client.host if request.client else "unknown"
 

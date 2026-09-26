@@ -7,14 +7,17 @@ import time
 from dataclasses import dataclass
 from urllib.parse import parse_qsl
 
-from fastapi import APIRouter, Header, HTTPException, Request, status
+from fastapi import APIRouter, Header, HTTPException, Request, Response, status
 
 from app.core.config import settings
 from app.workers.email import build_email_extraction_payload
 from app.workers.tasks import extract_email
+import logging
 
 
 router = APIRouter()
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(slots=True)
@@ -68,6 +71,7 @@ async def _parse_payload(request: Request) -> dict[str, object]:
 @router.post("/email", status_code=status.HTTP_202_ACCEPTED)
 async def ingest_email(
     request: Request,
+    response: Response = None,  # type: ignore[assignment]  # FastAPI injects; None when unit-called directly
     x_timestamp: str | None = Header(default=None, alias="X-Timestamp"),
     x_token: str | None = Header(default=None, alias="X-Token"),
     x_signature: str | None = Header(default=None, alias="X-Signature"),
@@ -80,5 +84,8 @@ async def ingest_email(
     try:
         extract_email.delay(build_email_extraction_payload(payload))
     except Exception:
-        return WebhookIngestResponse(accepted=True, queued=False)
+        logger.exception("Failed to queue email extraction task")
+        if response is not None:
+            response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+        return WebhookIngestResponse(accepted=False, queued=False)
     return WebhookIngestResponse(accepted=True, queued=True)

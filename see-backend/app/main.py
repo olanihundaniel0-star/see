@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
+import logging
 import redis.asyncio as redis_async
 
 from app.api.internal import router as internal_router
@@ -13,6 +14,8 @@ from app.core.security import setup_security_middleware
 
 # Set up logging
 setup_logging()
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI(title=settings.PROJECT_NAME, version=settings.VERSION)
 
@@ -44,6 +47,7 @@ async def _dependency_status() -> dict[str, str]:
         async with AsyncSessionLocal() as session:
             await session.execute(text("SELECT 1"))
     except Exception:
+        logger.exception("Health check: database backend unavailable")
         database_status = "unavailable"
 
     try:
@@ -51,6 +55,7 @@ async def _dependency_status() -> dict[str, str]:
         await redis_client.ping()
         await redis_client.aclose()
     except Exception:
+        logger.warning("Health check: redis backend unavailable")
         redis_status = "unavailable"
 
     overall_status = "ok" if database_status == "ok" and redis_status == "ok" else "degraded"
