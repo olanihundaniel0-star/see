@@ -4,6 +4,18 @@
 
 set -e  # Exit on error
 
+# Parse flags (--yes / -y for non-interactive runs)
+AUTO_YES=false
+for arg in "$@"; do
+    case "$arg" in
+        --yes|-y) AUTO_YES=true ;;
+    esac
+done
+# CI=true implies --yes (non-interactive)
+if [ "${CI:-}" = "true" ]; then
+    AUTO_YES=true
+fi
+
 echo "================================"
 echo "See Backend - Deployment Script"
 echo "================================"
@@ -20,17 +32,25 @@ source .env
 
 echo "📋 Configuration:"
 echo "   Environment: $APP_ENV"
-echo "   Database: $(echo $DATABASE_URL | sed 's/:[^:]*@/@/g')"
-echo "   Redis: $REDIS_URL"
+echo "   Database: $(echo "$DATABASE_URL" | sed 's/:[^:]*@/@/g')"
+echo "   Redis: $(echo "$REDIS_URL" | sed 's/:[^:]*@/@/g')"
 echo ""
 
 # Verify environment
 if [ "$APP_ENV" != "production" ]; then
     echo "⚠️  WARNING: APP_ENV is not 'production' (current: $APP_ENV)"
-    read -p "Continue anyway? (y/n) " -n 1 -r
-    echo
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    if [ "$AUTO_YES" = true ]; then
+        echo "   --yes supplied (or CI=true): continuing without prompt."
+    elif [ ! -t 0 ]; then
+        echo "❌ ERROR: non-interactive shell (stdin is not a TTY) and APP_ENV is not 'production'." >&2
+        echo "   Re-run with --yes or set CI=true to confirm." >&2
         exit 1
+    else
+        read -p "Continue anyway? (y/n) " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            exit 1
+        fi
     fi
 fi
 

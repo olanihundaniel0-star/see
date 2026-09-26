@@ -452,3 +452,30 @@ Browser checks:
 4. **Configure Sentry** with data redaction
 5. **Document security procedures** for your team
 6. **Schedule security audits** (quarterly recommended)
+
+---
+
+## Changelog — Backend Review Fixes (2026-09-26)
+
+Backend review findings fixed high-to-low priority. Verified: 45/45 pytest pass.
+
+High:
+- `see-backend/app/core/auth.py` — prod fail-closed when `SUPABASE_AUDIENCE`/issuer unset (was passing `None`, skipping verification); JWKS mode now pins RS256/ES256 and rejects HS256 instead of falling through to the secret path; `lru_cache`-forever replaced with 1-hour TTL JWKS cache + one forced refresh on kid/key miss.
+- `see-backend/deploy.sh` — `REDIS_URL` now masked in logs like `DATABASE_URL`, expansions quoted; `read -p` only on TTY, `--yes`/`-y` flag plus `CI=true` support so CI no longer hangs.
+- `see-backend/requirements.txt` — all `>=` floors converted to `~=` compatible-release pins from frozen venv (no upgrades); added lock (`pip-compile`) + `pip-audit` workflow comment.
+- `see-backend/Dockerfile` — non-root `app` user + `USER app`, stdlib-only `HEALTHCHECK` on `/health/live`, digest-pin reminder comment. `.dockerignore` already excluded `.env*`; `.env`/`.env.production` confirmed untracked + gitignored.
+
+Medium:
+- Input validation wired in: `job_url` must pass `validate_url`, `content`/`interview_notes` capped at 20000 chars, `quick_add.title` max 500, `quick_add.data` max 50 keys with string values truncated via `sanitize_input`.
+- Silent-success ingestion fixed: `scrape_events_impl` returns per-source counts plus `failed` when >0 and logs when both sources fail; Gmail IMAP login/select failures now `logger.error`/`warning` instead of silent `[]`; Mailgun webhook queue failure returns `accepted=False` + HTTP 503 (was `accepted=True` 202).
+- Rate limit documented as per-process in-memory with spoofing-risk comment, `trust_proxy` guard, and Redis TODO (no new dependency).
+- `/health/ready` (`app/main.py`) now logs DB/Redis exceptions with backend name instead of swallowing.
+
+Low:
+- Jobs PATCH: clarified `checklists is not None` guard (schema already Optional) + concurrency note; no wipe on partial PATCH.
+- Notes tag filter: `%`/`_`/`\` escaped with `ESCAPE '\'` (was wildcard-injectable match-all).
+- Gmail dedup: in-batch hash collision no longer marks the second UID seen (prevents unread-mail loss); concurrent-insert `IntegrityError` path still marks seen (already in DB).
+- `setup-env.sh`: emoji output replaced with ASCII `[OK]`/`[WARNING]`-style tags (portable CI logs).
+
+Remaining / follow-ups:
+- Redis-backed rate limiting, secrets rotation schedule, WAF/DDoS, PII redaction in logs — still open (see checklists above).
