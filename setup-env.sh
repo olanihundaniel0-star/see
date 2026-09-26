@@ -20,7 +20,7 @@ echo "Environment: $ENVIRONMENT"
 echo ""
 
 # Backend setup
-echo "🔧 Setting up backend..."
+echo "Setting up backend..."
 cd see-backend
 
 if [ "$ENVIRONMENT" == "development" ]; then
@@ -52,30 +52,30 @@ cd ..
 
 # Frontend setup
 echo ""
-echo "🔧 Setting up frontend..."
+echo "Setting up frontend..."
 cd see-app
 
 if [ "$ENVIRONMENT" == "development" ]; then
     if [ ! -f ".env" ]; then
         cp .env.example .env
-        echo "✅ Created .env from template"
+        echo " Created .env from template"
     fi
     echo "   API URL: http://localhost:8000/api/v1"
 
 elif [ "$ENVIRONMENT" == "staging" ]; then
     if [ ! -f ".env.staging" ]; then
         cp .env.example .env.staging
-        echo "⚠️  Created .env.staging template"
-        echo "   ⚠️  UPDATE EXPO_PUBLIC_API_URL to staging API!"
+        echo " Created .env.staging template"
+        echo "   UPDATE EXPO_PUBLIC_API_URL to staging API!"
     fi
     echo "   API URL: https://staging-api.your-domain.com/api/v1"
 
 elif [ "$ENVIRONMENT" == "production" ]; then
     if [ ! -f ".env.production" ]; then
         cp .env.example .env.production
-        echo "⚠️  Created .env.production template"
-        echo "   ⚠️  UPDATE EXPO_PUBLIC_API_URL to production API!"
-        echo "   ⚠️  NEVER commit .env.production to git!"
+        echo " Created .env.production template"
+        echo "  UPDATE EXPO_PUBLIC_API_URL to production API!"
+        echo "   NEVER commit .env.production to git!"
     fi
     echo "   API URL: https://api.your-domain.com/api/v1"
 fi
@@ -83,7 +83,7 @@ fi
 cd ..
 
 echo ""
-echo "✅ Environment setup complete!"
+echo "Environment setup complete!"
 echo ""
 echo "Next steps:"
 
@@ -115,7 +115,7 @@ elif [ "$ENVIRONMENT" == "staging" ]; then
 
 elif [ "$ENVIRONMENT" == "production" ]; then
     echo "1. Update credentials (SECURELY):"
-    echo "   ✅ Use secrets manager, NOT git"
+    echo "    Use secrets manager, NOT git"
     echo "   vi see-backend/.env.production"
     echo "   vi see-app/.env.production"
     echo ""
