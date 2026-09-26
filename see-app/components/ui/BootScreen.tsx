@@ -104,7 +104,7 @@ const DinoFrame = memo(function DinoFrame({ frame, fontSize, rowH }: { frame: st
         <Text
           key={index}
           className="text-white"
-          style={{ fontFamily: "monospace", fontSize, height: rowH, lineHeight: rowH }}
+          style={{ fontFamily: "SpaceMono_400Regular", fontSize, height: rowH, lineHeight: rowH }}
         >
           {row.length ? row : "\u00A0"}
         </Text>
@@ -159,7 +159,7 @@ export default function BootScreen() {
             </Text>
           ))}
           {progress < 1 ? (
-            <Text className="font-mono text-[10px] text-emerald-400">
+            <Text className="font-mono text-[10px] text-[#e2e2e2]">
               {`$ dino --run --no-jump ${">>>".slice(0, (Math.floor(progress * 20) % 4))}_`}
             </Text>
           ) : null}
@@ -177,12 +177,12 @@ export default function BootScreen() {
           </View>
 
           <View style={{ position: "absolute", bottom: 28, left: 0, right: 0 }}>
-            <Text numberOfLines={1} className="font-mono text-[11px] text-zinc-300">
+            <Text numberOfLines={1} className="font-mono text-[11px] text-[#e2e2e2]">
               {visibleStream}
             </Text>
           </View>
           <View style={{ position: "absolute", bottom: 16, left: 0, right: 0 }}>
-            <Text numberOfLines={1} className="font-mono text-[10px] text-zinc-500">
+            <Text numberOfLines={1} className="font-mono text-[10px] text-[#8f9194]">
               {visibleGround}
             </Text>
           </View>
@@ -197,11 +197,14 @@ export default function BootScreen() {
             {Array.from({ length: 20 }).map((_, index) => (
               <View
                 key={index}
-                className={"h-1 flex-1 " + (index < Math.floor(progress * 20) ? "bg-white" : "bg-white/15")}
+                className={"h-[2px] flex-1 " + (index < Math.floor(progress * 20) ? "bg-white" : "bg-white/15")}
               />
             ))}
           </View>
-          <Text className="text-center font-mono text-[9px] text-zinc-600">
+          <Text className="font-mono text-[10px] tracking-[0.08em] text-[#c5c6ca]">
+            {`[${"■".repeat(Math.round(progress * 6))}${"□".repeat(6 - Math.round(progress * 6))}] ${percent}%`}
+          </Text>
+          <Text className="text-center font-mono text-[9px] text-[#52525B]">
             JURASSIC_RUNTIME // EST. 66,000,000 BCE
           </Text>
         </View>
