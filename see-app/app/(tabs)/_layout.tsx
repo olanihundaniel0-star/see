@@ -11,20 +11,21 @@ export default function TabsLayout() {
         screenOptions={{
           headerShown: false,
           tabBarActiveTintColor: "#FFFFFF",
-          tabBarInactiveTintColor: "#71717A",
+          tabBarInactiveTintColor: "#c5c6ca",
           tabBarStyle: {
-            backgroundColor: "rgba(9, 9, 11, 0.96)",
+            backgroundColor: "rgba(19, 19, 19, 0.8)",
             borderTopColor: "rgba(255,255,255,0.08)",
-            height: 74
+            borderTopWidth: 1,
+            height: 64
           } as any,
           tabBarLabelStyle: {
-            fontFamily: "monospace",
+            fontFamily: "SpaceMono_700Bold",
             fontSize: 10,
-            letterSpacing: 1.5
+            letterSpacing: 0.8
           } as any
         }}
         >
-        <Tabs.Screen name="index" options={{ title: "TODAY" }} />
+        <Tabs.Screen name="index" options={{ title: "TODAY [\u25CF]" }} />
         <Tabs.Screen name="jobs" options={{ title: "PIPELINE" }} />
         <Tabs.Screen name="events" options={{ title: "RADAR" }} />
         <Tabs.Screen name="notes" options={{ title: "VAULT" }} />
@@ -36,9 +37,9 @@ export default function TabsLayout() {
         <Pressable
           onPress={() => void Haptics.selectionAsync()}
           style={{ bottom: insets.bottom + 96 }}
-          className="absolute right-5 z-10 h-14 w-14 items-center justify-center rounded-xl border border-white/20 bg-zinc-950/90 shadow-glass"
+          className="absolute right-5 z-10 h-12 w-12 items-center justify-center rounded-xl border border-white/[0.08] bg-[#2a2a2a]/90"
         >
-          <Text className="font-mono text-lg text-white">[+]</Text>
+          <Text className="font-mono-bold text-[16px] text-white">[+]</Text>
         </Pressable>
       </Link>
     </View>
