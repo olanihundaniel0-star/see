@@ -9,8 +9,8 @@ type Props = ViewProps & {
 };
 
 const toneClasses = {
-  default: "border-white/10 bg-zinc-950/50",
-  active: "border-white/20 bg-zinc-900/60",
+  default: "border-white/[0.15] bg-white/[0.05]",
+  active: "border-white/[0.14] bg-zinc-900/60",
   danger: "border-[#ffb4ab]/40 bg-[#ffb4ab]/10"
 } as const;
 
