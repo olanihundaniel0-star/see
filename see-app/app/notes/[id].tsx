@@ -8,7 +8,7 @@ import { GlassInput } from "@/components/glass/GlassInput";
 import { AsciiBanner } from "@/components/ui/AsciiBanner";
 import { ScreenState } from "@/components/ui/ScreenState";
 import { theme } from "@/constants/theme";
-import { formatShortDateTime } from "@/lib/format";
+import { formatRelativePast } from "@/lib/format";
 import { useDeleteNote, useNote, useUpdateNote } from "@/lib/queries";
 
 export default function NoteDetailScreen() {
@@ -33,7 +33,7 @@ export default function NoteDetailScreen() {
     <>
       <Stack.Screen options={{ title: "Note Detail" }} />
       <ScrollView removeClippedSubviews className="flex-1 bg-black" contentContainerClassName="px-4 pb-28 pt-4">
-        <View className="gap-4">
+        <View className="gap-3">
           <AsciiBanner title={theme.ascii.vault} subtitle="Editable note record" right="[NOTE]" />
 
           {error ? (
@@ -44,22 +44,38 @@ export default function NoteDetailScreen() {
 
           {note ? (
             <>
-              <GlassCard className="gap-3">
-                <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">{formatShortDateTime(note.updated_at)}</Text>
-                <GlassInput label="TITLE" value={title} onChangeText={setTitle} maxLength={255} />
+              <GlassCard className="gap-3" style={{ padding: 12 }}>
+                <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">
+                  {"// UPDATED: "}
+                  {formatRelativePast(note.updated_at)}
+                </Text>
+                <GlassInput
+                  label="> TITLE [REQ]"
+                  value={title}
+                  onChangeText={setTitle}
+                  maxLength={255}
+                  className="border-white/[0.12] bg-[rgba(9,9,11,0.70)]"
+                />
                 <View className="gap-2">
-                  <Text className="px-1 font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">CONTENT</Text>
+                  <Text className="px-1 font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">{"> CONTENT [REQ]"}</Text>
                   <TextInput
                     multiline
                     value={content}
                     onChangeText={setContent}
                     maxLength={20000}
-                    className="min-h-[220px] rounded-lg border border-white/10 bg-zinc-950/70 px-3 py-3 font-mono text-sm text-white"
+                    className="min-h-[220px] rounded border border-white/[0.12] bg-[rgba(9,9,11,0.70)] px-3 py-3 font-mono text-sm text-white"
                     textAlignVertical="top"
                     placeholderTextColor="#52525B"
                   />
                 </View>
-                <GlassInput label="TAGS" value={tags} onChangeText={setTags} placeholder="comma,separated,tags" maxLength={255} />
+                <GlassInput
+                  label="> TAGS [OPT]"
+                  value={tags}
+                  onChangeText={setTags}
+                  placeholder="comma,separated,tags"
+                  maxLength={255}
+                  className="border-white/[0.12] bg-[rgba(9,9,11,0.70)]"
+                />
                 <View className="flex-row gap-2">
                   <Pressable
                     disabled={updateNote.isPending || !title.trim() || !content.trim()}
@@ -70,9 +86,9 @@ export default function NoteDetailScreen() {
                         data: { title: title.trim(), content: content.trim(), tags: tags.trim() || null }
                       });
                     }}
-                    className="flex-1 rounded-lg border border-white/20 bg-white px-3 py-3 disabled:opacity-60"
+                    className="flex-1 rounded border-0 bg-white px-3 py-3 disabled:opacity-60 active:scale-[0.98]"
                   >
-                    <Text className="text-center font-mono-bold text-[10px] text-black">
+                    <Text className="text-center font-mono-bold text-[10px] tracking-[0.08em] text-black">
                       {updateNote.isPending ? "[SAVING]" : "[SAVE NOTE]"}
                     </Text>
                   </Pressable>
@@ -91,15 +107,18 @@ export default function NoteDetailScreen() {
                         }
                       ]);
                     }}
-                    className="rounded-lg border border-white/20 bg-zinc-950/70 px-3 py-3 disabled:opacity-60"
+                    className="rounded border border-white/[0.10] bg-transparent px-3 py-3 disabled:opacity-60 active:scale-95"
                   >
-                    <Text className="text-center font-mono text-[10px] text-white">[DELETE]</Text>
+                    <Text className="text-center font-mono text-[10px] tracking-[0.08em] text-white">[DELETE]</Text>
                   </Pressable>
                 </View>
               </GlassCard>
 
-              <GlassCard className="gap-2">
-                <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">{"// PREVIEW"}</Text>
+              <GlassCard className="gap-2" style={{ padding: 12 }}>
+                <View className="flex-row items-center justify-between">
+                  <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">{"// PREVIEW"}</Text>
+                  <Text className="font-mono text-[10px] tracking-[0.08em] text-white">TXT_BUF</Text>
+                </View>
                 <Text className="font-mono text-[11px] leading-5 text-[#e2e2e2]">{content}</Text>
               </GlassCard>
             </>

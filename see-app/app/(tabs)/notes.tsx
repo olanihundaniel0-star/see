@@ -4,16 +4,37 @@ import * as Haptics from "expo-haptics";
 import { Alert, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 
 import { GlassCard } from "@/components/glass/GlassCard";
-import { GlassPill } from "@/components/glass/GlassPill";
-import { AsciiBanner } from "@/components/ui/AsciiBanner";
 import { LoadMoreButton } from "@/components/ui/LoadMoreButton";
 import { ScreenState } from "@/components/ui/ScreenState";
-import { theme } from "@/constants/theme";
-import { formatShortDateTime } from "@/lib/format";
+import { formatRelativePast } from "@/lib/format";
 import { Note, useDeleteNote, useInfiniteNotes } from "@/lib/queries";
 
 function noteSnippet(note: Note) {
   return note.content.length > 180 ? `${note.content.slice(0, 180).trimEnd()}…` : note.content;
+}
+
+function noteSlug(title: string) {
+  const slug = title
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 24);
+  return slug || "UNTITLED";
+}
+
+function noteBadge(tags: string[]) {
+  if (tags.some((tag) => tag.toLowerCase() === "critical")) {
+    return "[CRITICAL]";
+  }
+  if (tags.length) {
+    return `[${tags[0].toUpperCase().slice(0, 12)}]`;
+  }
+  return "[NOTE]";
+}
+
+function syncBlocks(count: number) {
+  const filled = count <= 0 ? 0 : Math.min(4, Math.max(1, Math.ceil(count / 5)));
+  return "■".repeat(filled) + "□".repeat(4 - filled);
 }
 
 export default function NotesScreen() {
@@ -49,29 +70,68 @@ export default function NotesScreen() {
     });
   }, [notes]);
 
-  const tags = knownTags;
+  const tagCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    counts.set("ALL", notes.length);
+    for (const note of notes) {
+      for (const tag of note.tags?.split(",") ?? []) {
+        const value = tag.trim();
+        if (value) {
+          counts.set(value, (counts.get(value) ?? 0) + 1);
+        }
+      }
+    }
+    return counts;
+  }, [notes]);
+
+  const tags = useMemo(
+    () => ["ALL", ...knownTags.filter((tag) => tag !== "ALL").sort((a, b) => (tagCounts.get(b) ?? 0) - (tagCounts.get(a) ?? 0))],
+    [knownTags, tagCounts]
+  );
+
   const filteredNotes = notes;
 
   return (
     <ScrollView removeClippedSubviews className="flex-1 bg-black" contentContainerClassName="px-4 pb-28 pt-4">
-      <View className="gap-4">
-        <AsciiBanner title={theme.ascii.vault} subtitle="Searchable markdown snippets and scratch notes" right={isLoading ? "[INDEXING]" : "[VAULT]"} />
+      <View className="gap-3">
+        <View className="flex-row items-center justify-between px-1">
+          <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">
+            <Text className="font-mono-bold text-white">{"// KNOWLEDGE_VAULT"}</Text>
+            {" :: INDEX"}
+          </Text>
+          <View className="rounded border border-white/[0.08] bg-[#2a2a2a] px-2 py-1">
+            <Text className="font-mono text-[10px] tracking-[0.08em] text-white">
+              [{syncBlocks(notes.length)}] {notes.length} SYNC
+            </Text>
+          </View>
+        </View>
 
-        <GlassCard className="gap-3">
-          <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">&gt; grep search notes...</Text>
+        <View className="flex-row items-center gap-2 rounded border border-white/[0.12] bg-[rgba(9,9,11,0.70)] px-3 py-3">
+          <Text className="font-mono-bold text-sm text-white">&gt;</Text>
           <TextInput
             value={search}
             onChangeText={setSearch}
-            placeholder="search notes..."
+            placeholder="grep search notes..."
             maxLength={500}
             placeholderTextColor="#52525B"
-            className="font-mono text-base text-white"
+            className="flex-1 font-mono text-sm text-white"
           />
-        </GlassCard>
+          <View className="h-4 w-2 shrink-0 bg-white/80" />
+          <Pressable
+            onPress={async () => {
+              await Haptics.selectionAsync();
+              setSearch("");
+            }}
+            className="shrink-0 rounded border border-white/[0.08] bg-[#2a2a2a] px-2 py-1 active:scale-95"
+          >
+            <Text className="font-mono text-[10px] tracking-[0.08em] text-white">[ESC]</Text>
+          </Pressable>
+        </View>
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2">
           {tags.map((tag) => {
             const active = tag === activeTag;
+            const count = tagCounts.get(tag) ?? 0;
             return (
               <Pressable
                 key={tag}
@@ -79,9 +139,13 @@ export default function NotesScreen() {
                   await Haptics.selectionAsync();
                   setActiveTag(tag);
                 }}
-                className={`rounded-lg border px-3 py-2 ${active ? "border-white/20 bg-zinc-900/70" : "border-white/10 bg-zinc-950/50"}`}
+                className={`rounded border px-3 py-2 active:scale-95 ${
+                  active ? "border-transparent bg-white" : "border-white/[0.08] bg-[#1f1f1f]"
+                }`}
               >
-                <Text className="font-mono text-[10px] tracking-[0.08em] text-white">{tag}</Text>
+                <Text className={`font-mono text-[10px] tracking-[0.08em] ${active ? "font-mono-bold text-black" : "text-white"}`}>
+                  #{tag.toLowerCase()} ({count})
+                </Text>
               </Pressable>
             );
           })}
@@ -104,33 +168,47 @@ export default function NotesScreen() {
                 const noteTags = note.tags?.split(",").map((tag) => tag.trim()).filter(Boolean) ?? [];
 
                 return (
-                  <GlassCard key={note.id} className="gap-3">
-                    <Pressable
-                      onPress={() => router.push(`/notes/${note.id}`)}
-                      className="gap-3"
-                    >
-                      <View className="gap-1">
-                        <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">
-                          {formatShortDateTime(note.updated_at)}
+                  <GlassCard key={note.id} className="gap-3" style={{ padding: 12 }}>
+                    <Pressable onPress={() => router.push(`/notes/${note.id}`)} className="gap-3">
+                      <View className="flex-row items-center justify-between gap-2">
+                        <Text className="font-mono-bold flex-1 text-[10px] tracking-[0.08em] text-white" numberOfLines={1}>
+                          {`+-- NOTE: ${noteSlug(note.title)} --+`}
                         </Text>
-                        <Text className="text-xl font-sans-bold text-white">{note.title}</Text>
+                        <View className="shrink-0 rounded border border-white/[0.08] bg-[#353535] px-2 py-1">
+                          <Text className="font-mono text-[10px] tracking-[0.08em] text-white">{noteBadge(noteTags)}</Text>
+                        </View>
                       </View>
 
-                      <View className="rounded-lg border border-white/10 bg-zinc-950/80 px-3 py-3">
+                      <Text className="text-xl font-sans-bold text-white">{note.title}</Text>
+
+                      <View className="gap-2 rounded border border-white/[0.08] bg-[#0e0e0e] px-3 py-3">
+                        <View className="flex-row items-center justify-between">
+                          <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">{"// NOTE_BUFFER"}</Text>
+                          <Text className="font-mono text-[10px] tracking-[0.08em] text-white">TXT_BUF</Text>
+                        </View>
                         <Text className="font-mono text-[11px] leading-5 text-zinc-200">{noteSnippet(note)}</Text>
                       </View>
                     </Pressable>
 
                     <View className="flex-row flex-wrap gap-2">
                       {noteTags.length ? (
-                        noteTags.slice(0, 4).map((tag) => <GlassPill key={tag} label="TAG" value={tag} />)
+                        noteTags.slice(0, 4).map((tag) => (
+                          <View key={tag} className="rounded border border-white/[0.08] bg-[#2a2a2a] px-2 py-1">
+                            <Text className="font-mono text-[10px] tracking-[0.08em] text-white">#{tag}</Text>
+                          </View>
+                        ))
                       ) : (
-                        <GlassPill label="TAG" value="UNTAGGED" />
+                        <View className="rounded border border-white/[0.08] bg-[#2a2a2a] px-2 py-1">
+                          <Text className="font-mono text-[10px] tracking-[0.08em] text-white">#untagged</Text>
+                        </View>
                       )}
                     </View>
 
-                    <View className="flex-row gap-2">
-                      <GlassPill label="CREATED" value={formatShortDateTime(note.created_at)} className="flex-1" />
+                    <View className="flex-row items-center justify-between gap-2">
+                      <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">
+                        {"// UPDATED: "}
+                        {formatRelativePast(note.updated_at)}
+                      </Text>
                       <Pressable
                         disabled={deleteNote.isPending}
                         onPress={async () => {
@@ -146,9 +224,9 @@ export default function NotesScreen() {
                             }
                           ]);
                         }}
-                        className="rounded-lg border border-white/20 bg-white px-3 py-2 disabled:opacity-60"
+                        className="rounded border border-white/[0.10] bg-transparent px-3 py-2 disabled:opacity-60 active:scale-95"
                       >
-                        <Text className="font-mono-bold text-[10px] text-black">[DELETE]</Text>
+                        <Text className="font-mono text-[10px] tracking-[0.08em] text-white">[DELETE]</Text>
                       </Pressable>
                     </View>
                   </GlassCard>
