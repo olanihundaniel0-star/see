@@ -19,7 +19,7 @@ export function ScreenState({ title, message, label, onPress, busy }: Props) {
         <Pressable
           disabled={busy}
           onPress={onPress}
-          className="self-start rounded-lg border border-white/20 bg-white px-4 py-2 disabled:opacity-60"
+          className="self-start rounded border border-white/20 bg-white px-4 py-2 disabled:opacity-60"
         >
           <Text className="font-mono-bold text-[10px] text-black">{busy ? "[ WORKING ]" : label}</Text>
         </Pressable>
