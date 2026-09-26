@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useRef, useState, type ComponentRef, type RefObject } from "react";
-import { Alert, KeyboardAvoidingView, Platform, Pressable, Text, TextInput, type TextInputProps, View } from "react-native";
+import { Alert, Platform, Pressable, Text, TextInput, type TextInputProps, View } from "react-native";
 import { router, Stack } from "expo-router";
 import * as Haptics from "expo-haptics";
 import {
   BottomSheetBackdrop,
   BottomSheetModal,
-  BottomSheetTextInput,
-  BottomSheetView
+  BottomSheetScrollView,
+  BottomSheetTextInput
 } from "@gorhom/bottom-sheet";
 
 import { GlassCard } from "@/components/glass/GlassCard";
@@ -54,7 +54,7 @@ export default function QuickAddModal() {
   const sheetRef = useRef<BottomSheetModal>(null);
   const firstFieldRef = useRef<SheetInputRef>(null);
   const closingRef = useRef(false);
-  const snapPoints = useMemo(() => ["84%"], []);
+  const snapPoints = useMemo(() => ["60%", "92%"], []);
   const quickAdd = useQuickAdd();
   const [mode, setMode] = useState<Mode>("job");
   const [saving, setSaving] = useState(false);
@@ -185,17 +185,20 @@ export default function QuickAddModal() {
       <Stack.Screen options={{ title: "Quick Add" }} />
       <BottomSheetModal
         ref={sheetRef}
-        index={0}
+        index={1}
         snapPoints={snapPoints}
         enablePanDownToClose
+        keyboardBehavior="interactive"
+        keyboardBlurBehavior="restore"
         backdropComponent={(props) => <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} />}
         backgroundStyle={{ backgroundColor: "rgba(9, 9, 11, 0.96)" } as any}
         handleIndicatorStyle={{ backgroundColor: "rgba(255,255,255,0.25)" } as any}
         onDismiss={closeModal}
       >
-        <BottomSheetView className="flex-1 px-4 pb-6">
-          <KeyboardAvoidingView behavior={Platform.select({ ios: "padding", android: "padding" })} className="flex-1">
-            <View className="flex-1 gap-4">
+        <BottomSheetScrollView
+          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24, gap: 16 }}
+          keyboardShouldPersistTaps="handled"
+        >
               <View className="flex-row items-center justify-between">
                 <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">{"// QUICK_ADD"}</Text>
                 <Pressable onPress={closeModal}>
@@ -248,21 +251,25 @@ export default function QuickAddModal() {
                   <SheetInput
                     inputRef={firstFieldRef}
                     placeholder="Company"
+                    maxLength={150}
                     value={jobForm.company}
                     onChangeText={(company) => setJobForm((current) => ({ ...current, company }))}
                   />
                   <GlassInput
                     placeholder="Role"
+                    maxLength={150}
                     value={jobForm.role}
                     onChangeText={(role) => setJobForm((current) => ({ ...current, role }))}
                   />
                   <GlassInput
                     placeholder="Location"
+                    maxLength={150}
                     value={jobForm.location}
                     onChangeText={(location) => setJobForm((current) => ({ ...current, location }))}
                   />
                   <GlassInput
                     placeholder="Salary range"
+                    maxLength={100}
                     value={jobForm.salary_range}
                     onChangeText={(salary_range) => setJobForm((current) => ({ ...current, salary_range }))}
                   />
@@ -270,12 +277,14 @@ export default function QuickAddModal() {
                     placeholder="Job URL"
                     autoCapitalize="none"
                     keyboardType="url"
+                    maxLength={2048}
                     value={jobForm.job_url}
                     onChangeText={(job_url) => setJobForm((current) => ({ ...current, job_url }))}
                   />
                   <GlassInput
                     placeholder="Deadline ISO 8601"
                     autoCapitalize="none"
+                    maxLength={100}
                     value={jobForm.deadline}
                     onChangeText={(deadline) => setJobForm((current) => ({ ...current, deadline }))}
                   />
@@ -287,6 +296,7 @@ export default function QuickAddModal() {
                   <SheetInput
                     inputRef={firstFieldRef}
                     placeholder="Note title"
+                    maxLength={255}
                     value={noteForm.title}
                     onChangeText={(title) => setNoteForm((current) => ({ ...current, title }))}
                   />
@@ -295,11 +305,13 @@ export default function QuickAddModal() {
                     multiline
                     numberOfLines={6}
                     className="min-h-[140px]"
+                    maxLength={20000}
                     value={noteForm.content}
                     onChangeText={(content) => setNoteForm((current) => ({ ...current, content }))}
                   />
                   <GlassInput
                     placeholder="#tags, comma separated"
+                    maxLength={255}
                     value={noteForm.tags}
                     onChangeText={(tags) => setNoteForm((current) => ({ ...current, tags }))}
                   />
@@ -311,18 +323,21 @@ export default function QuickAddModal() {
                   <SheetInput
                     inputRef={firstFieldRef}
                     placeholder="Reminder title"
+                    maxLength={255}
                     value={reminderForm.title}
                     onChangeText={(title) => setReminderForm((current) => ({ ...current, title }))}
                   />
                   <GlassInput
                     placeholder="Due date ISO 8601"
                     autoCapitalize="none"
+                    maxLength={100}
                     value={reminderForm.due_date}
                     onChangeText={(due_date) => setReminderForm((current) => ({ ...current, due_date }))}
                   />
                   <GlassInput
                     placeholder="Priority: low | medium | high"
                     autoCapitalize="none"
+                    maxLength={20}
                     value={reminderForm.priority}
                     onChangeText={(priority) => setReminderForm((current) => ({ ...current, priority }))}
                   />
@@ -332,15 +347,13 @@ export default function QuickAddModal() {
               <Pressable
                 onPress={submit}
                 disabled={saving}
-                className="mt-auto rounded-xl border border-white/20 bg-white px-4 py-4 disabled:opacity-60"
+                className="rounded-xl border border-white/20 bg-white px-4 py-4 disabled:opacity-60"
               >
                 <Text className="text-center font-mono-bold text-[10px] text-black">
                   {saving ? "[ CAPTURING... ]" : `[ CAPTURE -> ${mode.toUpperCase()} ]`}
                 </Text>
               </Pressable>
-            </View>
-          </KeyboardAvoidingView>
-        </BottomSheetView>
+        </BottomSheetScrollView>
       </BottomSheetModal>
     </>
   );

@@ -38,7 +38,7 @@ export default function ReminderDetailScreen() {
   return (
     <>
       <Stack.Screen options={{ title: "Reminder Detail" }} />
-      <ScrollView className="flex-1 bg-black" contentContainerClassName="px-4 pb-28 pt-4">
+      <ScrollView removeClippedSubviews className="flex-1 bg-black" contentContainerClassName="px-4 pb-28 pt-4">
         <View className="gap-4">
           <AsciiBanner title={theme.ascii.pipeline} subtitle="Reminder edit and completion control" right="[REMINDER]" />
 
@@ -58,8 +58,8 @@ export default function ReminderDetailScreen() {
                 <GlassPill label="PRIORITY" value={reminder.priority.toUpperCase()} tone={reminder.priority === "high" ? "danger" : "active"} />
               </View>
 
-              <GlassInput label="TITLE" value={title} onChangeText={setTitle} />
-              <GlassInput label="DUE_DATE" value={dueDate} onChangeText={setDueDate} placeholder="2026-09-08T10:00:00Z" />
+              <GlassInput label="TITLE" value={title} onChangeText={setTitle} maxLength={255} />
+              <GlassInput label="DUE_DATE" value={dueDate} onChangeText={setDueDate} placeholder="2026-09-08T10:00:00Z" maxLength={100} />
 
               <View className="gap-2">
                 <Text className="px-1 font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">PRIORITY</Text>

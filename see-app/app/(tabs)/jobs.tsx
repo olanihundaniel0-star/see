@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link } from "expo-router";
 import * as Haptics from "expo-haptics";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { FlatList, Pressable, RefreshControl, ScrollView, Text, View } from "react-native";
 
 import { GlassCard } from "@/components/glass/GlassCard";
 import { GlassPill } from "@/components/glass/GlassPill";
@@ -43,11 +43,14 @@ function completionCount(job: Job) {
 }
 
 export default function JobsScreen() {
-  const { data, isLoading, error, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteJobs();
-  const updateJob = useUpdateJob();
   const [activeFilter, setActiveFilter] = useState<JobStatus | "all">("all");
+  const { data, isLoading, isRefetching, error, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteJobs(
+    activeFilter === "all" ? undefined : activeFilter
+  );
+  const updateJob = useUpdateJob();
   const jobs = useMemo(() => data?.pages.flatMap((page) => page) ?? [], [data]);
 
+  // Client-side filter kept as fallback only (e.g. if the backend ignores `status`).
   const filteredJobs = useMemo(() => {
     if (activeFilter === "all") {
       return jobs;
@@ -68,37 +71,53 @@ export default function JobsScreen() {
   const summaryTotal = jobs.reduce((acc, job) => acc + completionCount(job).total, 0);
 
   return (
-    <ScrollView className="flex-1 bg-black" contentContainerClassName="px-4 pb-28 pt-4">
-      <View className="gap-4">
-        <AsciiBanner title={theme.ascii.pipeline} subtitle="Status filters and dossier cards" right={isLoading ? "[SYNC]" : "[PIPELINE]"} />
+    <FlatList
+      data={error || isLoading ? [] : filteredJobs}
+      keyExtractor={(job) => job.id}
+      className="flex-1 bg-black"
+      contentContainerClassName="px-4 pb-28 pt-4 gap-4"
+      removeClippedSubviews
+      initialNumToRender={8}
+      maxToRenderPerBatch={8}
+      windowSize={5}
+      updateCellsBatchingPeriod={50}
+      refreshControl={<RefreshControl refreshing={isRefetching && !isLoading} onRefresh={() => void refetch()} tintColor="#fff" />}
+      onEndReached={() => {
+        if (hasNextPage && !isFetchingNextPage) {
+          void fetchNextPage();
+        }
+      }}
+      onEndReachedThreshold={0.5}
+      ListHeaderComponent={
+        <View className="gap-4">
+          <AsciiBanner title={theme.ascii.pipeline} subtitle="Status filters and dossier cards" right={isLoading ? "[SYNC]" : "[PIPELINE]"} />
 
-        <View className="flex-row gap-2">
-          <GlassPill label="TOTAL" value={jobs.length} className="flex-1" />
-          <GlassPill label="CHECKPOINTS" value={`${summaryCompleted}/${summaryTotal}`} tone="active" className="flex-1" />
-        </View>
+          <View className="flex-row gap-2">
+            <GlassPill label="TOTAL" value={jobs.length} className="flex-1" />
+            <GlassPill label="CHECKPOINTS" value={`${summaryCompleted}/${summaryTotal}`} tone="active" className="flex-1" />
+          </View>
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2">
-          {filters.map((filter) => {
-            const active = filter.value === activeFilter;
-            return (
-              <Pressable
-                key={filter.value}
-                onPress={async () => {
-                  await Haptics.selectionAsync();
-                  setActiveFilter(filter.value);
-                }}
-                className={`rounded-lg border px-4 py-2 ${active ? "border-white/20 bg-zinc-900/70" : "border-white/10 bg-zinc-950/50"}`}
-              >
-                <Text className="font-mono text-[10px] tracking-[0.08em] text-white">
-                  {filter.label}
-                  {filter.value !== "all" ? ` ${counts[filter.value]}` : ""}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2">
+            {filters.map((filter) => {
+              const active = filter.value === activeFilter;
+              return (
+                <Pressable
+                  key={filter.value}
+                  onPress={async () => {
+                    await Haptics.selectionAsync();
+                    setActiveFilter(filter.value);
+                  }}
+                  className={`rounded-lg border px-4 py-2 ${active ? "border-white/20 bg-zinc-900/70" : "border-white/10 bg-zinc-950/50"}`}
+                >
+                  <Text className="font-mono text-[10px] tracking-[0.08em] text-white">
+                    {filter.label}
+                    {filter.value !== "all" ? ` ${counts[filter.value]}` : ""}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
 
-        <View className="gap-3">
           {error ? (
             <ScreenState
               title="// PIPELINE_ERROR"
@@ -112,95 +131,94 @@ export default function JobsScreen() {
             <ScreenState title="// PIPELINE_BOOT" message="Loading your application dossiers." />
           ) : null}
 
-          {!error && !isLoading
-            ? filteredJobs.map((job) => {
-                const stats = completionCount(job);
-                const stageLabel = job.status.toUpperCase();
-                const deadline = job.deadline ? formatShortDateTime(job.deadline) : "NO DEADLINE";
-
-                return (
-                  <GlassCard key={job.id} className="gap-3">
-                    <View className="flex-row items-start justify-between gap-4">
-                      <View className="flex-1 gap-1">
-                        <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">{job.company.toUpperCase()}</Text>
-                        <Text className="text-xl font-sans-bold text-white">{job.role}</Text>
-                        <Text className="font-mono text-[11px] text-[#c5c6ca]">
-                          {job.location ?? "REMOTE"} · {job.salary_range ?? "SALARY N/A"}
-                        </Text>
-                      </View>
-                      <GlassPill
-                        label="STAGE"
-                        value={stageLabel}
-                        tone={job.status === "rejected" || job.status === "archived" ? "danger" : job.status === "offer" ? "active" : "default"}
-                      />
-                    </View>
-
-                    <ProgressBar value={stats.progress} label="CHECKLIST" />
-
-                    <View className="flex-row items-center justify-between">
-                      <Text className="font-mono text-[10px] text-[#8f9194]">{job.deadline ? `DUE ${deadline}` : formatRelativePast(job.applied_at)}</Text>
-                      <Text className="font-mono text-[10px] text-[#e2e2e2]">
-                        [{stats.completed}/{stats.total}] {stats.progress}%
-                      </Text>
-                    </View>
-
-                    <View className="flex-row gap-2">
-                      <Link href={`/jobs/${job.id}`} asChild>
-                        <Pressable className="flex-1 rounded-lg border border-white/10 bg-zinc-950/70 px-3 py-2 active:scale-[0.99]">
-                          <Text className="text-center font-mono text-[10px] text-white">[OPEN DOSSIER]</Text>
-                        </Pressable>
-                      </Link>
-                      <Pressable
-                        disabled={updateJob.isPending}
-                        onPress={async () => {
-                          await Haptics.selectionAsync();
-                          await updateJob.mutateAsync({
-                            id: job.id,
-                            data: {
-                              status: nextStage(job.status)
-                            }
-                          });
-                        }}
-                        className="flex-1 rounded-lg border border-white/10 bg-zinc-950/70 px-3 py-2 disabled:opacity-60"
-                      >
-                        <Text className="text-center font-mono text-[10px] text-white">
-                          {updateJob.isPending ? "[UPDATING]" : `[ADVANCE -> ${nextStage(job.status).toUpperCase()}]`}
-                        </Text>
-                      </Pressable>
-                    </View>
-
-                    <Pressable
-                      disabled={updateJob.isPending}
-                      onPress={async () => {
-                        await Haptics.selectionAsync();
-                        await updateJob.mutateAsync({
-                          id: job.id,
-                          data: {
-                            status: "archived"
-                          }
-                        });
-                      }}
-                      className="rounded-lg border border-white/20 bg-white px-3 py-2 disabled:opacity-60"
-                    >
-                      <Text className="text-center font-mono-bold text-[10px] text-black">[ARCHIVE]</Text>
-                    </Pressable>
-                  </GlassCard>
-                );
-              })
-            : null}
+          {!error && !isLoading && !filteredJobs.length ? (
+            <ScreenState
+              title="// NO_MATCHES"
+              message="No jobs are visible for this filter."
+            />
+          ) : null}
         </View>
+      }
+      renderItem={({ item: job }) => {
+        const stats = completionCount(job);
+        const stageLabel = job.status.toUpperCase();
+        const deadline = job.deadline ? formatShortDateTime(job.deadline) : "NO DEADLINE";
 
-        {!error && !isLoading && !filteredJobs.length ? (
-          <ScreenState
-            title="// NO_MATCHES"
-            message="No jobs are visible for this filter."
-          />
-        ) : null}
+        return (
+          <GlassCard className="gap-3">
+            <View className="flex-row items-start justify-between gap-4">
+              <View className="flex-1 gap-1">
+                <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">{job.company.toUpperCase()}</Text>
+                <Text className="text-xl font-sans-bold text-white">{job.role}</Text>
+                <Text className="font-mono text-[11px] text-[#c5c6ca]">
+                  {job.location ?? "REMOTE"} · {job.salary_range ?? "SALARY N/A"}
+                </Text>
+              </View>
+              <GlassPill
+                label="STAGE"
+                value={stageLabel}
+                tone={job.status === "rejected" || job.status === "archived" ? "danger" : job.status === "offer" ? "active" : "default"}
+              />
+            </View>
 
-        {!error && hasNextPage ? (
+            <ProgressBar value={stats.progress} label="CHECKLIST" />
+
+            <View className="flex-row items-center justify-between">
+              <Text className="font-mono text-[10px] text-[#8f9194]">{job.deadline ? `DUE ${deadline}` : formatRelativePast(job.applied_at)}</Text>
+              <Text className="font-mono text-[10px] text-[#e2e2e2]">
+                [{stats.completed}/{stats.total}] {stats.progress}%
+              </Text>
+            </View>
+
+            <View className="flex-row gap-2">
+              <Link href={`/jobs/${job.id}`} asChild>
+                <Pressable className="flex-1 rounded-lg border border-white/10 bg-zinc-950/70 px-3 py-2 active:scale-[0.99]">
+                  <Text className="text-center font-mono text-[10px] text-white">[OPEN DOSSIER]</Text>
+                </Pressable>
+              </Link>
+              <Pressable
+                disabled={updateJob.isPending}
+                onPress={async () => {
+                  await Haptics.selectionAsync();
+                  await updateJob.mutateAsync({
+                    id: job.id,
+                    data: {
+                      status: nextStage(job.status)
+                    }
+                  });
+                }}
+                className="flex-1 rounded-lg border border-white/10 bg-zinc-950/70 px-3 py-2 disabled:opacity-60"
+              >
+                <Text className="text-center font-mono text-[10px] text-white">
+                  {updateJob.isPending ? "[UPDATING]" : `[ADVANCE -> ${nextStage(job.status).toUpperCase()}]`}
+                </Text>
+              </Pressable>
+            </View>
+
+            <Pressable
+              disabled={updateJob.isPending}
+              onPress={async () => {
+                await Haptics.selectionAsync();
+                await updateJob.mutateAsync({
+                  id: job.id,
+                  data: {
+                    status: "archived"
+                  }
+                });
+              }}
+              className="rounded-lg border border-white/20 bg-white px-3 py-2 disabled:opacity-60"
+            >
+              <Text className="text-center font-mono-bold text-[10px] text-black">[ARCHIVE]</Text>
+            </Pressable>
+          </GlassCard>
+        );
+      }}
+      ItemSeparatorComponent={() => <View className="h-3" />}
+      ListFooterComponent={
+        !error && hasNextPage ? (
           <LoadMoreButton onPress={() => void fetchNextPage()} busy={isFetchingNextPage} />
-        ) : null}
-      </View>
-    </ScrollView>
+        ) : null
+      }
+    />
   );
 }

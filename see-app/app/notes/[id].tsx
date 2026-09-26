@@ -32,7 +32,7 @@ export default function NoteDetailScreen() {
   return (
     <>
       <Stack.Screen options={{ title: "Note Detail" }} />
-      <ScrollView className="flex-1 bg-black" contentContainerClassName="px-4 pb-28 pt-4">
+      <ScrollView removeClippedSubviews className="flex-1 bg-black" contentContainerClassName="px-4 pb-28 pt-4">
         <View className="gap-4">
           <AsciiBanner title={theme.ascii.vault} subtitle="Editable note record" right="[NOTE]" />
 
@@ -46,19 +46,20 @@ export default function NoteDetailScreen() {
             <>
               <GlassCard className="gap-3">
                 <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">{formatShortDateTime(note.updated_at)}</Text>
-                <GlassInput label="TITLE" value={title} onChangeText={setTitle} />
+                <GlassInput label="TITLE" value={title} onChangeText={setTitle} maxLength={255} />
                 <View className="gap-2">
                   <Text className="px-1 font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">CONTENT</Text>
                   <TextInput
                     multiline
                     value={content}
                     onChangeText={setContent}
+                    maxLength={20000}
                     className="min-h-[220px] rounded-lg border border-white/10 bg-zinc-950/70 px-3 py-3 font-mono text-sm text-white"
                     textAlignVertical="top"
                     placeholderTextColor="#52525B"
                   />
                 </View>
-                <GlassInput label="TAGS" value={tags} onChangeText={setTags} placeholder="comma,separated,tags" />
+                <GlassInput label="TAGS" value={tags} onChangeText={setTags} placeholder="comma,separated,tags" maxLength={255} />
                 <View className="flex-row gap-2">
                   <Pressable
                     disabled={updateNote.isPending || !title.trim() || !content.trim()}

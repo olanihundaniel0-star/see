@@ -39,7 +39,7 @@ export default function TodayScreen() {
   const latestGenerated = data?.generated_at ? formatShortDateTime(data.generated_at) : null;
 
   return (
-    <ScrollView className="flex-1 bg-black" contentContainerClassName="px-4 pb-28 pt-4">
+    <ScrollView removeClippedSubviews className="flex-1 bg-black" contentContainerClassName="px-4 pb-28 pt-4">
       <View className="gap-4">
         <View className="flex-row items-start justify-between">
           <View className="gap-1">

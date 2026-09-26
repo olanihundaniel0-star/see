@@ -18,6 +18,30 @@ const filters = [
   { label: "IN-PERSON", value: false }
 ] as const;
 
+const OPENABLE_URL_RE = /^https?:\/\//i;
+
+function isOpenableUrl(value: unknown): value is string {
+  return typeof value === "string" && OPENABLE_URL_RE.test(value.trim());
+}
+
+async function openExternalUrl(url: string, failureTitle: string) {
+  if (!isOpenableUrl(url)) {
+    Alert.alert(failureTitle, "The link for this item is invalid.");
+    return;
+  }
+  const trimmed = url.trim();
+  try {
+    const supported = await Linking.canOpenURL(trimmed);
+    if (!supported) {
+      Alert.alert(failureTitle, "No app can open this link on this device.");
+      return;
+    }
+    await Linking.openURL(trimmed);
+  } catch (error) {
+    Alert.alert(failureTitle, error instanceof Error ? error.message : "The link could not be opened.");
+  }
+}
+
 export default function EventsScreen() {
   const [activeFilter, setActiveFilter] = useState<(typeof filters)[number]["value"]>(undefined);
   const { data, isLoading, error, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteEvents(activeFilter);
@@ -111,6 +135,7 @@ export default function EventsScreen() {
           {!error && !isLoading
             ? events.map((event) => {
             const categories = event.categories ?? [];
+            const urlValid = isOpenableUrl(event.url);
 
             return (
               <GlassCard key={event.id} className="gap-3">
@@ -138,18 +163,12 @@ export default function EventsScreen() {
 
                 <View className="flex-row gap-2">
                   <Pressable
+                    disabled={!urlValid}
                     onPress={async () => {
                       await Haptics.selectionAsync();
-                      try {
-                        await Linking.openURL(event.url);
-                      } catch (error) {
-                        Alert.alert(
-                          "Unable to open event",
-                          error instanceof Error ? error.message : "The event link could not be opened."
-                        );
-                      }
+                      await openExternalUrl(event.url, "Unable to open event");
                     }}
-                    className="flex-1 rounded-lg border border-white/10 bg-zinc-950/70 px-3 py-2 active:scale-[0.99]"
+                    className={`flex-1 rounded-lg border border-white/10 bg-zinc-950/70 px-3 py-2 active:scale-[0.99] ${urlValid ? "" : "opacity-40"}`}
                   >
                     <Text className="text-center font-mono text-[10px] text-white">[OPEN SOURCE]</Text>
                   </Pressable>

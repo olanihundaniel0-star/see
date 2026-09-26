@@ -1,5 +1,5 @@
 import React, { Component, ErrorInfo, ReactNode } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { Platform, Pressable, ScrollView, Text, View } from "react-native";
 import * as Haptics from "expo-haptics";
 
 interface Props {
@@ -33,7 +33,13 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   resetError = async () => {
-    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    if (Platform.OS !== "web") {
+      try {
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } catch {
+        // Haptics unavailable — reset must never crash (esp. on web).
+      }
+    }
     this.setState({
       hasError: false,
       error: null

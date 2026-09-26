@@ -6,20 +6,46 @@ import { createClient } from "@supabase/supabase-js";
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL ?? "";
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? "";
 
-const storage =
-  Platform.OS === "web"
-    ? {
-        getItem: (key: string) => Promise.resolve(localStorage.getItem(key)),
-        setItem: (key: string, value: string) => {
-          localStorage.setItem(key, value);
-          return Promise.resolve();
-        },
-        removeItem: (key: string) => {
-          localStorage.removeItem(key);
-          return Promise.resolve();
-        }
+const memoryStore = new Map<string, string>();
+
+const webStorage = {
+  getItem: (key: string) => {
+    if (typeof window !== "undefined") {
+      try {
+        return Promise.resolve(window.localStorage.getItem(key));
+      } catch {
+        // fall through to in-memory fallback
       }
-    : {
+    }
+    return Promise.resolve(memoryStore.get(key) ?? null);
+  },
+  setItem: (key: string, value: string) => {
+    if (typeof window !== "undefined") {
+      try {
+        window.localStorage.setItem(key, value);
+        return Promise.resolve();
+      } catch {
+        // fall through to in-memory fallback
+      }
+    }
+    memoryStore.set(key, value);
+    return Promise.resolve();
+  },
+  removeItem: (key: string) => {
+    if (typeof window !== "undefined") {
+      try {
+        window.localStorage.removeItem(key);
+        return Promise.resolve();
+      } catch {
+        // fall through to in-memory fallback
+      }
+    }
+    memoryStore.delete(key);
+    return Promise.resolve();
+  }
+};
+
+const storage = Platform.OS === "web" ? webStorage : {
         async getItem(key: string) {
           return SecureStore.getItemAsync(key);
         },

@@ -39,7 +39,7 @@ export default function RemindersScreen() {
   );
 
   return (
-    <ScrollView className="flex-1 bg-black" contentContainerClassName="px-4 pb-28 pt-4">
+    <ScrollView removeClippedSubviews className="flex-1 bg-black" contentContainerClassName="px-4 pb-28 pt-4">
       <View className="gap-4">
         <AsciiBanner title={theme.ascii.alerts} subtitle="Reminder inbox and completion queue" right={isLoading ? "[SYNC]" : "[REMINDERS]"} />
 

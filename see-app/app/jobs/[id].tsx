@@ -39,6 +39,30 @@ function stageIndex(status: JobStatus) {
   return stageNodes.indexOf(status);
 }
 
+const OPENABLE_URL_RE = /^https?:\/\//i;
+
+function isOpenableUrl(value: unknown): value is string {
+  return typeof value === "string" && OPENABLE_URL_RE.test(value.trim());
+}
+
+async function openExternalUrl(url: string, failureTitle: string) {
+  if (!isOpenableUrl(url)) {
+    Alert.alert(failureTitle, "The link for this item is invalid.");
+    return;
+  }
+  const trimmed = url.trim();
+  try {
+    const supported = await Linking.canOpenURL(trimmed);
+    if (!supported) {
+      Alert.alert(failureTitle, "No app can open this link on this device.");
+      return;
+    }
+    await Linking.openURL(trimmed);
+  } catch (error) {
+    Alert.alert(failureTitle, error instanceof Error ? error.message : "The link could not be opened.");
+  }
+}
+
 export default function JobDossierScreen() {
   const params = useLocalSearchParams<{ id: string }>();
   const jobId = typeof params.id === "string" ? params.id : Array.isArray(params.id) ? params.id[0] : undefined;
@@ -136,18 +160,12 @@ export default function JobDossierScreen() {
                 </View>
                 {job.job_url ? (
                   <Pressable
+                    disabled={!isOpenableUrl(job.job_url)}
                     onPress={async () => {
                       await Haptics.selectionAsync();
-                      try {
-                        await Linking.openURL(job.job_url ?? "");
-                      } catch (error) {
-                        Alert.alert(
-                          "Unable to open job posting",
-                          error instanceof Error ? error.message : "The job link could not be opened."
-                        );
-                      }
+                      await openExternalUrl(job.job_url ?? "", "Unable to open job posting");
                     }}
-                    className="rounded-lg border border-white/20 bg-white px-3 py-2"
+                    className={`rounded-lg border border-white/20 bg-white px-3 py-2 ${isOpenableUrl(job.job_url) ? "" : "opacity-40"}`}
                   >
                     <Text className="text-center font-mono-bold text-[10px] text-black">[OPEN JOB POSTING]</Text>
                   </Pressable>

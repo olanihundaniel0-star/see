@@ -56,29 +56,40 @@ export default function RootLayout() {
   }, []);
 
   const [bootDone, setBootDone] = useState(false);
+  const [mountedAt] = useState(() => Date.now());
+  const fontsReady = fontsLoaded || !!fontError;
+
+  // Ready-gate: boot completes when fonts are ready AND auth has resolved.
+  useEffect(() => {
+    if (!fontsReady || authLoading) return;
+    const elapsed = Date.now() - mountedAt;
+    const remaining = Math.max(0, 600 - elapsed);
+    const timer = setTimeout(() => setBootDone(true), remaining);
+    return () => clearTimeout(timer);
+  }, [fontsReady, authLoading, mountedAt]);
+
+  // Max fallback: never trap the user on the splash screen.
   useEffect(() => {
     const timer = setTimeout(() => setBootDone(true), 10_000);
     return () => clearTimeout(timer);
   }, []);
 
-  const fontsReady = fontsLoaded || fontError;
-
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaProvider>
-        <QueryClientProvider client={client}>
-          <BottomSheetModalProvider>
-            {!bootDone || !fontsReady ? (
-              <BootScreen />
-            ) : (
-              <ErrorBoundary>
+    <ErrorBoundary>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <SafeAreaProvider>
+          <QueryClientProvider client={client}>
+            <BottomSheetModalProvider>
+              {!bootDone ? (
+                <BootScreen />
+              ) : (
                 <AppNavigator session={session} authLoading={authLoading} />
-              </ErrorBoundary>
-            )}
-          </BottomSheetModalProvider>
-        </QueryClientProvider>
-      </SafeAreaProvider>
-    </GestureHandlerRootView>
+              )}
+            </BottomSheetModalProvider>
+          </QueryClientProvider>
+        </SafeAreaProvider>
+      </GestureHandlerRootView>
+    </ErrorBoundary>
   );
 }
 

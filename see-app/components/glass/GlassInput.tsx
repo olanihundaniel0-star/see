@@ -6,7 +6,7 @@ type Props = TextInputProps & {
 };
 
 export const GlassInput = forwardRef<any, Props>(function GlassInput(
-  { label, className = "", ...props },
+  { label, maxLength = 5000, className = "", ...props },
   ref
 ) {
   return (
@@ -14,6 +14,7 @@ export const GlassInput = forwardRef<any, Props>(function GlassInput(
       {label ? <TextInputLabel label={label} /> : null}
       <TextInput
         ref={ref}
+        maxLength={maxLength}
         className={`rounded border border-white/[0.08] bg-zinc-950/70 px-3 py-3 font-mono text-white placeholder:text-zinc-600 ${className}`}
         placeholderTextColor="#52525B"
         {...props}
