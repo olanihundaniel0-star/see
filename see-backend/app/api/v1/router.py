@@ -19,3 +19,6 @@ api_router.include_router(reminders_router, prefix="/reminders", tags=["reminder
 api_router.include_router(events_router, prefix="/events", tags=["events"])
 api_router.include_router(quick_add_router, prefix="/quick-add", tags=["quick-add"])
 api_router.include_router(webhooks_router, prefix="/webhooks", tags=["webhooks"])
+
+from app.api.v1.endpoints.notifications import router as notifications_router
+api_router.include_router(notifications_router, prefix="/notifications", tags=["notifications"])

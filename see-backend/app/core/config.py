@@ -50,6 +50,7 @@ class Settings(BaseSettings):
     CORS_ORIGINS: str = "http://localhost:8081,http://localhost:19006,http://127.0.0.1:8081,http://127.0.0.1:19006"
     REDIS_URL: str = "redis://localhost:6379/0"
     SENTRY_DSN: str = ""
+    EXPO_ACCESS_TOKEN: SecretStr | None = None
     VERSION: str = "1.0.0"
 
     @field_validator("DATABASE_URL", mode="before")

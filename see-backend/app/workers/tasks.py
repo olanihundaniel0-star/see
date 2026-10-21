@@ -13,20 +13,29 @@ from app.workers.celery_app import celery_app
 logger = logging.getLogger(__name__)
 
 
-@celery_app.task(name="app.workers.tasks.extract_email")
+def run_worker(coro):
+    # Each Celery process keeps one loop for its process-local asyncpg pool.
+    # Created lazily after Celery forks, never shared with the web process.
+    if not hasattr(run_worker, "runner"):
+        run_worker.runner = asyncio.Runner()
+    return run_worker.runner.run(coro)
+
+
+
+@celery_app.task(name="app.workers.tasks.extract_email", autoretry_for=(Exception,), retry_backoff=True, retry_jitter=True, max_retries=5, acks_late=True)
 def extract_email(payload: dict) -> dict:
     normalized = worker_email.normalize_mailgun_webhook_payload(payload)
-    return asyncio.run(worker_email.persist_email_extraction(normalized))
+    return run_worker(worker_email.persist_email_extraction(normalized))
 
 
 @celery_app.task(name="app.workers.tasks.poll_gmail_inbox")
 def poll_gmail_inbox() -> dict[str, int]:
-    return asyncio.run(poll_gmail_inbox_impl())
+    return run_worker(poll_gmail_inbox_impl())
 
 
 @celery_app.task(name="app.workers.tasks.scrape_events")
 def scrape_events() -> dict[str, int]:
-    return asyncio.run(scrape_events_impl())
+    return run_worker(scrape_events_impl())
 
 
 async def scrape_events_impl() -> dict[str, int]:
@@ -61,6 +70,9 @@ async def scrape_events_impl() -> dict[str, int]:
 
 async def poll_gmail_inbox_impl() -> dict[str, int]:
     """Fetch and persist Gmail messages without requiring Celery or Redis."""
+    if not settings.DEFAULT_USER_ID:
+        logger.error("Gmail ingestion paused: DEFAULT_USER_ID is required")
+        return {"found": 0, "processed": 0, "duplicates": 0, "failed": 1}
     try:
         messages = await asyncio.to_thread(gmail_ingestion.fetch_unread_job_emails)
     except Exception:
@@ -114,3 +126,8 @@ async def poll_gmail_inbox_impl() -> dict[str, int]:
         "duplicates": duplicates,
         "failed": failed,
     }
+
+@celery_app.task(name="app.workers.tasks.dispatch_notifications")
+def dispatch_notifications():
+    from app.services.notifications import dispatch_notifications as dispatch
+    return run_worker(dispatch())

@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import get_current_user_id
 from app.core.database import get_db
+from app.services.notifications import commit_with_notifications
 from app.models.job import JobApplication
 from app.models.note import Note
 from app.models.reminder import Reminder
@@ -54,6 +55,6 @@ async def quick_add(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported quick-add type")
 
     db.add(obj)
-    await db.commit()
+    await commit_with_notifications(db, user_id)
     await db.refresh(obj)
     return {"id": str(obj.id), "type": payload.type}

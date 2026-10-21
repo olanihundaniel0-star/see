@@ -9,6 +9,7 @@ from sqlalchemy.orm import selectinload
 
 from app.core.auth import get_current_user_id
 from app.core.database import get_db
+from app.services.notifications import commit_with_notifications
 from app.models.job import JobApplication, JobChecklist, JobStatus
 from app.schemas.job import (
     JobApplicationCreate,
@@ -84,7 +85,7 @@ async def create_job(
 ) -> JobApplicationRead:
     job = JobApplication(user_id=user_id, **payload.model_dump())
     db.add(job)
-    await db.commit()
+    await commit_with_notifications(db, user_id)
     return await _get_job_or_404(job.id, user_id, db)
 
 
@@ -106,7 +107,7 @@ async def update_job(
     # checklist edits; a future improvement is conditional updates.
     if payload.checklists is not None:
         job.checklists = [JobChecklist(title=item.title, is_completed=item.is_completed) for item in payload.checklists]
-    await db.commit()
+    await commit_with_notifications(db, user_id)
     return await _get_job_or_404(job.id, user_id, db)
 
 
@@ -118,7 +119,7 @@ async def delete_job(
 ) -> None:
     job = await _get_job_or_404(job_id, user_id, db)
     await db.delete(job)
-    await db.commit()
+    await commit_with_notifications(db, user_id)
 
 
 @router.get("/{job_id}/checklists")
@@ -154,7 +155,7 @@ async def update_checklist(
     updates = payload.model_dump(exclude_unset=True)
     for key, value in updates.items():
         setattr(checklist, key, value)
-    await db.commit()
+    await commit_with_notifications(db, user_id)
     await db.refresh(checklist)
     return checklist
 
@@ -168,7 +169,7 @@ async def delete_checklist(
 ) -> None:
     checklist = await _get_checklist_or_404(job_id, checklist_id, user_id, db)
     await db.delete(checklist)
-    await db.commit()
+    await commit_with_notifications(db, user_id)
 
 
 @router.post("/{job_id}/checklists", status_code=status.HTTP_201_CREATED)
@@ -181,6 +182,6 @@ async def add_checklist(
     await _get_job_or_404(job_id, user_id, db)
     checklist = JobChecklist(job_id=job_id, title=payload.title, is_completed=payload.is_completed)
     db.add(checklist)
-    await db.commit()
+    await commit_with_notifications(db, user_id)
     await db.refresh(checklist)
     return checklist

@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import get_current_user_id
 from app.core.database import get_db
+from app.services.notifications import commit_with_notifications
 from app.models.reminder import Reminder
 from app.schemas.reminder import ReminderCreate, ReminderRead, ReminderUpdate
 
@@ -58,7 +59,7 @@ async def create_reminder(
 ) -> ReminderRead:
     reminder = Reminder(user_id=user_id, **payload.model_dump())
     db.add(reminder)
-    await db.commit()
+    await commit_with_notifications(db, user_id)
     await db.refresh(reminder)
     return reminder
 
@@ -74,7 +75,7 @@ async def update_reminder(
     updates = payload.model_dump(exclude_unset=True)
     for key, value in updates.items():
         setattr(reminder, key, value)
-    await db.commit()
+    await commit_with_notifications(db, user_id)
     await db.refresh(reminder)
     return reminder
 
@@ -87,4 +88,4 @@ async def delete_reminder(
 ) -> None:
     reminder = await _get_reminder_or_404(reminder_id, user_id, db)
     await db.delete(reminder)
-    await db.commit()
+    await commit_with_notifications(db, user_id)
