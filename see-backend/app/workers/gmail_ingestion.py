@@ -107,6 +107,8 @@ def fetch_unread_job_emails() -> list[dict[str, Any]]:
             parsed_emails.append(
                 {
                     "uid": uid,
+                    "message_id": clean_header(msg.get("Message-ID")) or None,
+                    "sender_verified": any("mx.google.com" in h and "dmarc=pass" in h for h in msg.get_all("Authentication-Results", [])),
                     "sender": sender,
                     "recipient": clean_header(msg.get("To")) or None,
                     "subject": subject,

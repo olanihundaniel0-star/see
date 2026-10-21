@@ -87,6 +87,10 @@ def before_send_sentry(event: dict, hint: dict) -> Optional[dict]:
         "auth",
         "access_token",
         "refresh_token",
+        "x-internal-token",
+        "x-token",
+        "x-signature",
+        "expo_access_token",
     }
 
     def redact_dict(data: dict) -> dict:

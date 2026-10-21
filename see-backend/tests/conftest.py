@@ -149,6 +149,9 @@ class FakeResult:
     def __init__(self, items: list[Any]):
         self._items = items
 
+    def all(self):
+        return list(self._items)
+
     def scalars(self) -> FakeScalarResult:
         return FakeScalarResult(self._items)
 
@@ -245,7 +248,7 @@ class InMemoryAsyncSession:
     async def refresh(self, obj: Any) -> None:
         return None
 
-    async def execute(self, statement: Any) -> FakeResult:
+    async def execute(self, statement: Any, params=None) -> FakeResult:
         model = _statement_model(statement)
         items = list(self.store.get(model, [])) if model is not None else []
 
@@ -269,7 +272,14 @@ class InMemoryAsyncSession:
 
 
 @pytest.fixture
-def fake_db() -> InMemoryAsyncSession:
+def fake_db(monkeypatch) -> InMemoryAsyncSession:
+    # Domain unit tests isolate scheduling. PostgreSQL/ASGI tests exercise the real transaction.
+    from app.api.v1.endpoints import jobs, reminders, quick_add
+    from app.workers import email
+    async def commit(db, user_id): await db.commit()
+    async def reconcile(db, user_id): pass
+    for module in (jobs, reminders, quick_add): monkeypatch.setattr(module, "commit_with_notifications", commit)
+    monkeypatch.setattr(email, "reconcile_user", reconcile)
     return InMemoryAsyncSession()
 
 

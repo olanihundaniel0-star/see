@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import html
+import json
 import logging
 import re
 from datetime import datetime, timedelta, timezone
@@ -11,7 +12,10 @@ from uuid import UUID
 
 from google import genai
 from google.genai import types
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text
+from sqlalchemy.orm import noload
+from pydantic import ValidationError
+from app.services.notifications import reconcile_user, notify_job_status
 
 from app.core.config import settings
 from app.core.database import AsyncSessionLocal
@@ -93,8 +97,11 @@ def normalize_mailgun_webhook_payload(payload: dict[str, Any]) -> NormalizedEmai
     body_plain = _clean_text(payload.get("body-plain") or payload.get("body_plain")) or None
     stripped_text = _clean_text(payload.get("stripped-text") or payload.get("stripped_text") or body_plain or "")
     raw_email = f"<raw_email>{html.escape(stripped_text)}</raw_email>"
-    raw_email_hash = hashlib.sha256(stripped_text.encode("utf-8")).hexdigest()
+    message_id = _clean_text(payload.get("message_id") or payload.get("Message-Id") or payload.get("message-id")) or None
+    identity = [recipient, message_id] if message_id else [sender, recipient, subject, stripped_text]
+    raw_email_hash = hashlib.sha256(json.dumps(identity, ensure_ascii=False).encode("utf-8")).hexdigest()
     return NormalizedEmailIngestPayload(
+        message_id=message_id, sender_verified=payload.get("sender_verified") is True,
         sender=sender,
         recipient=recipient,
         subject=subject,
@@ -108,6 +115,8 @@ def normalize_mailgun_webhook_payload(payload: dict[str, Any]) -> NormalizedEmai
 def build_email_extraction_payload(payload: dict[str, Any]) -> dict[str, Any]:
     normalized = normalize_mailgun_webhook_payload(payload)
     return {
+        "message_id": normalized.message_id,
+        "sender_verified": normalized.sender_verified,
         "sender": normalized.sender,
         "recipient": normalized.recipient,
         "subject": normalized.subject,
@@ -432,44 +441,38 @@ def infer_email_extraction(
     )
 
 
-async def _find_job_by_company(session, user_id, company: str | None) -> JobApplication | None:
-    if not company:
+async def _find_job_by_company(session, user_id, company: str | None, role: str | None = None) -> JobApplication | None:
+    if not company or not role or role == "Unspecified Role":
         return None
-    result = await session.execute(
-        select(JobApplication).where(
-            JobApplication.user_id == user_id,
-            func.lower(JobApplication.company) == company.lower(),
-        )
-    )
-    return result.scalars().first()
+    result = await session.execute(select(JobApplication).options(noload(JobApplication.checklists)).where(
+        JobApplication.user_id == user_id,
+        func.lower(JobApplication.company) == company.lower(),
+        func.lower(JobApplication.role) == role.lower(),
+    ).limit(2))
+    matches = result.scalars().all()
+    return matches[0] if len(matches) == 1 else None
 
 
 async def persist_email_extraction(
     normalized: NormalizedEmailIngestPayload,
 ) -> dict[str, Any]:
+    user_id = _parse_default_user_id(settings.DEFAULT_USER_ID)
+    if user_id is None:
+        raise ValueError("Email ingestion paused: DEFAULT_USER_ID is required")
+    preview = infer_email_extraction(normalized)
+    # Release the read transaction before waiting for an external AI service.
     async with AsyncSessionLocal() as session:
-        existing = await session.execute(
-            select(EmailIngestion).where(EmailIngestion.raw_email_hash == normalized.raw_email_hash)
-        )
+        existing_job = await _find_job_by_company(session, user_id, preview.entities.company, preview.entities.role)
+    extraction = await asyncio.to_thread(_generate_email_extraction_with_gemini, normalized, existing_job)
+    if extraction is None:
+        extraction = infer_email_extraction(normalized, existing_job=existing_job)
+
+    async with AsyncSessionLocal() as session:
+        await session.execute(text("SELECT pg_advisory_xact_lock(hashtext(:key))"), {"key": str(user_id)})
+        existing = await session.execute(select(EmailIngestion).where(EmailIngestion.raw_email_hash == normalized.raw_email_hash))
         record = existing.scalar_one_or_none()
         if record is not None:
-            return {
-                "duplicate": True,
-                "email_ingestion_id": str(record.id),
-                "raw_email_hash": record.raw_email_hash,
-                "message_type": record.message_type,
-            }
-
-        preview = infer_email_extraction(normalized)
-        company = preview.entities.company or _company_from_sender(normalized.sender) or "Unknown Company"
-        user_id = _parse_default_user_id(settings.DEFAULT_USER_ID)
-        existing_job = await _find_job_by_company(session, user_id, company) if user_id else None
-        extraction = await asyncio.to_thread(
-            _generate_email_extraction_with_gemini, normalized, existing_job
-        )
-        if extraction is None:
-            extraction = infer_email_extraction(normalized, existing_job=existing_job)
-
+            return {"duplicate": True, "email_ingestion_id": str(record.id), "raw_email_hash": record.raw_email_hash, "message_type": record.message_type}
         record = EmailIngestion(
             raw_email_hash=normalized.raw_email_hash,
             source="gmail",
@@ -492,36 +495,25 @@ async def persist_email_extraction(
         role = extraction.entities.role or "Unspecified Role"
         deadline = _coerce_utc_datetime(extraction.entities.deadline)
 
-        if user_id is None:
-            record.extraction_result = extraction.model_dump(mode="json")
-            await session.commit()
-            await session.refresh(record)
-            return {
-                "duplicate": False,
-                "email_ingestion_id": str(record.id),
-                "raw_email_hash": record.raw_email_hash,
-                "message_type": record.message_type,
-                "summary": record.summary,
-                "linked_job_id": None,
-                "linked_reminder_id": None,
-                "linked_note_id": None,
-            }
-
         for recommendation in extraction.recommended_actions:
             # LLM-produced payloads are free-form; a single malformed
             # recommendation must never crash the whole extraction.
             try:
                 if recommendation.action in {EmailActionType.CREATE_JOB, EmailActionType.UPDATE_JOB}:
-                    existing_job = await _find_job_by_company(session, user_id, company)
+                    existing_job = await _find_job_by_company(session, user_id, company, role)
+                    validated = JobApplicationCreate.model_validate({
+                        "company": company, "role": role,
+                        "status": _safe_enum_value(JobStatus, recommendation.payload.get("status"), JobStatus.APPLIED),
+                        "interview_notes": recommendation.payload.get("interview_notes"), "deadline": deadline,
+                    })
+                    candidates = (await session.execute(select(JobApplication.id).where(JobApplication.user_id == user_id,
+                        func.lower(JobApplication.company) == company.lower(), func.lower(JobApplication.role) == role.lower()))).all()
+                    if len(candidates) > 1 or role == "Unspecified Role" or company == "Unknown Company":
+                        created_note = Note(user_id=user_id, **NoteCreate(title="Review ambiguous career email", content=extraction.summary, tags="email,review").model_dump())
+                        session.add(created_note)
+                        continue
                     if existing_job is None:
-                        existing_job = JobApplication(
-                            user_id=user_id,
-                            company=company,
-                            role=role,
-                            status=_safe_enum_value(JobStatus, recommendation.payload.get("status"), JobStatus.APPLIED),
-                            interview_notes=recommendation.payload.get("interview_notes"),
-                            deadline=deadline,
-                        )
+                        existing_job = JobApplication(user_id=user_id, **validated.model_dump())
                         session.add(existing_job)
                         created_job = existing_job
                     else:
@@ -529,10 +521,13 @@ async def persist_email_extraction(
                         if role and (not existing_job.role or existing_job.role == "Unspecified Role"):
                             existing_job.role = role
                         status_value = recommendation.payload.get("status")
-                        if status_value:
-                            existing_job.status = _safe_enum_value(JobStatus, status_value, existing_job.status)
+                        if status_value and recommendation.confidence >= 0.8:
+                            next_status = _safe_enum_value(JobStatus, status_value, existing_job.status)
+                            if next_status != existing_job.status and normalized.sender_verified:
+                                existing_job.status = next_status
+                                await notify_job_status(session, user_id, existing_job.id, next_status.value, normalized.raw_email_hash)
                         if recommendation.payload.get("interview_notes"):
-                            existing_job.interview_notes = recommendation.payload["interview_notes"]
+                            existing_job.interview_notes = "\n\n".join(filter(None, [existing_job.interview_notes, validated.interview_notes]))[-20000:]
                         if deadline is not None:
                             existing_job.deadline = deadline
                         created_job = existing_job
@@ -540,26 +535,19 @@ async def persist_email_extraction(
                     reminder_due = deadline or _coerce_utc_datetime(recommendation.payload.get("due_date"))
                     if reminder_due is None:
                         reminder_due = datetime.now(timezone.utc) + timedelta(days=1)
-                    created_reminder = Reminder(
-                        user_id=user_id,
-                        title=recommendation.payload.get("title", extraction.summary),
-                        due_date=reminder_due,
-                        priority=_safe_enum_value(
-                            ReminderPriority,
-                            recommendation.payload.get("priority"),
-                            ReminderPriority.MEDIUM,
-                        ),
-                    )
+                    reminder_data = ReminderCreate.model_validate({
+                        "title": recommendation.payload.get("title", extraction.summary), "due_date": reminder_due,
+                        "priority": _safe_enum_value(ReminderPriority, recommendation.payload.get("priority"), ReminderPriority.MEDIUM)})
+                    created_reminder = Reminder(user_id=user_id, **reminder_data.model_dump())
                     session.add(created_reminder)
                 elif recommendation.action == EmailActionType.CREATE_NOTE:
-                    created_note = Note(
-                        user_id=user_id,
-                        title=recommendation.payload.get("title", extraction.summary),
-                        content=recommendation.payload.get("content", normalized.body_plain or normalized.stripped_text),
-                        tags=recommendation.payload.get("tags"),
-                    )
+                    note_data = NoteCreate.model_validate({
+                        "title": recommendation.payload.get("title", extraction.summary),
+                        "content": recommendation.payload.get("content", normalized.body_plain or normalized.stripped_text),
+                        "tags": recommendation.payload.get("tags")})
+                    created_note = Note(user_id=user_id, **note_data.model_dump())
                     session.add(created_note)
-            except (KeyError, TypeError, ValueError) as exc:
+            except (KeyError, TypeError, ValueError, ValidationError) as exc:
                 logger.warning("Skipping malformed email recommendation (%s): %s", recommendation.action, exc)
                 continue
 
@@ -568,6 +556,7 @@ async def persist_email_extraction(
         record.linked_job_id = getattr(created_job, "id", None)
         record.linked_reminder_id = getattr(created_reminder, "id", None)
         record.linked_note_id = getattr(created_note, "id", None)
+        await reconcile_user(session, user_id)
         await session.commit()
         await session.refresh(record)
         return {

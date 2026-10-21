@@ -132,6 +132,7 @@ def test_internal_scrape_events_returns_observable_result(monkeypatch):
 
 
 def test_webhook_verifies_and_queues_email(monkeypatch, fake_db):
+    monkeypatch.setattr(settings, "DEFAULT_USER_ID", str(USER_ID))
     secret = "supersecret"
     timestamp = str(int(datetime.now(timezone.utc).timestamp()))
     token = "abc123"
@@ -182,7 +183,7 @@ def test_webhook_verifies_and_queues_email(monkeypatch, fake_db):
     assert queued and queued[0]["sender"] == "alice@example.com"
 
 
-def test_extract_email_persists_ingestion_record(fake_db, monkeypatch):
+def test_extract_email_without_owner_does_not_consume_message(fake_db, monkeypatch):
     monkeypatch.setattr(settings, "DEFAULT_USER_ID", "")
 
     class FakeAsyncSessionFactory:
@@ -197,20 +198,9 @@ def test_extract_email_persists_ingestion_record(fake_db, monkeypatch):
 
     monkeypatch.setattr(worker_email, "AsyncSessionLocal", lambda: FakeAsyncSessionFactory(fake_db))
 
-    result = worker_tasks.extract_email(
-        {
-            "sender": "Acme Recruiting <jobs@acme.example>",
-            "recipient": "see@example.com",
-            "subject": "Interview for Backend Engineer",
-            "body_plain": "We would like to schedule an interview for 2026-09-10T12:00:00Z.",
-            "stripped_text": "We would like to schedule an interview for 2026-09-10T12:00:00Z.",
-            "raw_email_hash": "",
-        }
-    )
-
-    assert result["duplicate"] is False
-    assert result["message_type"] == "interview"
-    assert fake_db.store
+    with pytest.raises(ValueError, match="DEFAULT_USER_ID"):
+        worker_tasks.extract_email({"sender": "jobs@example.com", "subject": "Interview", "body_plain": "Interview invitation"})
+    assert not fake_db.store
 
 
 def test_gemini_extractor_uses_structured_output(monkeypatch):

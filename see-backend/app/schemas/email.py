@@ -71,6 +71,8 @@ class EmailExtractionResult(BaseModel):
 
 
 class NormalizedEmailIngestPayload(BaseModel):
+    message_id: str | None = None
+    sender_verified: bool = False
     sender: str | None = None
     recipient: str | None = None
     subject: str | None = None

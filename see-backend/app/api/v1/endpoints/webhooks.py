@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import hmac
 import json
@@ -8,6 +9,8 @@ from dataclasses import dataclass
 from urllib.parse import parse_qsl
 
 from fastapi import APIRouter, Header, HTTPException, Request, Response, status
+
+import redis.asyncio as redis_async
 
 from app.core.config import settings
 from app.workers.email import build_email_extraction_payload
@@ -51,10 +54,37 @@ def _verify_signature(timestamp: str | None, token: str | None, signature: str |
     return hmac.compare_digest(digest, signature)
 
 
+async def _worker_available() -> bool:
+    """Reject webhook work that would sit in Redis without a consumer."""
+    if settings.APP_ENV.lower() not in {"production", "staging"}:
+        return True
+    client = redis_async.from_url(
+        settings.REDIS_URL,
+        decode_responses=True,
+        socket_timeout=1.5,
+        socket_connect_timeout=1.5,
+    )
+    try:
+        return bool(await client.get("see:worker:alive"))
+    except Exception:
+        logger.warning("Unable to verify the email worker heartbeat")
+        return False
+    finally:
+        await client.aclose()
+
+
 async def _parse_payload(request: Request) -> dict[str, object]:
     raw_body = await request.body()
+    if len(raw_body) > 2_000_000:
+        raise HTTPException(status_code=413, detail="Email payload too large")
     content_type = (request.headers.get("content-type") or "").lower()
 
+    if "multipart/form-data" in content_type:
+        from email.parser import BytesParser
+        from email.policy import default
+        message = BytesParser(policy=default).parsebytes(b"Content-Type: " + request.headers["content-type"].encode() + b"\r\n\r\n" + raw_body)
+        return {part.get_param("name", header="content-disposition"): part.get_payload(decode=True).decode("utf-8", errors="replace")
+                for part in message.iter_parts() if part.get_content_disposition() == "form-data" and not part.get_filename()}
     if "application/x-www-form-urlencoded" in content_type:
         return {key: value for key, value in parse_qsl(raw_body.decode("utf-8"), keep_blank_values=True)}
 
@@ -76,13 +106,19 @@ async def ingest_email(
     x_token: str | None = Header(default=None, alias="X-Token"),
     x_signature: str | None = Header(default=None, alias="X-Signature"),
 ) -> WebhookIngestResponse:
-    if not _verify_signature(x_timestamp, x_token, x_signature):
+    payload = await _parse_payload(request)
+    if not _verify_signature(x_timestamp or payload.get("timestamp"), x_token or payload.get("token"), x_signature or payload.get("signature")):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid webhook signature")
 
-    payload = await _parse_payload(request)
+    if not settings.DEFAULT_USER_ID:
+        raise HTTPException(status_code=503, detail="Email ingestion owner is not configured")
+    if not await _worker_available():
+        raise HTTPException(status_code=503, detail="Email worker is not running")
+    # A signed webhook authenticates transport, not an arbitrary sender-verified flag.
+    payload["sender_verified"] = False
 
     try:
-        extract_email.delay(build_email_extraction_payload(payload))
+        await asyncio.to_thread(extract_email.delay, build_email_extraction_payload(payload))
     except Exception:
         logger.exception("Failed to queue email extraction task")
         if response is not None:

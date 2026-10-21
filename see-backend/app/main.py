@@ -42,6 +42,7 @@ app.include_router(internal_router)
 async def _dependency_status() -> dict[str, str]:
     database_status = "ok"
     redis_status = "ok"
+    worker_status = "unavailable"
 
     try:
         async with AsyncSessionLocal() as session:
@@ -51,15 +52,16 @@ async def _dependency_status() -> dict[str, str]:
         database_status = "unavailable"
 
     try:
-        redis_client = redis_async.from_url(settings.REDIS_URL, decode_responses=True)
+        redis_client = redis_async.from_url(settings.REDIS_URL, decode_responses=True, socket_timeout=2, socket_connect_timeout=2)
         await redis_client.ping()
+        worker_status = "ok" if await redis_client.get("see:worker:alive") else "unavailable"
         await redis_client.aclose()
     except Exception:
         logger.warning("Health check: redis backend unavailable")
         redis_status = "unavailable"
 
-    overall_status = "ok" if database_status == "ok" and redis_status == "ok" else "degraded"
-    return {"status": overall_status, "database": database_status, "redis": redis_status}
+    overall_status = "ok" if database_status == "ok" and redis_status == "ok" and worker_status == "ok" else "degraded"
+    return {"status": overall_status, "database": database_status, "redis": redis_status, "worker": worker_status}
 
 
 @app.get("/health")

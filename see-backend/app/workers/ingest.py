@@ -763,7 +763,7 @@ async def scrape_luma_events() -> int:
     records: list[dict[str, Any]] = []
     page_urls = _split_env_list(settings.LUMA_PAGE_URLS)
     if not page_urls:
-        page_urls = _luma_sitemap_urls(settings.LUMA_SITEMAP_LIMIT)
+        page_urls = await asyncio.to_thread(_luma_sitemap_urls, settings.LUMA_SITEMAP_LIMIT)
     if not page_urls:
         return 0
 

@@ -3,6 +3,8 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import UUID
 
+from app.schemas.patch import RequiredPatch
+
 from pydantic import BaseModel, Field
 
 
@@ -12,7 +14,8 @@ class NoteCreate(BaseModel):
     tags: str | None = Field(default=None, max_length=255)
 
 
-class NoteUpdate(BaseModel):
+class NoteUpdate(RequiredPatch):
+    required_fields = set('title content'.split())
     title: str | None = Field(default=None, max_length=255)
     content: str | None = Field(default=None, max_length=20000)
     tags: str | None = Field(default=None, max_length=255)

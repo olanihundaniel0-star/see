@@ -4,6 +4,8 @@ from datetime import datetime
 from enum import Enum
 from uuid import UUID
 
+from app.schemas.patch import RequiredPatch
+
 from pydantic import BaseModel, Field
 
 
@@ -19,7 +21,8 @@ class ReminderCreate(BaseModel):
     priority: ReminderPriority = ReminderPriority.MEDIUM
 
 
-class ReminderUpdate(BaseModel):
+class ReminderUpdate(RequiredPatch):
+    required_fields = set('title due_date priority is_completed'.split())
     title: str | None = Field(default=None, max_length=255)
     due_date: datetime | None = None
     priority: ReminderPriority | None = None

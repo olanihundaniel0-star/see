@@ -117,6 +117,7 @@ def test_webhook_ingest_rejects_stale_timestamp(client, monkeypatch):
 
 
 def test_webhook_ingest_verifies_and_queues(client, monkeypatch):
+    monkeypatch.setattr(settings, "DEFAULT_USER_ID", "11111111-1111-1111-1111-111111111111")
     secret = "integration-secret"
     timestamp = str(int(time.time()))
     token = "abc123"

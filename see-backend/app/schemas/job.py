@@ -4,6 +4,8 @@ from datetime import datetime
 from enum import Enum
 from uuid import UUID
 
+from app.schemas.patch import RequiredPatch
+
 from pydantic import BaseModel, Field, field_validator
 
 from app.core.security import validate_url
@@ -32,7 +34,8 @@ class JobChecklistCreate(BaseModel):
     is_completed: bool = False
 
 
-class JobChecklistUpdate(BaseModel):
+class JobChecklistUpdate(RequiredPatch):
+    required_fields = set('title is_completed'.split())
     title: str | None = Field(default=None, max_length=255)
     is_completed: bool | None = None
 
@@ -46,6 +49,9 @@ class JobApplicationBase(BaseModel):
     status: JobStatus = JobStatus.APPLIED
     interview_notes: str | None = Field(default=None, max_length=20000)
     deadline: datetime | None = None
+    interview_at: datetime | None = None
+    assessment_at: datetime | None = None
+    follow_up_at: datetime | None = None
 
     @field_validator("job_url")
     @classmethod
@@ -59,7 +65,8 @@ class JobApplicationCreate(JobApplicationBase):
     pass
 
 
-class JobApplicationUpdate(BaseModel):
+class JobApplicationUpdate(RequiredPatch):
+    required_fields = set('company role status'.split())
     company: str | None = Field(default=None, max_length=150)
     role: str | None = Field(default=None, max_length=150)
     location: str | None = Field(default=None, max_length=150)
@@ -68,6 +75,9 @@ class JobApplicationUpdate(BaseModel):
     status: JobStatus | None = None
     interview_notes: str | None = Field(default=None, max_length=20000)
     deadline: datetime | None = None
+    interview_at: datetime | None = None
+    assessment_at: datetime | None = None
+    follow_up_at: datetime | None = None
     checklists: list[JobChecklistCreate] | None = None
 
     @field_validator("job_url")
