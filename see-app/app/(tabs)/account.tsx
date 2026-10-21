@@ -7,6 +7,8 @@ import { GlassCard } from "@/components/glass/GlassCard";
 import { GlassPill } from "@/components/glass/GlassPill";
 import { AsciiBanner } from "@/components/ui/AsciiBanner";
 import { formatShortDateTime } from "@/lib/format";
+import { NotificationSettings } from "@/components/NotificationSettings";
+import { unregisterNotifications } from "@/lib/notifications";
 import { supabase } from "@/lib/supabase";
 
 function describeProvider(session: Session | null) {
@@ -47,12 +49,24 @@ export default function AccountScreen() {
       return;
     }
 
+    let alertsRevoked = true;
     try {
       await Haptics.selectionAsync();
       setSigningOut(true);
+      if (session?.user.id) {
+        try {
+          await unregisterNotifications(session.user.id);
+        } catch {
+          // Never trap the user in an account because token revocation is offline.
+          alertsRevoked = false;
+        }
+      }
       const { error } = await supabase.auth.signOut();
       if (error) {
         throw error;
+      }
+      if (!alertsRevoked) {
+        Alert.alert("Signed out", "This device could not reach SEE to revoke alerts. Alerts may continue until this device signs in again or the push token expires.");
       }
     } catch (error) {
       Alert.alert("Sign out failed", error instanceof Error ? error.message : "Unable to clear the session.");
@@ -104,6 +118,7 @@ export default function AccountScreen() {
           </Pressable>
         </GlassCard>
 
+        <NotificationSettings />
         <GlassCard className="gap-3">
           <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">{"// SESSION_NOTES"}</Text>
           <Text className="font-mono text-[11px] leading-5 text-[#c5c6ca]">

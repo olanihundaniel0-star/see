@@ -1,13 +1,19 @@
-import { useMemo, useState } from "react";
-import { Alert, Linking, Pressable, ScrollView, Text, View } from "react-native";
+import { useContext, useMemo, useState } from "react";
+import { Alert, Linking, Platform, Pressable, ScrollView, Text, View } from "react-native";
 import * as Calendar from "expo-calendar";
 import * as Haptics from "expo-haptics";
 
+import { useQuery } from "@tanstack/react-query";
+import { AccountContext } from "@/lib/session";
+import { api } from "@/lib/api";
 import { GlassCard } from "@/components/glass/GlassCard";
+import { GlassInput } from "@/components/glass/GlassInput";
 import { LoadMoreButton } from "@/components/ui/LoadMoreButton";
 import { ScreenState } from "@/components/ui/ScreenState";
+import { DATETIME_INPUT_PLACEHOLDER, parseDateTimeInput, toDateTimeInput } from "@/lib/datetime";
 import { formatCountdown, formatRelativePast, formatShortDate } from "@/lib/format";
 import { useInfiniteEvents } from "@/lib/queries";
+import { syncLocalNotifications } from "@/lib/notifications";
 
 const filters = [
   { label: "ALL", value: undefined },
@@ -40,6 +46,17 @@ async function openExternalUrl(url: string, failureTitle: string) {
 }
 
 export default function EventsScreen() {
+  const userId = useContext(AccountContext);
+  const saved = useQuery({ queryKey: [userId, "saved-events"], queryFn: async ({ signal }) => (await api.get<{ event_id: string; registration_deadline: string | null }[]>("/notifications/saved-events", { signal })).data });
+  const [deadlineDrafts, setDeadlineDrafts] = useState<Record<string, string>>({});
+  const toggleSaved = async (id: string) => {
+    try {
+      if (saved.data?.some(e => e.event_id === id)) await api.delete(`/notifications/saved-events/${id}`);
+      else await api.put(`/notifications/saved-events/${id}`, {});
+      await saved.refetch();
+      if (userId) await syncLocalNotifications(userId);
+    } catch (error) { Alert.alert("Event reminder failed", error instanceof Error ? error.message : "Try again."); }
+  };
   const [activeFilter, setActiveFilter] = useState<(typeof filters)[number]["value"]>(undefined);
   const { data, isLoading, error, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteEvents(activeFilter);
   const events = useMemo(() => data?.pages.flatMap((page) => page.items) ?? [], [data]);
@@ -54,28 +71,30 @@ export default function EventsScreen() {
   );
 
   const syncCalendar = async (title: string, startDate: string, endDate?: string | null, url?: string, location?: string | null) => {
-    const perm = await Calendar.requestCalendarPermissionsAsync();
+    try {
+    if (Platform.OS === "web") throw new Error("Calendar sync requires the mobile app.");
+    const perm = await Calendar.requestCalendarPermissions();
     if (!perm.granted) {
       Alert.alert("Calendar permission required", "Grant access to sync events.");
       return;
     }
 
-    try {
-      const calendar = await Calendar.getDefaultCalendarAsync();
+      const calendars = await Calendar.getCalendars(Calendar.EntityTypes.EVENT);
+      const calendar = calendars.find(c => c.allowsModifications);
+      if (!calendar) throw new Error("Add a writable calendar account on this device first.");
       const start = new Date(startDate);
       const end = endDate ? new Date(endDate) : new Date(start.getTime() + 60 * 60 * 1000);
-      const eventId = await Calendar.createEventAsync(calendar.id, {
+      const eventId = await calendar.createEvent({
         title,
         startDate: start,
         endDate: end,
-        timeZone: "Africa/Lagos",
+        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         location: location ?? undefined,
         notes: url ? `Source: ${url}` : undefined,
         allDay: false,
-        availability: Calendar.Availability.BUSY,
-        status: Calendar.EventStatus.CONFIRMED
+        availability: Calendar.Availability.BUSY
       });
-      Alert.alert("Calendar synced", `Saved ${title} to your calendar. Event id: ${eventId}`);
+      Alert.alert("Calendar synced", `Saved ${title} to your calendar. Event id: ${eventId.id}`);
     } catch (error) {
       Alert.alert("Calendar sync failed", error instanceof Error ? error.message : "Unable to create a calendar event.");
     }
@@ -231,7 +250,67 @@ export default function EventsScreen() {
                   >
                     <Text className="text-center font-mono-bold text-[10px] tracking-[0.08em] text-white">[+ SYNC CALENDAR]</Text>
                   </Pressable>
+                  <Pressable onPress={() => void toggleSaved(event.id)} className="rounded border border-white/20 p-3">
+                    <Text className="font-mono text-white">{saved.data?.some(e => e.event_id === event.id) ? "[ UNSAVE REMINDER ]" : "[ SAVE EVENT REMINDER ]"}</Text>
+                  </Pressable>
                 </View>
+
+                {saved.data?.some((entry) => entry.event_id === event.id) ? (
+                  <View className="gap-2 rounded border border-white/[0.08] bg-[rgba(9,9,11,0.70)] px-3 py-3">
+                    <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">
+                      REGISTRATION DEADLINE · LOCAL TIME
+                    </Text>
+                    <GlassInput
+                      placeholder={DATETIME_INPUT_PLACEHOLDER}
+                      autoCapitalize="none"
+                      value={
+                        deadlineDrafts[event.id] ??
+                        toDateTimeInput(saved.data.find((entry) => entry.event_id === event.id)?.registration_deadline)
+                      }
+                      onChangeText={(value) =>
+                        setDeadlineDrafts((current) => ({ ...current, [event.id]: value }))
+                      }
+                    />
+                    <Pressable
+                      onPress={async () => {
+                        await Haptics.selectionAsync();
+                        let registrationDeadline: string | null;
+                        try {
+                          registrationDeadline = parseDateTimeInput(
+                            deadlineDrafts[event.id] ??
+                              toDateTimeInput(saved.data?.find((entry) => entry.event_id === event.id)?.registration_deadline)
+                          );
+                        } catch (error) {
+                          Alert.alert(
+                            "Invalid deadline",
+                            error instanceof Error
+                              ? `${error.message}\nUse ${DATETIME_INPUT_PLACEHOLDER}.`
+                              : `Use ${DATETIME_INPUT_PLACEHOLDER}.`
+                          );
+                          return;
+                        }
+                        try {
+                          await api.put(`/notifications/saved-events/${event.id}`, {
+                            registration_deadline: registrationDeadline
+                          });
+                          setDeadlineDrafts((current) => {
+                            const next = { ...current };
+                            delete next[event.id];
+                            return next;
+                          });
+                          await saved.refetch();
+                          if (userId) await syncLocalNotifications(userId);
+                          Alert.alert("Reminder saved", "Registration deadline alerts are scheduled.");
+                        } catch (error) {
+                          Alert.alert("Save failed", error instanceof Error ? error.message : "Please retry.");
+                        }
+                      }}
+                      className="self-start rounded bg-[#353535] px-3 py-2 active:scale-[0.98]"
+                    >
+                      <Text className="font-mono text-[10px] tracking-[0.08em] text-white">[SAVE DEADLINE]</Text>
+                    </Pressable>
+                  </View>
+                ) : null}
 
                 <View className="flex-row items-center justify-between">
                   <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">

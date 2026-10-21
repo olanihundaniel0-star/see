@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Linking, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { Stack, router, useLocalSearchParams } from "expo-router";
 import * as Haptics from "expo-haptics";
@@ -8,13 +8,13 @@ import { GlassInput } from "@/components/glass/GlassInput";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { AsciiBanner } from "@/components/ui/AsciiBanner";
 import { theme } from "@/constants/theme";
+import { DATETIME_INPUT_PLACEHOLDER, parseDateTimeInput, toDateTimeInput } from "@/lib/datetime";
 import { formatProgress, formatShortDateTime } from "@/lib/format";
 import {
   JobStatus,
   useCreateChecklist,
   useDeleteJob,
   useJob,
-  useJobChecklists,
   useToggleChecklist,
   useUpdateJob
 } from "@/lib/queries";
@@ -39,7 +39,6 @@ function stageIndex(status: JobStatus) {
 }
 
 const OPENABLE_URL_RE = /^https?:\/\//i;
-
 function isOpenableUrl(value: unknown): value is string {
   return typeof value === "string" && OPENABLE_URL_RE.test(value.trim());
 }
@@ -66,19 +65,28 @@ export default function JobDossierScreen() {
   const params = useLocalSearchParams<{ id: string }>();
   const jobId = typeof params.id === "string" ? params.id : Array.isArray(params.id) ? params.id[0] : undefined;
   const { data: job, isLoading, error } = useJob(jobId);
-  const { data: checklistItems } = useJobChecklists(jobId);
   const updateJob = useUpdateJob();
   const toggleChecklist = useToggleChecklist(jobId);
   const createChecklist = useCreateChecklist(jobId);
   const deleteJob = useDeleteJob();
   const [newChecklist, setNewChecklist] = useState("");
   const [scratchpad, setScratchpad] = useState("");
+  const [interviewAt, setInterviewAt] = useState("");
+  const [assessmentAt, setAssessmentAt] = useState("");
+  const [followUpAt, setFollowUpAt] = useState("");
 
+  const initialized = useRef<string | null>(null);
   useEffect(() => {
-    setScratchpad(job?.interview_notes ?? "");
-  }, [job?.interview_notes]);
+    if (job && initialized.current !== job.id) {
+      initialized.current = job.id;
+      setScratchpad(job.interview_notes ?? "");
+      setInterviewAt(toDateTimeInput(job.interview_at));
+      setAssessmentAt(toDateTimeInput(job.assessment_at));
+      setFollowUpAt(toDateTimeInput(job.follow_up_at));
+    }
+  }, [job]);
 
-  const items = checklistItems ?? job?.checklists ?? [];
+  const items = job?.checklists ?? [];
   const completed = items.filter((item) => item.is_completed).length;
   const progress = formatProgress(completed, items.length);
   const activeStage = job && !isTerminal(job.status) ? stageIndex(job.status) : -1;
@@ -226,6 +234,69 @@ export default function JobDossierScreen() {
 
               <GlassCard className="gap-3">
                 <View className="flex-row items-center justify-between">
+                  <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">{"// MILESTONE_SCHEDULE"}</Text>
+                  <Text className="rounded bg-[#353535] px-2 py-0.5 font-mono text-[10px] tracking-[0.08em] text-white">
+                    [LOCAL TIME]
+                  </Text>
+                </View>
+                <Text className="font-mono text-[10px] leading-4 text-[#8f9194]">
+                  Future milestones schedule push and local alerts. Leave a field blank to clear it.
+                </Text>
+                <GlassInput
+                  placeholder={`Interview · ${DATETIME_INPUT_PLACEHOLDER}`}
+                  value={interviewAt}
+                  onChangeText={setInterviewAt}
+                  autoCapitalize="none"
+                />
+                <GlassInput
+                  placeholder={`Assessment · ${DATETIME_INPUT_PLACEHOLDER}`}
+                  value={assessmentAt}
+                  onChangeText={setAssessmentAt}
+                  autoCapitalize="none"
+                />
+                <GlassInput
+                  placeholder={`Follow-up · ${DATETIME_INPUT_PLACEHOLDER}`}
+                  value={followUpAt}
+                  onChangeText={setFollowUpAt}
+                  autoCapitalize="none"
+                />
+                <Pressable
+                  disabled={updateJob.isPending}
+                  onPress={async () => {
+                    await Haptics.selectionAsync();
+                    let milestones: { interview_at: string | null; assessment_at: string | null; follow_up_at: string | null };
+                    try {
+                      milestones = {
+                        interview_at: parseDateTimeInput(interviewAt),
+                        assessment_at: parseDateTimeInput(assessmentAt),
+                        follow_up_at: parseDateTimeInput(followUpAt)
+                      };
+                    } catch (error) {
+                      Alert.alert(
+                        "Invalid milestone",
+                        error instanceof Error
+                          ? `${error.message}\nUse ${DATETIME_INPUT_PLACEHOLDER}.`
+                          : `Use ${DATETIME_INPUT_PLACEHOLDER}.`
+                      );
+                      return;
+                    }
+                    try {
+                      await updateJob.mutateAsync({ id: job.id, data: milestones });
+                      Alert.alert("Milestones saved", "Future deadlines are now scheduled for alerts.");
+                    } catch (error) {
+                      Alert.alert("Save failed", error instanceof Error ? error.message : "Please retry.");
+                    }
+                  }}
+                  className="rounded-lg bg-[#353535] px-3 py-2 disabled:opacity-60 active:scale-[0.98]"
+                >
+                  <Text className="text-center font-mono text-[10px] tracking-[0.08em] text-white">
+                    {updateJob.isPending ? "[SAVING]" : "[SAVE MILESTONES]"}
+                  </Text>
+                </Pressable>
+              </GlassCard>
+
+              <GlassCard className="gap-3">
+                <View className="flex-row items-center justify-between">
                   <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">{"// PREPARATION_CHECKLIST"}</Text>
                   <Text className="rounded bg-[#353535] px-2 py-0.5 font-mono text-[10px] tracking-[0.08em] text-white">
                     [{completed}/{items.length} COMPLETED]
@@ -348,7 +419,7 @@ export default function JobDossierScreen() {
                         text: "Delete",
                         style: "destructive",
                         onPress: () => {
-                          void deleteJob.mutateAsync(job.id).then(() => router.back());
+                          void deleteJob.mutateAsync(job.id).then(() => router.back()).catch(error => Alert.alert("Delete failed", error.message));
                         }
                       }
                     ]);
