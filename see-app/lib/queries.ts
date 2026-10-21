@@ -1,6 +1,12 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import { syncLocalNotifications } from "@/lib/notifications";
+import { Alert } from "react-native";
+import { useContext } from "react";
+import { AccountContext } from "@/lib/session";
+
 import { api } from "@/lib/api";
+import { coldStartRetry, coldStartRetryDelay } from "@/lib/queryPolicy";
 
 export type JobStatus = "bookmarked" | "applied" | "assessment" | "interviewing" | "offer" | "rejected" | "archived";
 export type ReminderPriority = "low" | "medium" | "high";
@@ -23,6 +29,9 @@ export type Job = {
   status: JobStatus;
   interview_notes: string | null;
   deadline: string | null;
+  interview_at: string | null;
+  assessment_at: string | null;
+  follow_up_at: string | null;
   applied_at: string;
   updated_at: string;
   checklists: JobChecklist[];
@@ -83,6 +92,7 @@ export type DashboardResponse = {
   reminder_count: number;
   job_count: number;
   items: DashboardItem[];
+  truncated: boolean;
 };
 
 type PageResponse<T> = {
@@ -97,18 +107,20 @@ function getNextPageParam<T extends { length: number }>(lastPage: T, pages: T[])
 
 export function useToday() {
   return useQuery({
-    queryKey: ["dashboard", "today"],
-    queryFn: async () => (await api.get<DashboardResponse>("/dashboard/today")).data
+    queryKey: [useContext(AccountContext), "dashboard", "today"],
+    queryFn: async ({ signal }) => (await api.get<DashboardResponse>("/dashboard/today", { signal })).data,
+    retry: coldStartRetry,
+    retryDelay: coldStartRetryDelay
   });
 }
 
 export function useJobs(status?: JobStatus) {
   return useQuery({
-    queryKey: ["jobs", status ?? "all"],
-    queryFn: async () =>
+    queryKey: [useContext(AccountContext), "jobs", status ?? "all"],
+    queryFn: async ({ signal }) =>
       (
         await api.get<Job[]>("/jobs", {
-          params: {
+          signal, params: {
             status,
             page_size: 50
           }
@@ -119,12 +131,12 @@ export function useJobs(status?: JobStatus) {
 
 export function useInfiniteJobs(status?: JobStatus) {
   return useInfiniteQuery({
-    queryKey: ["jobs", status ?? "all", "infinite"],
+    queryKey: [useContext(AccountContext), "jobs", status ?? "all", "infinite"],
     initialPageParam: 1,
-    queryFn: async ({ pageParam }) =>
+    queryFn: async ({ pageParam, signal }) =>
       (
         await api.get<Job[]>("/jobs", {
-          params: {
+          signal, params: {
             status,
             page: pageParam,
             page_size: PAGE_SIZE
@@ -137,52 +149,59 @@ export function useInfiniteJobs(status?: JobStatus) {
 
 export function useJob(jobId?: string) {
   return useQuery({
-    queryKey: ["jobs", jobId],
+    queryKey: [useContext(AccountContext), "jobs", jobId],
     enabled: Boolean(jobId),
-    queryFn: async () => (await api.get<Job>(`/jobs/${jobId}`)).data
+    queryFn: async ({ signal }) => (await api.get<Job>(`/jobs/${jobId}`, { signal })).data
   });
 }
 
 export function useJobChecklists(jobId?: string) {
   return useQuery({
-    queryKey: ["jobs", jobId, "checklists"],
+    queryKey: [useContext(AccountContext), "jobs", jobId, "checklists"],
     enabled: Boolean(jobId),
-    queryFn: async () => (await api.get<JobChecklist[]>(`/jobs/${jobId}/checklists`)).data
+    queryFn: async ({ signal }) => (await api.get<JobChecklist[]>(`/jobs/${jobId}/checklists`, { signal })).data
   });
 }
 
 export function useUpdateJob() {
   const queryClient = useQueryClient();
+  const account = useContext(AccountContext);
 
   return useMutation({
+    onError: (error) => Alert.alert("Unable to save change", error.message),
     mutationFn: async ({ id, data }: { id: string; data: Partial<Job> }) => (await api.patch<Job>(`/jobs/${id}`, data)).data,
-    onSuccess: async (_, variables) => {
-      await queryClient.invalidateQueries({ queryKey: ["jobs"] });
-      await queryClient.invalidateQueries({ queryKey: ["dashboard"] });
-      await queryClient.invalidateQueries({ queryKey: ["jobs", variables.id] });
-      await queryClient.invalidateQueries({ queryKey: ["jobs", variables.id, "checklists"] });
+    onSuccess: async () => {
+      if (account) void syncLocalNotifications(account).catch(error => console.warn("Alert synchronization failed", error.message));
+      await queryClient.invalidateQueries({ queryKey: [account, "jobs"] });
+      await queryClient.invalidateQueries({ queryKey: [account, "dashboard"] });
+
     }
   });
 }
 
 export function useDeleteJob() {
   const queryClient = useQueryClient();
+  const account = useContext(AccountContext);
 
   return useMutation({
+    onError: (error) => Alert.alert("Unable to save change", error.message),
     mutationFn: async (id: string) => {
       await api.delete(`/jobs/${id}`);
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["jobs"] });
-      await queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      if (account) void syncLocalNotifications(account).catch(error => console.warn("Alert synchronization failed", error.message));
+      await queryClient.invalidateQueries({ queryKey: [account, "jobs"] });
+      await queryClient.invalidateQueries({ queryKey: [account, "dashboard"] });
     }
   });
 }
 
 export function useToggleChecklist(jobId?: string) {
   const queryClient = useQueryClient();
+  const account = useContext(AccountContext);
 
   return useMutation({
+    onError: (error) => Alert.alert("Unable to save change", error.message),
     mutationFn: async ({ checklistId, isCompleted }: { checklistId: string; isCompleted: boolean }) => {
       if (!jobId) {
         throw new Error("Missing job id.");
@@ -195,16 +214,18 @@ export function useToggleChecklist(jobId?: string) {
       ).data;
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["jobs"] });
-      await queryClient.invalidateQueries({ queryKey: ["jobs", jobId] });
+      await queryClient.invalidateQueries({ queryKey: [account, "jobs"] });
+
     }
   });
 }
 
 export function useCreateChecklist(jobId?: string) {
   const queryClient = useQueryClient();
+  const account = useContext(AccountContext);
 
   return useMutation({
+    onError: (error) => Alert.alert("Unable to save change", error.message),
     mutationFn: async (title: string) => {
       if (!jobId) {
         throw new Error("Missing job id.");
@@ -218,19 +239,19 @@ export function useCreateChecklist(jobId?: string) {
       ).data;
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["jobs"] });
-      await queryClient.invalidateQueries({ queryKey: ["jobs", jobId] });
+      await queryClient.invalidateQueries({ queryKey: [account, "jobs"] });
+
     }
   });
 }
 
 export function useNotes(query?: string, tags?: string) {
   return useQuery({
-    queryKey: ["notes", query ?? "", tags ?? ""],
-    queryFn: async () =>
+    queryKey: [useContext(AccountContext), "notes", query ?? "", tags ?? ""],
+    queryFn: async ({ signal }) =>
       (
         await api.get<Note[]>("/notes", {
-          params: { q: query || undefined, tags, page_size: 50 }
+          signal, params: { q: query || undefined, tags, page_size: 50 }
         })
       ).data
   });
@@ -238,12 +259,12 @@ export function useNotes(query?: string, tags?: string) {
 
 export function useInfiniteNotes(query?: string, tags?: string) {
   return useInfiniteQuery({
-    queryKey: ["notes", query ?? "", tags ?? "", "infinite"],
+    queryKey: [useContext(AccountContext), "notes", query ?? "", tags ?? "", "infinite"],
     initialPageParam: 1,
-    queryFn: async ({ pageParam }) =>
+    queryFn: async ({ pageParam, signal }) =>
       (
         await api.get<Note[]>("/notes", {
-          params: { q: query || undefined, tags, page: pageParam, page_size: PAGE_SIZE }
+          signal, params: { q: query || undefined, tags, page: pageParam, page_size: PAGE_SIZE }
         })
       ).data,
     getNextPageParam
@@ -252,60 +273,66 @@ export function useInfiniteNotes(query?: string, tags?: string) {
 
 export function useNote(noteId?: string) {
   return useQuery({
-    queryKey: ["notes", noteId],
+    queryKey: [useContext(AccountContext), "notes", noteId],
     enabled: Boolean(noteId),
-    queryFn: async () => (await api.get<Note>(`/notes/${noteId}`)).data
+    queryFn: async ({ signal }) => (await api.get<Note>(`/notes/${noteId}`, { signal })).data
   });
 }
 
 export function useCreateNote() {
   const queryClient = useQueryClient();
+  const account = useContext(AccountContext);
   return useMutation({
+    onError: (error) => Alert.alert("Unable to save change", error.message),
     mutationFn: async (data: Pick<Note, "title" | "content" | "tags">) => (await api.post<Note>("/notes", data)).data,
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["notes"] });
+      await queryClient.invalidateQueries({ queryKey: [account, "notes"] });
     }
   });
 }
 
 export function useUpdateNote() {
   const queryClient = useQueryClient();
+  const account = useContext(AccountContext);
   return useMutation({
+    onError: (error) => Alert.alert("Unable to save change", error.message),
     mutationFn: async ({ id, data }: { id: string; data: Partial<Pick<Note, "title" | "content" | "tags">> }) =>
       (await api.patch<Note>(`/notes/${id}`, data)).data,
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["notes"] });
+      await queryClient.invalidateQueries({ queryKey: [account, "notes"] });
     }
   });
 }
 
 export function useDeleteNote() {
   const queryClient = useQueryClient();
+  const account = useContext(AccountContext);
   return useMutation({
+    onError: (error) => Alert.alert("Unable to save change", error.message),
     mutationFn: async (id: string) => {
       await api.delete(`/notes/${id}`);
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["notes"] });
+      await queryClient.invalidateQueries({ queryKey: [account, "notes"] });
     }
   });
 }
 
 export function useReminders() {
   return useQuery({
-    queryKey: ["reminders"],
-    queryFn: async () => (await api.get<Reminder[]>("/reminders", { params: { page_size: 50 } })).data
+    queryKey: [useContext(AccountContext), "reminders"],
+    queryFn: async ({ signal }) => (await api.get<Reminder[]>("/reminders", { signal, params: { page_size: 50 } })).data
   });
 }
 
 export function useInfiniteReminders() {
   return useInfiniteQuery({
-    queryKey: ["reminders", "infinite"],
+    queryKey: [useContext(AccountContext), "reminders", "infinite"],
     initialPageParam: 1,
-    queryFn: async ({ pageParam }) =>
+    queryFn: async ({ pageParam, signal }) =>
       (
         await api.get<Reminder[]>("/reminders", {
-          params: { page: pageParam, page_size: PAGE_SIZE }
+          signal, params: { page: pageParam, page_size: PAGE_SIZE }
         })
       ).data,
     getNextPageParam
@@ -314,44 +341,50 @@ export function useInfiniteReminders() {
 
 export function useReminder(reminderId?: string) {
   return useQuery({
-    queryKey: ["reminders", reminderId],
+    queryKey: [useContext(AccountContext), "reminders", reminderId],
     enabled: Boolean(reminderId),
-    queryFn: async () => (await api.get<Reminder>(`/reminders/${reminderId}`)).data
+    queryFn: async ({ signal }) => (await api.get<Reminder>(`/reminders/${reminderId}`, { signal })).data
   });
 }
 
 export function useUpdateReminder() {
   const queryClient = useQueryClient();
+  const account = useContext(AccountContext);
   return useMutation({
+    onError: (error) => Alert.alert("Unable to save change", error.message),
     mutationFn: async ({ id, data }: { id: string; data: Partial<Pick<Reminder, "title" | "due_date" | "priority" | "is_completed">> }) =>
       (await api.patch<Reminder>(`/reminders/${id}`, data)).data,
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["reminders"] });
-      await queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      if (account) void syncLocalNotifications(account).catch(error => console.warn("Alert synchronization failed", error.message));
+      await queryClient.invalidateQueries({ queryKey: [account, "reminders"] });
+      await queryClient.invalidateQueries({ queryKey: [account, "dashboard"] });
     }
   });
 }
 
 export function useDeleteReminder() {
   const queryClient = useQueryClient();
+  const account = useContext(AccountContext);
   return useMutation({
+    onError: (error) => Alert.alert("Unable to save change", error.message),
     mutationFn: async (id: string) => {
       await api.delete(`/reminders/${id}`);
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["reminders"] });
-      await queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      if (account) void syncLocalNotifications(account).catch(error => console.warn("Alert synchronization failed", error.message));
+      await queryClient.invalidateQueries({ queryKey: [account, "reminders"] });
+      await queryClient.invalidateQueries({ queryKey: [account, "dashboard"] });
     }
   });
 }
 
 export function useEvents(isVirtual?: boolean) {
   return useQuery({
-    queryKey: ["events", isVirtual === undefined ? "all" : isVirtual ? "virtual" : "in-person"],
-    queryFn: async () =>
+    queryKey: [useContext(AccountContext), "events", isVirtual === undefined ? "all" : isVirtual ? "virtual" : "in-person"],
+    queryFn: async ({ signal }) =>
       (
         await api.get<PageResponse<Event>>("/events", {
-          params: {
+          signal, params: {
             is_virtual: isVirtual,
             page_size: 50
           }
@@ -362,12 +395,12 @@ export function useEvents(isVirtual?: boolean) {
 
 export function useInfiniteEvents(isVirtual?: boolean) {
   return useInfiniteQuery({
-    queryKey: ["events", isVirtual === undefined ? "all" : isVirtual ? "virtual" : "in-person", "infinite"],
+    queryKey: [useContext(AccountContext), "events", isVirtual === undefined ? "all" : isVirtual ? "virtual" : "in-person", "infinite"],
     initialPageParam: 1,
-    queryFn: async ({ pageParam }) =>
+    queryFn: async ({ pageParam, signal }) =>
       (
         await api.get<PageResponse<Event>>("/events", {
-          params: {
+          signal, params: {
             is_virtual: isVirtual,
             page: pageParam,
             page_size: PAGE_SIZE
@@ -380,17 +413,23 @@ export function useInfiniteEvents(isVirtual?: boolean) {
 
 export function useQuickAdd() {
   const queryClient = useQueryClient();
+  const account = useContext(AccountContext);
   return useMutation({
+    onError: (error) => Alert.alert("Unable to save change", error.message),
     mutationFn: async (payload: {
       type: "job" | "note" | "reminder";
       title?: string | null;
       data: Record<string, unknown>;
     }) => (await api.post<{ id: string; type: string }>("/quick-add", payload)).data,
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["jobs"] });
-      await queryClient.invalidateQueries({ queryKey: ["notes"] });
-      await queryClient.invalidateQueries({ queryKey: ["reminders"] });
-      await queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+    onSuccess: async (_, variables) => {
+      const resource = { job: "jobs", note: "notes", reminder: "reminders" }[variables.type];
+      if (variables.type !== "note" && account) {
+        void syncLocalNotifications(account).catch(error => console.warn("Alert synchronization failed", error.message));
+      }
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: [account, resource] }),
+        ...(variables.type === "note" ? [] : [queryClient.invalidateQueries({ queryKey: [account, "dashboard"] })])
+      ]);
     }
   });
 }

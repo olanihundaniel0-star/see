@@ -1,4 +1,4 @@
-import { useDeferredValue, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { router } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { Alert, Pressable, ScrollView, Text, TextInput, View } from "react-native";
@@ -40,7 +40,11 @@ function syncBlocks(count: number) {
 export default function NotesScreen() {
   const [search, setSearch] = useState("");
   const [activeTag, setActiveTag] = useState<string>("ALL");
-  const deferredSearch = useDeferredValue(search);
+  const [deferredSearch, setDeferredSearch] = useState(search);
+  useEffect(() => {
+    const timer = setTimeout(() => setDeferredSearch(search), 300);
+    return () => clearTimeout(timer);
+  }, [search]);
   const {
     data,
     isLoading,

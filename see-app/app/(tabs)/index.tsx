@@ -3,6 +3,7 @@ import { Link, router } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { Pressable, ScrollView, Text, View } from "react-native";
 
+import { LoadingSkeleton } from "@/components/ui/LoadingSkeleton";
 import { formatCountdown, formatLagosClock, formatShortDateTime } from "@/lib/format";
 import { useToday, useUpdateReminder } from "@/lib/queries";
 
@@ -16,11 +17,21 @@ export default function TodayScreen() {
   const updateReminder = useUpdateReminder();
   const [now, setNow] = useState(() => new Date());
   const [doneIds, setDoneIds] = useState<string[]>([]);
+  const [slowBoot, setSlowBoot] = useState(false);
 
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 60_000);
     return () => clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    if (!isLoading) {
+      setSlowBoot(false);
+      return;
+    }
+    const timer = setTimeout(() => setSlowBoot(true), 5_000);
+    return () => clearTimeout(timer);
+  }, [isLoading]);
 
   const { time, day } = formatLagosClock(now);
   const windowHours = data?.window_hours ?? 48;
@@ -117,17 +128,26 @@ export default function TodayScreen() {
           </Text>
         </View>
 
+        {isLoading ? <LoadingSkeleton /> : null}
+        {isLoading && slowBoot ? (
+          <Text className="px-1 font-mono text-[10px] leading-4 text-[#c5c6ca]">
+            {"// SERVER_WAKE: the hosted API may take up to a minute to resume after inactivity. Retrying automatically."}
+          </Text>
+        ) : null}
         {error ? (
           <View className="gap-3 rounded-lg border border-white/[0.08] bg-zinc-950/60 px-4 py-4">
             <Text className="font-mono-bold text-[10px] tracking-[0.08em] text-[#8f9194]">{"// DASHBOARD_ERROR"}</Text>
             <Text className="font-sans-bold text-[20px] leading-[24px] text-white">Unable to load today&apos;s queue.</Text>
+            <Text className="font-mono text-[11px] leading-4 text-[#c5c6ca]">
+              If the SEE server was asleep, tap retry to wake it. Your saved data is not lost.
+            </Text>
             <Pressable onPress={() => void refetch()} className="self-start rounded bg-white px-4 py-2 active:scale-[0.98]">
               <Text className="font-mono-bold text-[10px] tracking-[0.08em] text-black">[ RETRY ]</Text>
             </Pressable>
           </View>
         ) : null}
 
-        {!error && urgentItems.length === 0 ? (
+        {!error && !isLoading && urgentItems.length === 0 ? (
           <View className="gap-3 rounded-lg border border-white/[0.08] bg-zinc-950/60 px-4 py-4">
             <Text className="font-mono-bold text-[10px] tracking-[0.08em] text-[#8f9194]">{"// EMPTY_QUEUE"}</Text>
             <Text className="font-sans-bold text-[20px] leading-[24px] text-white">No items due inside the next {windowHours} hours.</Text>
@@ -250,6 +270,12 @@ export default function TodayScreen() {
               })}
             </View>
           </View>
+        ) : null}
+
+        {data?.truncated ? (
+          <Text className="px-1 font-mono text-[10px] leading-4 text-[#c5c6ca]">
+            {"// MORE ITEMS EXIST: OPEN PIPELINE OR ALERTS FOR THE FULL QUEUE"}
+          </Text>
         ) : null}
 
         {/* Triage footer */}

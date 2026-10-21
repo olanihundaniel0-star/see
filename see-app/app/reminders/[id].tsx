@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 import { Stack, router, useLocalSearchParams } from "expo-router";
 import * as Haptics from "expo-haptics";
@@ -26,8 +26,10 @@ export default function ReminderDetailScreen() {
   const [priority, setPriority] = useState<ReminderPriority>("medium");
   const [isCompleted, setIsCompleted] = useState(false);
 
+  const initialized = useRef<string | null>(null);
   useEffect(() => {
-    if (reminder) {
+    if (reminder && initialized.current !== reminder.id) {
+      initialized.current = reminder.id;
       setTitle(reminder.title);
       setDueDate(reminder.due_date);
       setPriority(reminder.priority);
@@ -126,7 +128,7 @@ export default function ReminderDetailScreen() {
                         text: "Delete",
                         style: "destructive",
                         onPress: () => {
-                          void deleteReminder.mutateAsync(reminder.id).then(() => router.back());
+                          void deleteReminder.mutateAsync(reminder.id).then(() => router.back()).catch(error => Alert.alert("Delete failed", error.message));
                         }
                       }
                     ]);

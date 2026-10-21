@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Alert, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { Stack, router, useLocalSearchParams } from "expo-router";
 import * as Haptics from "expo-haptics";
@@ -21,8 +21,10 @@ export default function NoteDetailScreen() {
   const [content, setContent] = useState("");
   const [tags, setTags] = useState("");
 
+  const initialized = useRef<string | null>(null);
   useEffect(() => {
-    if (note) {
+    if (note && initialized.current !== note.id) {
+      initialized.current = note.id;
       setTitle(note.title);
       setContent(note.content);
       setTags(note.tags ?? "");
@@ -81,10 +83,13 @@ export default function NoteDetailScreen() {
                     disabled={updateNote.isPending || !title.trim() || !content.trim()}
                     onPress={async () => {
                       await Haptics.selectionAsync();
+                      try {
                       await updateNote.mutateAsync({
                         id: note.id,
                         data: { title: title.trim(), content: content.trim(), tags: tags.trim() || null }
                       });
+                      Alert.alert("Saved", "Note saved.");
+                      } catch (error) { Alert.alert("Save failed", error instanceof Error ? error.message : "Try again."); }
                     }}
                     className="flex-1 rounded border-0 bg-white px-3 py-3 disabled:opacity-60 active:scale-[0.98]"
                   >
@@ -102,7 +107,7 @@ export default function NoteDetailScreen() {
                           text: "Delete",
                           style: "destructive",
                           onPress: () => {
-                            void deleteNote.mutateAsync(note.id).then(() => router.back());
+                            void deleteNote.mutateAsync(note.id).then(() => router.back()).catch(error => Alert.alert("Delete failed", error.message));
                           }
                         }
                       ]);

@@ -11,7 +11,14 @@ const ENV_URL = process.env.EXPO_PUBLIC_API_URL;
 const IS_DEV = typeof __DEV__ !== "undefined" ? __DEV__ : process.env.NODE_ENV !== "production";
 
 function resolveBaseURL(): string {
-  if (ENV_URL) return ENV_URL;
+  if (ENV_URL) {
+    const url = new URL(ENV_URL);
+    const privateHost = /^(localhost$|127\.|10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[01])\.|\[::1\]$)/.test(url.hostname);
+    if (!IS_DEV && (url.protocol !== "https:" || privateHost)) {
+      throw new Error("Release builds require a public HTTPS EXPO_PUBLIC_API_URL.");
+    }
+    return ENV_URL.replace(/\/$/, "");
+  }
   console.error(
     "[api] EXPO_PUBLIC_API_URL is missing. Set it in .env / EAS env (e.g. EXPO_PUBLIC_API_URL=https://api.example.com/api/v1)."
   );
@@ -27,7 +34,7 @@ const baseURL = resolveBaseURL();
 
 export const api = axios.create({
   baseURL,
-  timeout: 15000
+  timeout: 10000
 });
 
 // Cache the access token via subscription so we don't call getSession() on every request.
@@ -127,9 +134,6 @@ function isInvalidGrantError(error: unknown): boolean {
   );
 }
 
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
 
 let refreshPromise: Promise<boolean> | null = null;
 
@@ -189,14 +193,6 @@ api.interceptors.response.use(
   async (error: AxiosError) => {
     if (error.response?.status === 401) {
       return handleUnauthorized(error.config as RetryableConfig | undefined, error);
-    }
-    // One retry with backoff for network/no-response errors on idempotent GETs.
-    const config = error.config as RetryableConfig | undefined;
-    const method = (config?.method ?? "get").toUpperCase();
-    if (config && !config._networkRetry && method === "GET" && isTransientNetworkError(error)) {
-      config._networkRetry = true;
-      await delay(800);
-      return api(config);
     }
     return Promise.reject(error);
   }
