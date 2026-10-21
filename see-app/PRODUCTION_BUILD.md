@@ -62,11 +62,30 @@ eas credentials --platform android
 
 This creates a signed APK that can be uploaded to Google Play.
 
-### Step 2: Build APK
+### Step 2: Configure EAS build secrets, then build
+
+`.env`, `.env.production`, and `google-services.json` are gitignored, so EAS
+never uploads them. Configure the production environment in EAS instead:
 
 ```bash
-# Update .env.production with correct API URL
-cp .env.production .env
+# Required: the release API origin. app.config.js fails the build if this is
+# missing, HTTP, a private/LAN host, or does not end in /api/v1.
+eas env:set \
+  --name EXPO_PUBLIC_API_URL \
+  --value https://see-backend-dgoe.onrender.com/api/v1 \
+  --environment production \
+  --visibility plaintext
+
+# Required for Android remote push (local notifications work without it).
+# Upload the Firebase google-services.json as an EAS secret file.
+eas env:set \
+  --name GOOGLE_SERVICES_JSON \
+  --value ./google-services.json \
+  --type file \
+  --environment production \
+  --visibility secret
+
+eas env:list --environment production
 
 # Build for production
 eas build --platform android --profile production
@@ -132,10 +151,10 @@ eas credentials --platform ios
 
 ### Step 3: Build for Production
 
-```bash
-# Update .env.production with correct API URL
-cp .env.production .env
+The production EAS environment must already contain `EXPO_PUBLIC_API_URL`
+(see the Android steps; EAS environments are shared across platforms).
 
+```bash
 # Build for production
 eas build --platform ios --profile production
 
@@ -164,19 +183,20 @@ eas submit --platform ios --latest
 {
   "build": {
     "production": {
-      "node": "20.9.0",
-      "npm": "10.1.0",
+      "node": "20.19.4",
+      "environment": "production",
       "android": {
         "buildType": "apk",
         "gradleCommand": ":app:assembleRelease"
-      },
-      "ios": {
-        "buildType": "archive"
       }
     }
   }
 }
 ```
+
+The `environment: "production"` field is what selects the EAS variables above.
+`app.config.js` rejects release builds whose `EXPO_PUBLIC_API_URL` is missing,
+plain HTTP, a private/LAN address, or not ending in `/api/v1`.
 
 ### Environment Variables for Build
 

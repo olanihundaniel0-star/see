@@ -81,12 +81,16 @@ jobs:
       - uses: actions/checkout@v4
       - name: Run npm audit
         working-directory: see-app
-        run: npm audit --audit-level=moderate 2>/dev/null || true
+        # Expo's Metro/Tailwind build toolchain pulls transitive packages with
+        # upstream advisories that have no patched release (braces, node-forge,
+        # decode-uri-component). They are build-time only and never reach the
+        # APK runtime, so block on critical and report high via `npm audit`.
+        run: npm audit --omit=dev --audit-level=critical
       - name: Run Python safety check
         working-directory: see-backend
         run: |
-          pip install safety
-          safety check 2>/dev/null || true
+          pip install pip-audit
+          pip-audit -r requirements.txt
 
   build-docker:
     needs: [test-backend, test-frontend, security-scan]
@@ -151,7 +155,7 @@ jobs:
             exit 0
           fi
           for i in {1..30}; do
-            if curl -f --connect-timeout 25 --max-time 40 "$HEALTH_URL/health" >/dev/null 2>&1; then
+            if curl -f --connect-timeout 25 --max-time 40 "$HEALTH_URL/health/ready" >/dev/null 2>&1; then
               echo "Staging API is healthy"
               exit 0
             fi
@@ -199,7 +203,7 @@ jobs:
             exit 0
           fi
           for i in {1..30}; do
-            if curl -f --connect-timeout 25 --max-time 40 "$HEALTH_URL/health" >/dev/null 2>&1; then
+            if curl -f --connect-timeout 25 --max-time 40 "$HEALTH_URL/health/ready" >/dev/null 2>&1; then
               echo "Production API is healthy"
               exit 0
             fi
@@ -235,7 +239,7 @@ jobs:
           fi
           echo "Testing staging API performance..."
           start_time=$(date +%s%N)
-          response_code=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 25 --max-time 40 "$HEALTH_URL/health")
+          response_code=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 25 --max-time 40 "$HEALTH_URL/health/ready")
           end_time=$(date +%s%N)
           response_time_ms=$(( (end_time - start_time) / 1000000 ))
           echo "Response time: ${response_time_ms}ms"

@@ -34,7 +34,7 @@ services:
       context: ./see-backend
       dockerfile: Dockerfile
     working_dir: /app
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    command: ./start.sh
     environment:
       APP_ENV: staging
       DATABASE_URL: postgresql+asyncpg://postgres:${POSTGRES_PASSWORD}@db:5432/see
@@ -48,6 +48,8 @@ services:
       GEMINI_API_KEY: ${GEMINI_API_KEY}
       GMAIL_USER: ${GMAIL_USER}
       GMAIL_APP_PASSWORD: ${GMAIL_APP_PASSWORD}
+      DEFAULT_USER_ID: ${DEFAULT_USER_ID}
+      EXPO_ACCESS_TOKEN: ${EXPO_ACCESS_TOKEN:-}
     ports:
       - "8000:8000"
     depends_on:
@@ -80,6 +82,8 @@ services:
       GEMINI_API_KEY: ${GEMINI_API_KEY}
       GMAIL_USER: ${GMAIL_USER}
       GMAIL_APP_PASSWORD: ${GMAIL_APP_PASSWORD}
+      DEFAULT_USER_ID: ${DEFAULT_USER_ID}
+      EXPO_ACCESS_TOKEN: ${EXPO_ACCESS_TOKEN:-}
     depends_on:
       db:
         condition: service_healthy

@@ -8,15 +8,39 @@ services:
     dockerCommand: ./start.sh
     healthCheckPath: /health
     envVars:
-      - key: APP_ENV
-        value: production
-      - key: DATABASE_URL
-        sync: false
+      - fromGroup: see-runtime
       - key: REDIS_URL
         fromService:
           name: see-redis
           type: keyvalue
           property: connectionString
+  - type: worker
+    name: see-worker
+    runtime: docker
+    plan: starter
+    rootDir: see-backend
+    dockerfilePath: ./Dockerfile
+    dockerCommand: sh -c 'alembic upgrade head && celery -A app.workers.celery_app worker -B -l info --concurrency=1'
+    envVars:
+      - fromGroup: see-runtime
+      - key: REDIS_URL
+        fromService:
+          name: see-redis
+          type: keyvalue
+          property: connectionString
+  - type: keyvalue
+    name: see-redis
+    plan: free
+    ipAllowList: []
+    maxmemoryPolicy: noeviction
+
+envVarGroups:
+  - name: see-runtime
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_AUDIENCE
@@ -55,8 +79,5 @@ services:
       # Native apps do not send an Origin header, so this only affects web builds.
       - key: CORS_ORIGINS
         sync: false
-  - type: keyvalue
-    name: see-redis
-    plan: free
-    ipAllowList: []
-    maxmemoryPolicy: allkeys-lru
+      - key: EXPO_ACCESS_TOKEN
+        sync: false
