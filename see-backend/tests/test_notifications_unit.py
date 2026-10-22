@@ -12,6 +12,7 @@ from app.api.v1.endpoints import webhooks
 from app.core.config import settings
 from app.schemas.notification import DeviceRegistration, Preferences
 from app.services.notifications import put_notification, quiet_time
+from app.workers import celery_app as worker_module
 
 
 class RecordingSession:
@@ -84,3 +85,30 @@ def test_worker_gate_rejects_missing_heartbeat_in_production(monkeypatch):
 
     monkeypatch.setattr(webhooks.redis_async, "from_url", lambda *args, **kwargs: Client())
     assert asyncio.run(webhooks._worker_available()) is False
+
+
+def test_worker_heartbeat_sets_expiring_readiness_key(monkeypatch):
+    calls = []
+
+    class Client:
+        def set(self, key, value, ex):
+            calls.append((key, value, ex))
+
+        def close(self):
+            calls.append(("closed",))
+
+    monkeypatch.setattr(worker_module.redis.Redis, "from_url", lambda *args, **kwargs: Client())
+    worker_module._write_worker_heartbeat()
+
+    assert calls == [
+        (worker_module.WORKER_HEARTBEAT_KEY, "1", worker_module.WORKER_HEARTBEAT_TTL_SECONDS),
+        ("closed",),
+    ]
+
+
+def test_worker_heartbeat_signal_does_not_crash_worker(monkeypatch):
+    def fail():
+        raise OSError("redis unavailable")
+
+    monkeypatch.setattr(worker_module, "_write_worker_heartbeat", fail)
+    worker_module.worker_heartbeat()

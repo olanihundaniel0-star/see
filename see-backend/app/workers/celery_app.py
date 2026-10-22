@@ -1,8 +1,16 @@
-from celery import Celery
+import logging
 from celery.schedules import schedule
+from celery import Celery
+from celery.signals import heartbeat_sent, worker_ready
 from datetime import timedelta
+import redis
 
 from app.core.config import settings
+
+
+logger = logging.getLogger(__name__)
+WORKER_HEARTBEAT_KEY = "see:worker:alive"
+WORKER_HEARTBEAT_TTL_SECONDS = 90
 
 
 celery_app = Celery(
@@ -36,15 +44,25 @@ celery_app.conf.update(
     },
 )
 
-from celery.signals import heartbeat_sent
-import logging
-import redis
+
+def _write_worker_heartbeat() -> None:
+    """Publish worker liveness without allowing monitoring failures to stop work."""
+    client = redis.Redis.from_url(
+        settings.REDIS_URL,
+        socket_timeout=2,
+        socket_connect_timeout=2,
+    )
+    try:
+        client.set(WORKER_HEARTBEAT_KEY, "1", ex=WORKER_HEARTBEAT_TTL_SECONDS)
+    finally:
+        client.close()
+
 
 @heartbeat_sent.connect
-def worker_heartbeat(**kwargs):
+@worker_ready.connect
+def worker_heartbeat(**kwargs: object) -> None:
+    """Set liveness immediately at startup, then refresh it on each Celery heartbeat."""
     try:
-        client = redis.Redis.from_url(settings.REDIS_URL, socket_timeout=2, socket_connect_timeout=2)
-        try: client.set("see:worker:alive", "1", ex=90)
-        finally: client.close()
-    except redis.RedisError:
-        logging.getLogger(__name__).warning("Worker heartbeat could not reach Redis")
+        _write_worker_heartbeat()
+    except Exception:
+        logger.exception("Worker heartbeat could not reach Redis")

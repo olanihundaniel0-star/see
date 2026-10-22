@@ -20,7 +20,7 @@ services:
     plan: starter
     rootDir: see-backend
     dockerfilePath: ./Dockerfile
-    dockerCommand: sh -c 'alembic upgrade head && celery -A app.workers.celery_app worker -B -l info --concurrency=1'
+    dockerCommand: celery -A app.workers.celery_app worker -B -l info --concurrency=1
     envVars:
       - fromGroup: see-runtime
       - key: REDIS_URL

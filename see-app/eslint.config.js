@@ -24,4 +24,12 @@ module.exports = defineConfig([
       'import/no-named-as-default-member': 'off',
     },
   },
+  {
+    files: ['tests/**/*.cjs'],
+    languageOptions: {
+      globals: {
+        __dirname: 'readonly',
+      },
+    },
+  },
 ]);
