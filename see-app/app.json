@@ -7,9 +7,6 @@
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "icon": "./assets/see-dino-icon.png",
-    "splash": {
-      "backgroundColor": "#000000"
-    },
     "assetBundlePatterns": [
       "**/*"
     ],
@@ -18,7 +15,15 @@
       "expo-secure-store",
       "expo-notifications",
       "expo-calendar",
-      "expo-web-browser"
+      "expo-font",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#131313"
+        }
+      ],
+      "expo-web-browser",
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true
@@ -33,6 +38,7 @@
       }
     },
     "android": {
+      "softwareKeyboardLayoutMode": "resize",
       "package": "com.nife.dev.see",
       "versionCode": 2,
       "permissions": [
@@ -48,7 +54,7 @@
       }
     },
     "ios": {
-      "supportsTabletMode": true,
+      "supportsTablet": true,
       "bundleIdentifier": "com.nife.dev.see",
       "buildNumber": "1",
       "infoPlist": {
@@ -58,7 +64,6 @@
           "armv7"
         ]
       }
-    },
-    "privacy": "https://your-app-domain.com/privacy"
+    }
   }
 }
