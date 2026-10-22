@@ -1,87 +1,45 @@
-const LAGOS_TIME_ZONE = "Africa/Lagos";
+import { pickerDate } from "./datetime";
 
 function toDate(value: string | Date) {
-  return value instanceof Date ? value : new Date(value);
+  return value instanceof Date ? value : pickerDate(value, "datetime");
 }
-
-export function formatLagosClock(date: Date) {
-  const time = new Intl.DateTimeFormat("en-GB", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-    timeZone: LAGOS_TIME_ZONE
-  }).format(date);
-
-  const day = new Intl.DateTimeFormat("en-GB", {
-    weekday: "short",
-    day: "2-digit",
-    month: "short",
-    timeZone: LAGOS_TIME_ZONE
-  }).format(date);
-
-  return { time, day: day.toUpperCase() };
+function format(value: string | Date, options: Intl.DateTimeFormatOptions) {
+  const date = toDate(value);
+  return date && !Number.isNaN(date.getTime()) ? new Intl.DateTimeFormat("en-GB", options).format(date) : "Date unavailable";
 }
-
 export function formatShortDateTime(value: string | Date) {
-  return new Intl.DateTimeFormat("en-GB", {
-    day: "2-digit",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: LAGOS_TIME_ZONE
-  }).format(toDate(value));
+  return format(value, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hour12: false });
 }
-
+export function formatFullDateTime(value: string | Date) {
+  return format(value, { weekday: "short", day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false });
+}
 export function formatShortDate(value: string | Date) {
-  return new Intl.DateTimeFormat("en-GB", {
-    weekday: "short",
-    day: "2-digit",
-    month: "short",
-    timeZone: LAGOS_TIME_ZONE
-  }).format(toDate(value));
+  return format(value, { weekday: "short", day: "numeric", month: "short" });
 }
-
 export function formatCountdown(value: string | Date) {
-  const target = toDate(value).getTime();
-  const delta = target - Date.now();
-  const past = delta <= 0;
-  const remaining = Math.max(0, delta);
-  const hours = Math.floor(remaining / (1000 * 60 * 60));
-  const minutes = Math.floor((remaining / (1000 * 60)) % 60);
-
-  if (hours <= 0 && minutes <= 0) {
-    return past ? "LIVE" : "NOW";
-  }
-
-  if (hours <= 0) {
-    return `${minutes}M`;
-  }
-
-  return `${hours}H ${minutes.toString().padStart(2, "0")}M`;
-}
-
-export function formatRelativePast(value: string | Date) {
-  const delta = Date.now() - toDate(value).getTime();
-  const minutes = Math.floor(delta / (1000 * 60));
+  const date = toDate(value);
+  if (!date || Number.isNaN(date.getTime())) return "Date unavailable";
+  const delta = date.getTime() - Date.now();
+  if (delta < 0) return "Overdue";
+  const minutes = Math.ceil(delta / 60_000);
+  if (minutes < 1) return "Due now";
+  if (minutes < 60) return `In ${minutes}m`;
   const hours = Math.floor(minutes / 60);
-  const days = Math.floor(hours / 24);
-
-  if (minutes < 1) {
-    return "JUST NOW";
-  }
-  if (hours < 1) {
-    return `${minutes}M AGO`;
-  }
-  if (days < 1) {
-    return `${hours}H AGO`;
-  }
-  return `${days}D AGO`;
+  if (hours >= 24) return `In ${Math.floor(hours / 24)}d ${hours % 24}h`;
+  return `In ${hours}h ${minutes % 60}m`;
 }
-
+export function formatRelativePast(value: string | Date) {
+  const date = toDate(value);
+  if (!date) return "Date unavailable";
+  const minutes = Math.floor((Date.now() - date.getTime()) / 60_000);
+  if (minutes < 1) return "Just now";
+  if (minutes < 60) return `${minutes}m ago`;
+  if (minutes < 1440) return `${Math.floor(minutes / 60)}h ago`;
+  return `${Math.floor(minutes / 1440)}d ago`;
+}
 export function formatProgress(completed: number, total: number) {
-  if (!total) {
-    return 0;
-  }
-
-  return Math.round((completed / total) * 100);
+  return total ? Math.round(completed / total * 100) : 0;
+}
+export function localTimeZone() {
+  return Intl.DateTimeFormat().resolvedOptions().timeZone;
 }

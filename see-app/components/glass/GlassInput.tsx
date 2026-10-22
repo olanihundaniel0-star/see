@@ -1,51 +1,18 @@
 import { forwardRef, useState } from "react";
-import { Text, TextInput, View, type TextInputProps } from "react-native";
+import { TextInput, View, type TextInputProps } from "react-native";
+import { theme } from "@/constants/theme";
+import { AppText } from "@/components/ui/primitives";
 
-type Props = TextInputProps & {
-  label?: string;
-  /** When true, renders a trailing monospace "_" block cursor affordance. */
-  trailingCursor?: boolean;
-};
-
-export const GlassInput = forwardRef<any, Props>(function GlassInput(
-  { label, maxLength = 5000, trailingCursor = false, className = "", onFocus, onBlur, style, ...props },
-  ref
+type Props = TextInputProps & { label?: string; helper?: string; error?: string; trailingCursor?: boolean };
+export const GlassInput = forwardRef<TextInput, Props>(function GlassInput(
+  { label, helper, error, maxLength = 5000, trailingCursor: _trailingCursor, onFocus, onBlur, style, ...props }, ref
 ) {
   const [focused, setFocused] = useState(false);
-  return (
-    <View className="gap-2">
-      {label ? <TextInputLabel label={label} /> : null}
-      <View className="relative justify-center">
-        <TextInput
-          ref={ref}
-          maxLength={maxLength}
-          className={`rounded border border-white/[0.12] bg-zinc-950/70 px-3 py-3 pr-8 font-mono text-white placeholder:text-[#52525B] focus:border-white/40 ${className}`}
-          placeholderTextColor="#52525B"
-          style={[{ borderColor: focused ? "rgba(255, 255, 255, 0.40)" : "rgba(255, 255, 255, 0.12)" }, style]}
-          onFocus={(e) => {
-            setFocused(true);
-            onFocus?.(e);
-          }}
-          onBlur={(e) => {
-            setFocused(false);
-            onBlur?.(e);
-          }}
-          {...props}
-        />
-        {trailingCursor ? (
-          <Text pointerEvents="none" className="absolute right-3 font-mono text-white">
-            _
-          </Text>
-        ) : null}
-      </View>
-    </View>
-  );
+  return <View style={{ gap: 8 }}>
+    {label ? <AppText variant="label">{label}</AppText> : null}
+    <TextInput ref={ref} maxLength={maxLength} accessibilityLabel={label ?? props.placeholder} placeholderTextColor={theme.colors.placeholder} selectionColor={theme.colors.primary}
+      {...props} style={[theme.type.body, { color: theme.colors.text, minHeight: 48, borderRadius: theme.radius.controls, borderWidth: 1, borderColor: error ? theme.colors.error : focused ? theme.colors.borderFocusStrong : theme.colors.borderInput, backgroundColor: theme.colors.surfaceLowest, paddingHorizontal: 12, paddingVertical: 12, textAlignVertical: props.multiline ? "top" : "center" }, style]}
+      onFocus={e => { setFocused(true); onFocus?.(e); }} onBlur={e => { setFocused(false); onBlur?.(e); }} />
+    {error || helper ? <AppText variant="meta" muted={!error} danger={!!error} accessibilityLiveRegion={error ? "polite" : undefined}>{error ?? helper}</AppText> : null}
+  </View>;
 });
-
-function TextInputLabel({ label }: { label: string }) {
-  return (
-    <View className="px-1">
-      <Text className="font-mono-bold text-[10px] leading-[12px] tracking-[0.08em] text-[#8f9194]">{label}</Text>
-    </View>
-  );
-}

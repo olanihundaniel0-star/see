@@ -1,29 +1,9 @@
-import { ReactNode } from "react";
-import { Text, View, type ViewProps } from "react-native";
-
-type Props = ViewProps & {
-  label: string;
-  value?: string | number;
-  tone?: "default" | "active" | "danger";
-  children?: ReactNode;
-};
-
-const toneClasses = {
-  default: "border-white/[0.15] bg-white/[0.05]",
-  active: "border-white/[0.14] bg-zinc-900/60",
-  danger: "border-[#ffb4ab]/40 bg-[#ffb4ab]/10"
-} as const;
-
-export function GlassPill({ label, value, tone = "default", children, className = "", ...props }: Props) {
-  return (
-    <View className={`rounded border px-3 py-2 ${toneClasses[tone]} ${className}`} {...props}>
-      <Text className="font-mono text-[10px] tracking-[0.08em] text-[#c5c6ca]">{label}</Text>
-      {value !== undefined ? (
-        <Text className={`mt-1 font-mono-bold text-sm ${tone === "danger" ? "text-[#ffb4ab]" : "text-white"}`}>
-          {value}
-        </Text>
-      ) : null}
-      {children}
-    </View>
-  );
+import { View, type ViewProps } from "react-native";
+import { AppText } from "@/components/ui/primitives";
+import { theme } from "@/constants/theme";
+type Props = ViewProps & { label: string; value?: string | number; tone?: "default" | "active" | "danger" };
+export function GlassPill({ label, value, tone = "default", children, style, ...props }: Props) {
+  return <View {...props} style={[{ padding: 12, gap: 4, borderRadius: theme.radius.controls, backgroundColor: theme.colors.surfaceHigh }, style]}>
+    <AppText variant="meta" muted>{label}</AppText>{value !== undefined ? <AppText variant="label" danger={tone === "danger"}>{value}</AppText> : null}{children}
+  </View>;
 }

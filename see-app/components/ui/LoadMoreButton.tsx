@@ -1,21 +1,4 @@
-import { Pressable, Text } from "react-native";
-
-type Props = {
-  onPress: () => void;
-  busy?: boolean;
-  label?: string;
-};
-
-export function LoadMoreButton({ onPress, busy, label = "[ LOAD MORE ]" }: Props) {
-  return (
-    <Pressable
-      disabled={busy}
-      onPress={onPress}
-      className="rounded-xl border border-white/20 bg-white px-4 py-4 disabled:opacity-60"
-    >
-      <Text className="text-center font-mono-bold text-[12px] tracking-[0.08em] text-black">
-        {busy ? "[ LOADING MORE... ]" : label}
-      </Text>
-    </Pressable>
-  );
+import { Button } from "./primitives";
+export function LoadMoreButton({ onPress, busy, label = "Load more" }: { onPress: () => void; busy?: boolean; label?: string }) {
+  return <Button onPress={onPress} busy={busy} label={busy ? "Loading…" : label} variant="secondary" />;
 }

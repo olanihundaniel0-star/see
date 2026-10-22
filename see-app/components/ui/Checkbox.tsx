@@ -1,31 +1,9 @@
-import * as Haptics from "expo-haptics";
-import { Pressable, Text, View } from "react-native";
-
-type Props = {
-  checked: boolean;
-  label: string;
-  onChange: (checked: boolean) => void;
-};
-
-export function Checkbox({ checked, label, onChange }: Props) {
-  return (
-    <Pressable
-      onPress={async () => {
-        await Haptics.selectionAsync();
-        onChange(!checked);
-      }}
-      className="flex-row items-start gap-3 rounded border border-white/[0.08] bg-[#2a2a2a]/60 px-3 py-3 active:scale-[0.99]"
-    >
-      <View
-        className={`mt-0.5 h-4 w-4 items-center justify-center rounded-[2px] border ${
-          checked ? "border-white bg-white" : "border-white/20 bg-black/60"
-        }`}
-      >
-        {checked ? <Text className="font-mono text-[10px] leading-[12px] text-black">✓</Text> : null}
-      </View>
-      <Text className={`flex-1 font-mono text-sm ${checked ? "text-[#8f9194] line-through" : "text-white"}`}>
-        {label}
-      </Text>
-    </Pressable>
-  );
+import { Pressable, View } from "react-native";
+import { theme } from "@/constants/theme";
+import { AppText, Icon } from "./primitives";
+export function Checkbox({ checked, label, onChange, disabled }: { checked: boolean; label: string; onChange: (checked: boolean) => void; disabled?: boolean }) {
+  return <Pressable accessibilityRole="checkbox" accessibilityLabel={label} accessibilityState={{ checked, disabled }} disabled={disabled} onPress={() => onChange(!checked)} style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", minHeight: 48, gap: 12, paddingVertical: 12, opacity: disabled ? 0.5 : pressed ? 0.7 : 1 })}>
+    <View style={{ width: 22, height: 22, borderWidth: 1, borderColor: theme.colors.outline, borderRadius: 4, alignItems: "center", justifyContent: "center", backgroundColor: checked ? theme.colors.primary : "transparent" }}>{checked ? <Icon name="check" size={16} color={theme.colors.background} /> : null}</View>
+    <AppText style={{ flex: 1, textDecorationLine: checked ? "line-through" : "none" }} muted={checked}>{label}</AppText>
+  </Pressable>;
 }
