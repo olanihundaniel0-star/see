@@ -1,450 +1,102 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Alert, Linking, Pressable, ScrollView, Text, TextInput, View } from "react-native";
-import { Stack, router, useLocalSearchParams } from "expo-router";
-import * as Haptics from "expo-haptics";
-
+import { useEffect, useRef, useState } from "react";
+import { Alert, Linking, ScrollView, View } from "react-native";
+import { router, useLocalSearchParams } from "expo-router";
 import { GlassCard } from "@/components/glass/GlassCard";
 import { GlassInput } from "@/components/glass/GlassInput";
 import { Checkbox } from "@/components/ui/Checkbox";
-import { AsciiBanner } from "@/components/ui/AsciiBanner";
-import { theme } from "@/constants/theme";
-import { DATETIME_INPUT_PLACEHOLDER, parseDateTimeInput, toDateTimeInput } from "@/lib/datetime";
-import { formatProgress, formatShortDateTime } from "@/lib/format";
-import {
-  JobStatus,
-  useCreateChecklist,
-  useDeleteJob,
-  useJob,
-  useToggleChecklist,
-  useUpdateJob
-} from "@/lib/queries";
+import { DateTimeField } from "@/components/ui/DateTimeField";
+import { ProgressBar } from "@/components/ui/ProgressBar";
+import { ScreenState } from "@/components/ui/ScreenState";
+import { AppText, Badge, Button, Chip, Screen, ScreenHeader, SectionHeading, styles } from "@/components/ui/primitives";
+import { formatProgress, formatShortDateTime, localTimeZone } from "@/lib/format";
+import { type JobStatus, useCreateChecklist, useDeleteJob, useJob, useToggleChecklist, useUpdateJob } from "@/lib/queries";
+import { useUnsavedChanges } from "@/lib/useUnsavedChanges";
 
-const stageNodes: JobStatus[] = ["bookmarked", "applied", "assessment", "interviewing", "offer"];
-const terminalStatuses: JobStatus[] = ["rejected", "archived"];
-
-function isTerminal(status: JobStatus): boolean {
-  return terminalStatuses.includes(status);
-}
-
-function nextStage(status: JobStatus): JobStatus {
-  if (isTerminal(status)) {
-    return status;
-  }
-  const index = stageNodes.indexOf(status);
-  return stageNodes[Math.min(index + 1, stageNodes.length - 1)];
-}
-
-function stageIndex(status: JobStatus) {
-  return stageNodes.indexOf(status);
-}
-
-const OPENABLE_URL_RE = /^https?:\/\//i;
-function isOpenableUrl(value: unknown): value is string {
-  return typeof value === "string" && OPENABLE_URL_RE.test(value.trim());
-}
-
-async function openExternalUrl(url: string, failureTitle: string) {
-  if (!isOpenableUrl(url)) {
-    Alert.alert(failureTitle, "The link for this item is invalid.");
-    return;
-  }
-  const trimmed = url.trim();
-  try {
-    const supported = await Linking.canOpenURL(trimmed);
-    if (!supported) {
-      Alert.alert(failureTitle, "No app can open this link on this device.");
-      return;
-    }
-    await Linking.openURL(trimmed);
-  } catch (error) {
-    Alert.alert(failureTitle, error instanceof Error ? error.message : "The link could not be opened.");
-  }
-}
-
+const statuses: { value: JobStatus; label: string }[] = [
+  { value: "bookmarked", label: "Saved" }, { value: "applied", label: "Applied" },
+  { value: "assessment", label: "Assessment" }, { value: "interviewing", label: "Interview" },
+  { value: "offer", label: "Offer" }, { value: "rejected", label: "Rejected" }, { value: "archived", label: "Archived" }
+];
 export default function JobDossierScreen() {
-  const params = useLocalSearchParams<{ id: string }>();
-  const jobId = typeof params.id === "string" ? params.id : Array.isArray(params.id) ? params.id[0] : undefined;
-  const { data: job, isLoading, error } = useJob(jobId);
-  const updateJob = useUpdateJob();
-  const toggleChecklist = useToggleChecklist(jobId);
-  const createChecklist = useCreateChecklist(jobId);
-  const deleteJob = useDeleteJob();
-  const [newChecklist, setNewChecklist] = useState("");
-  const [scratchpad, setScratchpad] = useState("");
-  const [interviewAt, setInterviewAt] = useState("");
-  const [assessmentAt, setAssessmentAt] = useState("");
-  const [followUpAt, setFollowUpAt] = useState("");
-
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const jobId = Array.isArray(id) ? id[0] : id;
+  const { data: job, isLoading, error, refetch } = useJob(jobId);
+  const update = useUpdateJob();
+  const toggle = useToggleChecklist(jobId);
+  const create = useCreateChecklist(jobId);
+  const remove = useDeleteJob();
+  const [newTask, setNewTask] = useState("");
+  const [notes, setNotes] = useState("");
+  const [schedule, setSchedule] = useState({ deadline: "", interview_at: "", assessment_at: "", follow_up_at: "" });
+  const [status, setStatus] = useState<JobStatus>("applied");
+  const [editing, setEditing] = useState(false);
+  const [details, setDetails] = useState({ company: "", role: "", location: "", salary_range: "", job_url: "" });
+  const [deleted, setDeleted] = useState(false);
   const initialized = useRef<string | null>(null);
   useEffect(() => {
-    if (job && initialized.current !== job.id) {
-      initialized.current = job.id;
-      setScratchpad(job.interview_notes ?? "");
-      setInterviewAt(toDateTimeInput(job.interview_at));
-      setAssessmentAt(toDateTimeInput(job.assessment_at));
-      setFollowUpAt(toDateTimeInput(job.follow_up_at));
-    }
+    if (!job || initialized.current === job.id) return;
+    initialized.current = job.id;
+    setNotes(job.interview_notes ?? "");
+    setStatus(job.status);
+    setSchedule({ deadline: job.deadline ?? "", interview_at: job.interview_at ?? "", assessment_at: job.assessment_at ?? "", follow_up_at: job.follow_up_at ?? "" });
+    setDetails({ company: job.company, role: job.role, location: job.location ?? "", salary_range: job.salary_range ?? "", job_url: job.job_url ?? "" });
   }, [job]);
-
-  const items = job?.checklists ?? [];
-  const completed = items.filter((item) => item.is_completed).length;
-  const progress = formatProgress(completed, items.length);
-  const activeStage = job && !isTerminal(job.status) ? stageIndex(job.status) : -1;
-  const deadline = job?.deadline ? formatShortDateTime(job.deadline).toUpperCase() : "NO DEADLINE";
-  const syncEpoch = job?.updated_at ? Math.floor(new Date(job.updated_at).getTime() / 1000) : 0;
-
-  const summaryRows = useMemo(
-    () => [
-      { label: "LOCATION", value: (job?.location ?? "REMOTE").toUpperCase() },
-      { label: "COMP_BAND", value: (job?.salary_range ?? "N/A").toUpperCase() },
-      { label: "APPLIED", value: job?.applied_at ? formatShortDateTime(job.applied_at).toUpperCase() : "N/A" },
-      { label: "UPDATED", value: job?.updated_at ? formatShortDateTime(job.updated_at).toUpperCase() : "N/A" },
-      { label: "PORTAL", value: (job?.job_url ?? "N/A").toUpperCase() },
-      { label: "DEADLINE", value: deadline }
-    ],
-    [job, deadline]
-  );
-
-  return (
-    <>
-      <Stack.Screen options={{ title: "Application Dossier" }} />
-      <ScrollView className="flex-1 bg-black" contentContainerClassName="px-4 pb-28 pt-4">
-        <View className="gap-3">
-          <AsciiBanner title={theme.ascii.dossier} subtitle={job ? `Application ${job.company}` : "Application dossier"} right="[DOSSIER]" />
-
-          {job ? (
-            <View className="flex-row items-center justify-between rounded-lg bg-[#0e0e0e] px-3 py-2">
-              <View className="min-w-0 flex-1 flex-row items-center gap-2">
-                <View className="h-2 w-2 shrink-0 rounded-full bg-white opacity-90" />
-                <Text className="font-mono text-[10px] tracking-[0.08em] text-white" numberOfLines={1}>
-                  {"// DOSSIER: "}
-                  {job.company.toUpperCase()}
-                </Text>
-              </View>
-              <View className="flex-row items-center gap-2">
-                <Text className="font-mono text-[10px] tracking-[0.08em] text-[#c5c6ca]">
-                  SYNC_EPOCH: {syncEpoch}
-                </Text>
-                <Text className="font-mono text-[10px] tracking-[0.08em] text-white">[LIVE]</Text>
-              </View>
-            </View>
-          ) : null}
-
-          {error ? (
-            <GlassCard className="gap-3">
-              <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">{"// DOSSIER_ERROR"}</Text>
-              <Text className="text-xl font-sans-bold text-white">Unable to load this job.</Text>
-              <Text className="font-mono text-[11px] text-[#c5c6ca]">The backend did not return a dossier for this id.</Text>
-            </GlassCard>
-          ) : null}
-
-          {job ? (
-            <>
-              <GlassCard className="gap-3">
-                <View className="flex-row items-center justify-between">
-                  <Text className="font-mono text-[10px] tracking-[0.16em] text-[#8f9194]">{"// LIFECYCLE_STAGE"}</Text>
-                  <Text className="font-mono text-[10px] tracking-[0.08em] text-white">
-                    {isTerminal(job.status)
-                      ? `[${job.status.toUpperCase()}]`
-                      : `[STAGE ${activeStage + 1}/${stageNodes.length}]`}
-                  </Text>
-                </View>
-
-                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                  <View className="min-w-full flex-row items-center">
-                    {stageNodes.map((stage, index) => {
-                      const isDone = index < activeStage;
-                      const isActive = index === activeStage;
-                      return (
-                        <View key={stage} className="flex-row items-center">
-                          <View className="items-center gap-1">
-                            <Text
-                              className={`font-mono text-[10px] tracking-[0.08em] ${
-                                isActive
-                                  ? "rounded bg-[#353535] px-2 py-0.5 text-white"
-                                  : isDone
-                                    ? "text-[#8f9194] line-through opacity-70"
-                                    : "text-[#8f9194] opacity-40"
-                              }`}
-                            >
-                              {isActive ? `● ${stage.toUpperCase()}` : `[${stage.toUpperCase()}]`}
-                            </Text>
-                            <View
-                              className={`h-1.5 w-1.5 rounded-full ${isActive ? "bg-white" : isDone ? "bg-[#8f9194]" : "bg-[#353535]"}`}
-                            />
-                          </View>
-                          {index < stageNodes.length - 1 ? (
-                            <View className="mx-1 h-px w-6 bg-[#353535]" />
-                          ) : null}
-                        </View>
-                      );
-                    })}
-                  </View>
-                </ScrollView>
-
-                <View className="flex-row items-start justify-between gap-3">
-                  <View className="flex-1 gap-1">
-                    <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">{job.company.toUpperCase()}</Text>
-                    <Text className="font-sans-bold text-2xl tracking-tight text-white">{job.role}</Text>
-                  </View>
-                  <View className="shrink-0 flex-row items-center gap-1.5 rounded-full bg-[#353535]/90 px-3 py-1">
-                    <View className="h-1.5 w-1.5 rounded-full bg-white opacity-90" />
-                    <Text className="font-mono text-[10px] tracking-[0.08em] text-white">
-                      [ {job.status.toUpperCase()} ]
-                    </Text>
-                  </View>
-                </View>
-
-                <View className="gap-1">
-                  <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">CHECKLIST_PROGRESS</Text>
-                  <Text className="font-mono text-[11px] tracking-[0.08em] text-white">
-                    [{Math.min(completed, items.length).toString().padStart(2, "0")}/{items.length.toString().padStart(2, "0")}] {progress}%
-                  </Text>
-                </View>
-              </GlassCard>
-
-              <GlassCard className="gap-3">
-                <Text className="font-mono text-[10px] tracking-[0.16em] text-[#8f9194]">{"// METADATA_MATRIX"}</Text>
-                <View className="flex-row flex-wrap gap-2">
-                  {summaryRows.map((row) => (
-                    <View key={row.label} className="basis-[48%] flex-1 gap-1 rounded-lg bg-[#2a2a2a] p-3">
-                      <Text className="font-mono text-[9px] tracking-[0.16em] text-[#8f9194]">{row.label}</Text>
-                      <Text
-                        className="font-mono text-[11px] tracking-[0.08em] text-white"
-                        numberOfLines={1}
-                      >
-                        {row.value}
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-                {job.job_url ? (
-                  <Pressable
-                    disabled={!isOpenableUrl(job.job_url)}
-                    onPress={async () => {
-                      await Haptics.selectionAsync();
-                      await openExternalUrl(job.job_url ?? "", "Unable to open job posting");
-                    }}
-                    className={`rounded-lg border border-white/10 bg-[#2a2a2a] px-3 py-2 ${isOpenableUrl(job.job_url) ? "" : "opacity-40"}`}
-                  >
-                    <Text className="text-center font-mono text-[10px] tracking-[0.08em] text-white">[OPEN JOB POSTING]</Text>
-                  </Pressable>
-                ) : null}
-              </GlassCard>
-
-              <GlassCard className="gap-3">
-                <View className="flex-row items-center justify-between">
-                  <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">{"// MILESTONE_SCHEDULE"}</Text>
-                  <Text className="rounded bg-[#353535] px-2 py-0.5 font-mono text-[10px] tracking-[0.08em] text-white">
-                    [LOCAL TIME]
-                  </Text>
-                </View>
-                <Text className="font-mono text-[10px] leading-4 text-[#8f9194]">
-                  Future milestones schedule push and local alerts. Leave a field blank to clear it.
-                </Text>
-                <GlassInput
-                  placeholder={`Interview · ${DATETIME_INPUT_PLACEHOLDER}`}
-                  value={interviewAt}
-                  onChangeText={setInterviewAt}
-                  autoCapitalize="none"
-                />
-                <GlassInput
-                  placeholder={`Assessment · ${DATETIME_INPUT_PLACEHOLDER}`}
-                  value={assessmentAt}
-                  onChangeText={setAssessmentAt}
-                  autoCapitalize="none"
-                />
-                <GlassInput
-                  placeholder={`Follow-up · ${DATETIME_INPUT_PLACEHOLDER}`}
-                  value={followUpAt}
-                  onChangeText={setFollowUpAt}
-                  autoCapitalize="none"
-                />
-                <Pressable
-                  disabled={updateJob.isPending}
-                  onPress={async () => {
-                    await Haptics.selectionAsync();
-                    let milestones: { interview_at: string | null; assessment_at: string | null; follow_up_at: string | null };
-                    try {
-                      milestones = {
-                        interview_at: parseDateTimeInput(interviewAt),
-                        assessment_at: parseDateTimeInput(assessmentAt),
-                        follow_up_at: parseDateTimeInput(followUpAt)
-                      };
-                    } catch (error) {
-                      Alert.alert(
-                        "Invalid milestone",
-                        error instanceof Error
-                          ? `${error.message}\nUse ${DATETIME_INPUT_PLACEHOLDER}.`
-                          : `Use ${DATETIME_INPUT_PLACEHOLDER}.`
-                      );
-                      return;
-                    }
-                    try {
-                      await updateJob.mutateAsync({ id: job.id, data: milestones });
-                      Alert.alert("Milestones saved", "Future deadlines are now scheduled for alerts.");
-                    } catch (error) {
-                      Alert.alert("Save failed", error instanceof Error ? error.message : "Please retry.");
-                    }
-                  }}
-                  className="rounded-lg bg-[#353535] px-3 py-2 disabled:opacity-60 active:scale-[0.98]"
-                >
-                  <Text className="text-center font-mono text-[10px] tracking-[0.08em] text-white">
-                    {updateJob.isPending ? "[SAVING]" : "[SAVE MILESTONES]"}
-                  </Text>
-                </Pressable>
-              </GlassCard>
-
-              <GlassCard className="gap-3">
-                <View className="flex-row items-center justify-between">
-                  <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">{"// PREPARATION_CHECKLIST"}</Text>
-                  <Text className="rounded bg-[#353535] px-2 py-0.5 font-mono text-[10px] tracking-[0.08em] text-white">
-                    [{completed}/{items.length} COMPLETED]
-                  </Text>
-                </View>
-                <View className="gap-2">
-                  {items.map((item) => (
-                    <Checkbox
-                      key={item.id}
-                      checked={item.is_completed}
-                      label={item.title}
-                      onChange={(next) => {
-                        void toggleChecklist.mutateAsync({ checklistId: item.id, isCompleted: next });
-                      }}
-                    />
-                  ))}
-                </View>
-
-                <View className="gap-2">
-                  <GlassInput
-                    placeholder="Add checklist item"
-                    value={newChecklist}
-                    onChangeText={setNewChecklist}
-                  />
-                  <Pressable
-                    disabled={createChecklist.isPending || !newChecklist.trim()}
-                    onPress={async () => {
-                      await Haptics.selectionAsync();
-                      await createChecklist.mutateAsync(newChecklist.trim());
-                      setNewChecklist("");
-                    }}
-                    className="rounded-lg bg-[#353535] px-3 py-2 disabled:opacity-60 active:scale-[0.98]"
-                  >
-                    <Text className="text-center font-mono text-[10px] tracking-[0.08em] text-white">
-                      {createChecklist.isPending ? "[ADDING]" : "[+ ADD SUBTASK]"}
-                    </Text>
-                  </Pressable>
-                </View>
-              </GlassCard>
-
-              <GlassCard className="gap-3">
-                <View className="flex-row items-center justify-between">
-                  <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">{"// SCRATCHPAD"}</Text>
-                  <Text className="rounded bg-[#353535] px-2 py-0.5 font-mono text-[10px] tracking-[0.08em] text-white">
-                    [MD]
-                  </Text>
-                </View>
-                <TextInput
-                  multiline
-                  value={scratchpad}
-                  onChangeText={setScratchpad}
-                  className="min-h-[180px] rounded-lg border border-white/10 bg-zinc-950/80 px-3 py-3 font-mono text-sm text-white"
-                  textAlignVertical="top"
-                  placeholderTextColor="#52525B"
-                />
-                <View className="h-px bg-white/10" />
-                <View className="flex-row items-center justify-between">
-                  <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">
-                    CHARS: {scratchpad.length}
-                  </Text>
-                  <Pressable
-                    disabled={updateJob.isPending}
-                    onPress={async () => {
-                      await Haptics.selectionAsync();
-                      await updateJob.mutateAsync({
-                        id: job.id,
-                        data: {
-                          interview_notes: scratchpad
-                        }
-                      });
-                    }}
-                    className="rounded-full bg-[#2a2a2a] px-3 py-1 disabled:opacity-60 active:scale-95"
-                  >
-                    <Text className="text-center font-mono text-[10px] tracking-[0.08em] text-white">
-                      {updateJob.isPending ? "[SAVING]" : "[SAVE_BUFFER]"}
-                    </Text>
-                  </Pressable>
-                </View>
-              </GlassCard>
-
-              <GlassCard className="gap-2">
-                <Text className="font-mono text-[10px] tracking-[0.16em] text-[#8f9194]">{"// ACTION_STACK"}</Text>
-                <Pressable
-                  disabled={updateJob.isPending}
-                  onPress={async () => {
-                    await Haptics.selectionAsync();
-                    await updateJob.mutateAsync({
-                      id: job.id,
-                      data: { status: nextStage(job.status) }
-                    });
-                  }}
-                  className="rounded-lg bg-white px-3 py-3 disabled:opacity-60 active:scale-[0.98]"
-                >
-                  <Text className="text-center font-mono-bold text-[11px] tracking-[0.08em] text-black">
-                    [UPDATE STAGE -&gt; {nextStage(job.status).toUpperCase()}]
-                  </Text>
-                </Pressable>
-                <Pressable
-                  disabled={updateJob.isPending}
-                  onPress={async () => {
-                    await Haptics.selectionAsync();
-                    await updateJob.mutateAsync({
-                      id: job.id,
-                      data: { status: "archived" }
-                    });
-                  }}
-                  className="rounded-lg border border-[#ffb4ab]/30 bg-[#93000a]/30 px-3 py-3 disabled:opacity-60 active:scale-[0.98]"
-                >
-                  <Text className="text-center font-mono-bold text-[11px] tracking-[0.08em] text-[#ffb4ab]">
-                    [ARCHIVE]
-                  </Text>
-                </Pressable>
-                <Pressable
-                  disabled={deleteJob.isPending}
-                  onPress={async () => {
-                    await Haptics.selectionAsync();
-                    Alert.alert("Delete this job?", `${job.company} · ${job.role}`, [
-                      { text: "Cancel", style: "cancel" },
-                      {
-                        text: "Delete",
-                        style: "destructive",
-                        onPress: () => {
-                          void deleteJob.mutateAsync(job.id).then(() => router.back()).catch(error => Alert.alert("Delete failed", error.message));
-                        }
-                      }
-                    ]);
-                  }}
-                  className="rounded-lg border border-white/10 bg-zinc-950/70 px-3 py-3 disabled:opacity-60"
-                >
-                  <Text className="text-center font-mono text-[10px] tracking-[0.08em] text-white">
-                    [DELETE DOSSIER]
-                  </Text>
-                </Pressable>
-              </GlassCard>
-            </>
-          ) : null}
-
-          {!job && !isLoading && !error ? (
-            <GlassCard className="gap-3">
-              <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">{"// NOT_FOUND"}</Text>
-              <Text className="text-xl font-sans-bold text-white">This dossier no longer exists.</Text>
-              <Pressable onPress={() => router.back()} className="rounded-lg border border-white/20 bg-white px-3 py-2">
-                <Text className="text-center font-mono-bold text-[10px] text-black">[RETURN]</Text>
-              </Pressable>
-            </GlassCard>
-          ) : null}
+  const detailsDirty = !!job && (details.company !== job.company || details.role !== job.role || details.location !== (job.location ?? "") || details.salary_range !== (job.salary_range ?? "") || details.job_url !== (job.job_url ?? ""));
+  const scheduleDirty = !!job && (Object.keys(schedule) as (keyof typeof schedule)[]).some(key => {
+    const savedValue = job[key];
+    return schedule[key] ? !savedValue || new Date(schedule[key]).getTime() !== new Date(savedValue).getTime() : !!savedValue;
+  });
+  useUnsavedChanges(!deleted && !!job && (detailsDirty || scheduleDirty || notes !== (job.interview_notes ?? "") || status !== job.status || !!newTask.trim()), update.isPending || create.isPending || remove.isPending);
+  useEffect(() => { if (deleted) router.back(); }, [deleted]);
+  const completed = job?.checklists.filter(item => item.is_completed).length ?? 0;
+  return <Screen form>
+    <ScreenHeader title="Application" back account={false} />
+    {isLoading ? <ScreenState loading title="Loading" message="" /> : error ? <ScreenState title="Application unavailable" message="We couldn’t load this application." label="Retry" onPress={() => void refetch()} /> : !job ? <ScreenState title="Application not found" message="It may have been deleted." label="Back to jobs" onPress={() => router.replace("/(tabs)/jobs")} /> : <>
+      <GlassCard>
+        <AppText variant="heading">{job.company}</AppText>
+        <AppText variant="title">{job.role}</AppText>
+        <View style={styles.row}><Badge label={statuses.find(item => item.value === job.status)?.label ?? job.status} />{job.location ? <AppText muted>{job.location}</AppText> : null}</View>
+        {job.salary_range ? <AppText muted>{job.salary_range}</AppText> : null}
+        <AppText variant="meta" muted>Applied {formatShortDateTime(job.applied_at)}</AppText>
+        <View style={styles.row}>
+          {job.job_url ? <Button label="Job posting" icon="external-link" variant="secondary" onPress={() => {
+            if (!/^https?:\/\//i.test(job.job_url ?? "")) { Alert.alert("Invalid link", "Edit the application to add a valid web address."); return; }
+            void Linking.openURL(job.job_url!).catch(() => Alert.alert("Couldn’t open link", "Please check the job posting address."));
+          }} /> : null}
+          <Button label={editing ? "Close details" : "Edit details"} variant="ghost" onPress={() => setEditing(!editing)} />
         </View>
-      </ScrollView>
-    </>
-  );
+        {editing ? <>
+          <GlassInput editable={!update.isPending && !create.isPending} label="Company *" value={details.company} onChangeText={company => setDetails(current => ({ ...current, company }))} maxLength={150} />
+          <GlassInput editable={!update.isPending && !create.isPending} label="Role *" value={details.role} onChangeText={role => setDetails(current => ({ ...current, role }))} maxLength={150} />
+          <GlassInput editable={!update.isPending && !create.isPending} label="Location" value={details.location} onChangeText={location => setDetails(current => ({ ...current, location }))} maxLength={150} />
+          <GlassInput editable={!update.isPending && !create.isPending} label="Compensation" value={details.salary_range} onChangeText={salary_range => setDetails(current => ({ ...current, salary_range }))} maxLength={100} />
+          <GlassInput editable={!update.isPending && !create.isPending} label="Job posting URL" value={details.job_url} onChangeText={job_url => setDetails(current => ({ ...current, job_url }))} keyboardType="url" autoCapitalize="none" maxLength={2048} />
+          <Button label="Save details" busy={update.isPending} disabled={!details.company.trim() || !details.role.trim()} onPress={() => {
+            if (details.job_url.trim() && !/^https?:\/\//i.test(details.job_url.trim())) { Alert.alert("Check the web address", "Use a link beginning with https:// or http://."); return; }
+            update.mutate({ id: job.id, data: { company: details.company.trim(), role: details.role.trim(), location: details.location.trim() || null, salary_range: details.salary_range.trim() || null, job_url: details.job_url.trim() || null } }, { onSuccess: () => { setDetails(current => ({ company: current.company.trim(), role: current.role.trim(), location: current.location.trim(), salary_range: current.salary_range.trim(), job_url: current.job_url.trim() })); setEditing(false); } });
+          }} />
+        </> : null}
+      </GlassCard>
+      <SectionHeading title="Application stage" />
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>{statuses.map(item => <Chip key={item.value} label={item.label} selected={status === item.value} onPress={() => setStatus(item.value)} />)}</ScrollView>
+      {status !== job.status ? <Button label="Update stage" busy={update.isPending} onPress={() => update.mutate({ id: job.id, data: { status } })} /> : null}
+      <SectionHeading title="Dates and milestones" />
+      <AppText variant="meta" muted>Local time · {localTimeZone()}</AppText>
+      {([{ key: "deadline", label: "Application deadline" }, { key: "interview_at", label: "Interview" }, { key: "assessment_at", label: "Assessment" }, { key: "follow_up_at", label: "Follow-up" }] as const).map(field => <DateTimeField disabled={update.isPending} key={field.key} label={field.label} value={schedule[field.key]} onChange={value => setSchedule(current => ({ ...current, [field.key]: value }))} />)}
+      <Button label="Save dates" busy={update.isPending} onPress={() => update.mutate({ id: job.id, data: { deadline: schedule.deadline || null, interview_at: schedule.interview_at || null, assessment_at: schedule.assessment_at || null, follow_up_at: schedule.follow_up_at || null } }, { onSuccess: () => Alert.alert("Dates saved", "Your milestone reminders have been updated.") })} />
+      <SectionHeading title="Preparation" detail={`${completed} of ${job.checklists.length} done`} />
+      {job.checklists.length ? <ProgressBar value={formatProgress(completed, job.checklists.length)} /> : <AppText muted>Add the steps you want to finish before your next interview.</AppText>}
+      <View>{job.checklists.map(item => <Checkbox key={item.id} checked={item.is_completed} label={item.title} disabled={toggle.isPending} onChange={isCompleted => toggle.mutate({ checklistId: item.id, isCompleted })} />)}</View>
+      <GlassInput editable={!update.isPending && !create.isPending} label="New preparation task" placeholder="What needs to be done?" value={newTask} onChangeText={setNewTask} maxLength={255} />
+      <Button label="Add task" icon="plus" variant="secondary" busy={create.isPending} disabled={!newTask.trim()} onPress={() => create.mutate(newTask.trim(), { onSuccess: () => setNewTask("") })} />
+      <SectionHeading title="Interview notes" />
+      <GlassInput editable={!update.isPending && !create.isPending} accessibilityLabel="Interview notes" placeholder="Questions, preparation, and follow-up notes…" multiline value={notes} onChangeText={setNotes} maxLength={20000} style={{ minHeight: 200 }} />
+      <Button label="Save notes" busy={update.isPending} onPress={() => update.mutate({ id: job.id, data: { interview_notes: notes } }, { onSuccess: () => Alert.alert("Notes saved") })} />
+      <View style={styles.divider} />
+      <View style={styles.row}>
+        {job.status !== "archived" ? <Button label="Archive application" variant="secondary" disabled={update.isPending} onPress={() => Alert.alert("Archive application?", "You can find it later under Archived in Jobs.", [{ text: "Cancel", style: "cancel" }, { text: "Archive", onPress: () => update.mutate({ id: job.id, data: { status: "archived" } }, { onSuccess: () => setStatus("archived") }) }])} /> : null}
+        <Button label="Delete application" variant="danger" busy={remove.isPending} onPress={() => Alert.alert("Delete application?", "This deletes the application and its preparation tasks.", [{ text: "Cancel", style: "cancel" }, { text: "Delete", style: "destructive", onPress: () => remove.mutate(job.id, { onSuccess: () => setDeleted(true) }) }])} />
+      </View>
+    </>}
+  </Screen>;
 }

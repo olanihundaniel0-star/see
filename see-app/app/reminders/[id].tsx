@@ -1,147 +1,50 @@
 import { useEffect, useRef, useState } from "react";
-import { Alert, Pressable, ScrollView, Text, View } from "react-native";
-import { Stack, router, useLocalSearchParams } from "expo-router";
-import * as Haptics from "expo-haptics";
-
-import { GlassCard } from "@/components/glass/GlassCard";
+import { Alert, View } from "react-native";
+import { router, useLocalSearchParams } from "expo-router";
 import { GlassInput } from "@/components/glass/GlassInput";
-import { GlassPill } from "@/components/glass/GlassPill";
+import { DateTimeField } from "@/components/ui/DateTimeField";
 import { Checkbox } from "@/components/ui/Checkbox";
-import { AsciiBanner } from "@/components/ui/AsciiBanner";
 import { ScreenState } from "@/components/ui/ScreenState";
-import { theme } from "@/constants/theme";
-import { formatShortDateTime } from "@/lib/format";
-import { ReminderPriority, useDeleteReminder, useReminder, useUpdateReminder } from "@/lib/queries";
-
-const priorityOptions: ReminderPriority[] = ["low", "medium", "high"];
-
+import { AppText, Button, Chip, Screen, ScreenHeader, styles } from "@/components/ui/primitives";
+import { localTimeZone } from "@/lib/format";
+import { type ReminderPriority, useDeleteReminder, useReminder, useUpdateReminder } from "@/lib/queries";
+import { useUnsavedChanges } from "@/lib/useUnsavedChanges";
 export default function ReminderDetailScreen() {
-  const params = useLocalSearchParams<{ id: string }>();
-  const reminderId = typeof params.id === "string" ? params.id : Array.isArray(params.id) ? params.id[0] : undefined;
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const reminderId = Array.isArray(id) ? id[0] : id;
   const { data: reminder, isLoading, error, refetch } = useReminder(reminderId);
-  const updateReminder = useUpdateReminder();
-  const deleteReminder = useDeleteReminder();
-  const [title, setTitle] = useState("");
-  const [dueDate, setDueDate] = useState("");
-  const [priority, setPriority] = useState<ReminderPriority>("medium");
-  const [isCompleted, setIsCompleted] = useState(false);
-
+  const update = useUpdateReminder();
+  const remove = useDeleteReminder();
+  const [draft, setDraft] = useState({ title: "", due_date: "", priority: "medium" as ReminderPriority, is_completed: false });
+  const [baseline, setBaseline] = useState(draft);
+  const [deleted, setDeleted] = useState(false);
+  const [saved, setSaved] = useState(false);
   const initialized = useRef<string | null>(null);
   useEffect(() => {
     if (reminder && initialized.current !== reminder.id) {
       initialized.current = reminder.id;
-      setTitle(reminder.title);
-      setDueDate(reminder.due_date);
-      setPriority(reminder.priority);
-      setIsCompleted(reminder.is_completed);
+      const value = { title: reminder.title, due_date: reminder.due_date, priority: reminder.priority, is_completed: reminder.is_completed };
+      setDraft(value); setBaseline(value);
     }
   }, [reminder]);
-
-  return (
-    <>
-      <Stack.Screen options={{ title: "Reminder Detail" }} />
-      <ScrollView removeClippedSubviews className="flex-1 bg-black" contentContainerClassName="px-4 pb-28 pt-4">
-        <View className="gap-4">
-          <AsciiBanner title={theme.ascii.pipeline} subtitle="Reminder edit and completion control" right="[REMINDER]" />
-
-          {error ? (
-            <ScreenState title="// REMINDER_ERROR" message="Unable to load this reminder." label="[ RETRY ]" onPress={() => void refetch()} />
-          ) : null}
-
-          {!error && isLoading ? <ScreenState title="// REMINDER_BOOT" message="Loading reminder record." /> : null}
-
-          {reminder ? (
-            <GlassCard className="gap-3">
-              <View className="flex-row items-start justify-between gap-3">
-                <View className="gap-1">
-                  <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">{formatShortDateTime(reminder.created_at)}</Text>
-                  <Text className="text-xl font-sans-bold text-white">{reminder.title}</Text>
-                </View>
-                <GlassPill label="PRIORITY" value={reminder.priority.toUpperCase()} tone={reminder.priority === "high" ? "danger" : "active"} />
-              </View>
-
-              <GlassInput label="TITLE" value={title} onChangeText={setTitle} maxLength={255} />
-              <GlassInput label="DUE_DATE" value={dueDate} onChangeText={setDueDate} placeholder="2026-09-08T10:00:00Z" maxLength={100} />
-
-              <View className="gap-2">
-                <Text className="px-1 font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">PRIORITY</Text>
-                <View className="flex-row gap-2">
-                  {priorityOptions.map((value) => {
-                    const active = value === priority;
-                    return (
-                      <Pressable
-                        key={value}
-                        onPress={async () => {
-                          await Haptics.selectionAsync();
-                          setPriority(value);
-                        }}
-                        className={`flex-1 rounded-lg border px-3 py-3 ${active ? "border-white/20 bg-white" : "border-white/10 bg-zinc-950/70"}`}
-                      >
-                        <Text className={`text-center font-mono-bold text-[10px] ${active ? "text-black" : "text-white"}`}>
-                          {value.toUpperCase()}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
-              </View>
-
-              <Checkbox checked={isCompleted} label="Completed" onChange={setIsCompleted} />
-
-              <View className="flex-row gap-2">
-                <Pressable
-                  disabled={updateReminder.isPending || !title.trim() || !dueDate.trim()}
-                  onPress={async () => {
-                    const parsedDueDate = new Date(dueDate);
-                    if (Number.isNaN(parsedDueDate.getTime())) {
-                      Alert.alert("Invalid due date", "Enter a valid date, for example 2026-09-08T10:00:00Z.");
-                      return;
-                    }
-                    await Haptics.selectionAsync();
-                    try {
-                      await updateReminder.mutateAsync({
-                        id: reminder.id,
-                        data: {
-                          title: title.trim(),
-                          due_date: parsedDueDate.toISOString(),
-                          priority,
-                          is_completed: isCompleted
-                        }
-                      });
-                    } catch (mutationError) {
-                      Alert.alert("Save failed", mutationError instanceof Error ? mutationError.message : "Unable to save reminder.");
-                    }
-                  }}
-                  className="flex-1 rounded-lg border border-white/20 bg-white px-3 py-3 disabled:opacity-60"
-                >
-                  <Text className="text-center font-mono-bold text-[10px] text-black">
-                    {updateReminder.isPending ? "[SAVING]" : "[SAVE REMINDER]"}
-                  </Text>
-                </Pressable>
-                <Pressable
-                  disabled={deleteReminder.isPending}
-                  onPress={async () => {
-                    await Haptics.selectionAsync();
-                    Alert.alert("Delete reminder?", reminder.title, [
-                      { text: "Cancel", style: "cancel" },
-                      {
-                        text: "Delete",
-                        style: "destructive",
-                        onPress: () => {
-                          void deleteReminder.mutateAsync(reminder.id).then(() => router.back()).catch(error => Alert.alert("Delete failed", error.message));
-                        }
-                      }
-                    ]);
-                  }}
-                  className="rounded-lg border border-white/10 bg-zinc-950/70 px-3 py-3 disabled:opacity-60"
-                >
-                  <Text className="text-center font-mono text-[10px] text-white">[DELETE]</Text>
-                </Pressable>
-              </View>
-            </GlassCard>
-          ) : null}
-        </View>
-      </ScrollView>
-    </>
-  );
+  const dirty = JSON.stringify(draft) !== JSON.stringify(baseline);
+  useUnsavedChanges(dirty && !deleted);
+  useEffect(() => { if (deleted) router.back(); }, [deleted]);
+  return <Screen form>
+    <ScreenHeader title="Edit reminder" back account={false} />
+    {error ? <ScreenState title="Reminder unavailable" message="We couldn’t load this reminder." label="Retry" onPress={() => void refetch()} /> : isLoading ? <ScreenState loading title="Loading" message="" /> : !reminder ? <ScreenState title="Reminder not found" message="It may have been deleted." /> : <>
+      {saved && !dirty ? <AppText variant="meta" muted accessibilityLiveRegion="polite">Changes saved</AppText> : null}
+      <GlassInput label="Title *" value={draft.title} onChangeText={title => setDraft(current => ({ ...current, title }))} maxLength={255} />
+      <DateTimeField label="Due date and time" required value={draft.due_date} onChange={due_date => setDraft(current => ({ ...current, due_date }))} />
+      <AppText variant="meta" muted>Local time · {localTimeZone()}</AppText>
+      <AppText variant="label">Priority</AppText>
+      <View style={styles.row}>{(["low", "medium", "high"] as const).map(priority => <Chip key={priority} label={priority.charAt(0).toUpperCase() + priority.slice(1)} selected={draft.priority === priority} onPress={() => setDraft(current => ({ ...current, priority }))} />)}</View>
+      <Checkbox checked={draft.is_completed} label="Completed" onChange={is_completed => setDraft(current => ({ ...current, is_completed }))} />
+      <Button label="Save reminder" busy={update.isPending} disabled={!dirty || !draft.title.trim() || !draft.due_date} onPress={() => {
+        const submitted = { ...draft, title: draft.title.trim() };
+        update.mutate({ id: reminder.id, data: submitted }, { onSuccess: () => { setBaseline(submitted); setDraft(current => JSON.stringify(current) === JSON.stringify(draft) ? submitted : current); setSaved(true); } });
+      }} />
+      <Button label="Delete reminder" variant="danger" busy={remove.isPending} onPress={() => Alert.alert("Delete reminder?", "Its scheduled alerts will also be cancelled.", [{ text: "Cancel", style: "cancel" }, { text: "Delete", style: "destructive", onPress: () => remove.mutate(reminder.id, { onSuccess: () => setDeleted(true) }) }])} />
+    </>}
+  </Screen>;
 }
