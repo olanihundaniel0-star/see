@@ -21,6 +21,10 @@ schedules that call protected internal endpoints on the web service:
   every 15 minutes and calls `POST /internal/poll-gmail`.
 - [`.github/workflows/scrape-events.yml`](../.github/workflows/scrape-events.yml)
   runs every 6 hours and calls `POST /internal/scrape-events`.
+- [`.github/workflows/dispatch-notifications.yml`](../.github/workflows/dispatch-notifications.yml)
+  runs every 5 minutes and calls `POST /internal/dispatch-notifications`, which
+  sends due remote pushes to registered devices (requires `EXPO_ACCESS_TOKEN`
+  and the Android FCM config on the backend/Expo side).
 
 No Celery worker or beat is required in this mode.
 
@@ -86,10 +90,11 @@ to `./start.sh` so Render does not need to parse an inline shell command.
   this mode: no Celery heartbeat is published, so the key never exists. The
   Render health check uses `/health` (liveness), and `/health/ready` is
   monitoring honesty, not a defect.
-- Server-side push dispatch (`dispatch_notifications`) runs only inside a
-  Celery worker, so devices that registered for remote push receive no pushes
-  in this mode; locally scheduled notifications on the device are the active
-  alerting path. Running the Optional worker again would re-enable dispatch.
+- Server-side push dispatch runs from the scheduled Actions workflow above
+  (the Celery-only path retired with the worker). Devices register via
+  `POST /notifications/devices`; locally scheduled notifications remain the
+  offline alerting path. The backend `EXPO_ACCESS_TOKEN` authorizes the
+  push sends to the Expo Push API.
 - Do not rely on the free Key Value instance for durable queued jobs: it is
   in-memory and may be restarted.
 - If you add new required env vars, update both `render.yaml` and `see-backend/.env.example`.

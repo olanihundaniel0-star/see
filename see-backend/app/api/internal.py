@@ -5,6 +5,7 @@ import time
 from fastapi import APIRouter, Header, HTTPException, status
 
 from app.core.config import settings
+from app.services.notifications import dispatch_notifications as dispatch_notifications_impl
 from app.workers.tasks import poll_gmail_inbox_impl, scrape_events_impl
 
 
@@ -43,4 +44,20 @@ async def trigger_event_scrape(
     result = await scrape_events_impl()
     elapsed_ms = round((time.monotonic() - started_at) * 1000)
     logger.info("Event scrape completed in %sms: %s", elapsed_ms, result)
+    return {"status": "ok", "elapsed_ms": elapsed_ms, "result": result}
+
+
+@router.post("/internal/dispatch-notifications")
+async def trigger_notification_dispatch(
+    x_internal_token: str | None = Header(default=None, alias="X-Internal-Token"),
+) -> dict[str, object]:
+    """Run one push dispatch pass for an external scheduler such as GitHub Actions."""
+    _require_internal_token(x_internal_token)
+
+    started_at = time.monotonic()
+    # Concurrent callers (beat, Actions) are serialized by the service's
+    # advisory lock, so overlapping dispatches only ever report busy.
+    result = await dispatch_notifications_impl()
+    elapsed_ms = round((time.monotonic() - started_at) * 1000)
+    logger.info("Notification dispatch completed in %sms: %s", elapsed_ms, result)
     return {"status": "ok", "elapsed_ms": elapsed_ms, "result": result}

@@ -131,6 +131,29 @@ def test_internal_scrape_events_returns_observable_result(monkeypatch):
     assert response["result"] == {"devpost": 3, "luma": 2}
 
 
+def test_internal_dispatch_requires_scheduler_token(monkeypatch):
+    monkeypatch.setattr(settings, "INTERNAL_API_TOKEN", SecretStr("scheduler-secret"))
+
+    with pytest.raises(HTTPException) as exc_info:
+        run(internal.trigger_notification_dispatch(x_internal_token="wrong-token"))
+
+    assert exc_info.value.status_code == 401
+
+
+def test_internal_dispatch_returns_observable_result(monkeypatch):
+    monkeypatch.setattr(settings, "INTERNAL_API_TOKEN", SecretStr("scheduler-secret"))
+
+    async def fake_dispatch():
+        return {"claimed": 3, "busy": False}
+
+    monkeypatch.setattr(internal, "dispatch_notifications_impl", fake_dispatch)
+    response = run(internal.trigger_notification_dispatch(x_internal_token="scheduler-secret"))
+
+    assert response["status"] == "ok"
+    assert response["elapsed_ms"] >= 0
+    assert response["result"] == {"claimed": 3, "busy": False}
+
+
 def test_webhook_verifies_and_queues_email(monkeypatch, fake_db):
     monkeypatch.setattr(settings, "DEFAULT_USER_ID", str(USER_ID))
     secret = "supersecret"
