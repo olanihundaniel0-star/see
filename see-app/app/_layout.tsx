@@ -19,7 +19,7 @@ import { SpaceMono_400Regular, SpaceMono_700Bold } from "@expo-google-fonts/spac
 
 import { NotificationBridge } from "@/components/NotificationBridge";
 import { AccountContext } from "@/lib/session";
-import { transientRetry } from "@/lib/queryPolicy";
+import { coldStartRetry, coldStartRetryDelay } from "@/lib/queryPolicy";
 import { supabase } from "@/lib/supabase";
 import BootScreen from "@/components/ui/BootScreen";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -29,10 +29,10 @@ import { AppText, Button } from "@/components/ui/primitives";
 const queryClient = new QueryClient({ defaultOptions: { queries: {
   staleTime: 60_000,
   gcTime: 5 * 60_000,
-  // One retry owner: only transient transport/server failures get a second
-  // attempt. Permanent 4xx responses and cancellations never retry.
-  retry: transientRetry,
-  retryDelay: 1500,
+  // One retry owner: every initial query gets the cold-start sized budget.
+  // Permanent 4xx responses and cancellations never retry.
+  retry: coldStartRetry,
+  retryDelay: coldStartRetryDelay,
   refetchOnWindowFocus: false
 } } });
 

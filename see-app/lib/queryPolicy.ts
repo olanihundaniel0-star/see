@@ -6,15 +6,11 @@ function isTransientFailure(error: unknown): boolean {
   return [502, 503, 504].includes(error.response.status);
 }
 
-export function transientRetry(count: number, error: unknown): boolean {
-  return count < 1 && isTransientFailure(error);
-}
-
-// The production API runs on a host that can take ~45s to wake from sleep.
-// Only the first dashboard paint gets a bounded multi-attempt budget; every
-// other query keeps the single-retry policy.
+// The production API cold-starts on Render in 45-55s. All initial queries
+// must survive a full cold start: five attempts against the 10s client
+// timeout plus capped delays give every query ~64.5s of total coverage.
 export function coldStartRetry(count: number, error: unknown): boolean {
-  return count < 3 && isTransientFailure(error);
+  return count < 4 && isTransientFailure(error);
 }
 
 export function coldStartRetryDelay(attempt: number): number {

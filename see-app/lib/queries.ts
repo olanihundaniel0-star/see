@@ -6,7 +6,6 @@ import { useContext } from "react";
 import { AccountContext } from "@/lib/session";
 
 import { api } from "@/lib/api";
-import { coldStartRetry, coldStartRetryDelay } from "@/lib/queryPolicy";
 
 export type JobStatus = "bookmarked" | "applied" | "assessment" | "interviewing" | "offer" | "rejected" | "archived";
 export type ReminderPriority = "low" | "medium" | "high";
@@ -108,9 +107,7 @@ function getNextPageParam<T extends { length: number }>(lastPage: T, pages: T[])
 export function useToday() {
   return useQuery({
     queryKey: [useContext(AccountContext), "dashboard", "today"],
-    queryFn: async ({ signal }) => (await api.get<DashboardResponse>("/dashboard/today", { signal })).data,
-    retry: coldStartRetry,
-    retryDelay: coldStartRetryDelay
+    queryFn: async ({ signal }) => (await api.get<DashboardResponse>("/dashboard/today", { signal })).data
   });
 }
 

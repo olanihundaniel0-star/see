@@ -8,6 +8,10 @@ This repo ships with a Render Blueprint in [render.yaml](../render.yaml).
 - `see-redis`: Render Key Value instance
 - `see-postgres`: Render Postgres instance
 
+The checked-in `render.yaml` also defines an optional `see-worker` service
+(Celery worker with embedded beat). In the polling deployment described below
+it stays disabled: no Celery worker or beat is running.
+
 This blueprint targets Render's free tier, which supports web services and
 datastores but **not** Background Workers or Cron Jobs. Background work (Gmail
 polling and event scraping) is therefore triggered by free GitHub Actions
@@ -61,6 +65,9 @@ to `./start.sh` so Render does not need to parse an inline shell command.
    - `BACKEND_URL`: the Render web service URL, e.g.
      `https://see-backend-dgoe.onrender.com` (no trailing slash, no `/api/v1`)
    - `INTERNAL_API_TOKEN`: the same value set on the backend
+     (Gmail credentials `GMAIL_USER`/`GMAIL_APP_PASSWORD` live on the
+     backend environment, not in Actions: the workflow only calls the backend,
+     which performs the fetch.)
 6. Trigger each workflow once from the Actions tab (`Run workflow`) to confirm
    it returns `{"status": "ok", ...}`.
 
@@ -75,6 +82,14 @@ to `./start.sh` so Render does not need to parse an inline shell command.
 - The Mailgun webhook path publishes to Redis via Celery. With no worker on the
   free tier those queued jobs are not processed, so rely on the Gmail poll
   workflow (which fetches and persists directly) for email ingestion.
+- `/health/ready` intentionally reports `503` with `worker: "unavailable"` in
+  this mode: no Celery heartbeat is published, so the key never exists. The
+  Render health check uses `/health` (liveness), and `/health/ready` is
+  monitoring honesty, not a defect.
+- Server-side push dispatch (`dispatch_notifications`) runs only inside a
+  Celery worker, so devices that registered for remote push receive no pushes
+  in this mode; locally scheduled notifications on the device are the active
+  alerting path. Running the Optional worker again would re-enable dispatch.
 - Do not rely on the free Key Value instance for durable queued jobs: it is
   in-memory and may be restarted.
 - If you add new required env vars, update both `render.yaml` and `see-backend/.env.example`.

@@ -87,7 +87,12 @@ jobs:
         # upstream advisories that have no patched release (braces, node-forge,
         # decode-uri-component). They are build-time only and never reach the
         # APK runtime, so block on critical and report high via `npm audit`.
+        # The "Audit threshold summary" step surfaces the accepted count as a
+        # run-page warning annotation.
         run: npm audit --omit=dev --audit-level=critical
+      - name: Audit threshold summary
+        run: |
+          node -e "const r=require('child_process').spawnSync('npm',['audit','--omit=dev','--json'],{cwd:'see-app',encoding:'utf8'});const d=JSON.parse(r.stdout||'{}');const c={};for(const v of Object.values(d.vulnerabilities||{}))c[v.severity]=(c[v.severity]||0)+1;const n=Object.entries(c);if(n.length){console.log('::warning::npm audit: '+n.map(([s,c])=>c+' '+s).join(', ')+' (critical gate blocks; high/moderate accepted as transitive Expo toolchain debt)');}" 2>/dev/null || true
       - name: Run Python safety check
         working-directory: see-backend
         run: |
@@ -143,6 +148,8 @@ jobs:
         run: |
           if [ -z "$RENDER_DEPLOY_HOOK" ]; then
             echo "RENDER_STAGING_BACKEND_DEPLOY_HOOK not configured; skipping"
+            echo "::warning::RENDER_STAGING_BACKEND_DEPLOY_HOOK not configured; staging deploy skipped"
+            echo "- Staging deploy skipped: secret not configured" >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
           curl --fail-with-body --silent --show-error --connect-timeout 25 --max-time 40 -X POST "$RENDER_DEPLOY_HOOK"
@@ -154,6 +161,8 @@ jobs:
         run: |
           if [ -z "$HEALTH_URL" ]; then
             echo "STAGING_API_URL not configured; skipping health check"
+            echo "::warning::STAGING_API_URL not configured; staging health check skipped"
+            echo "- Staging health check skipped: secret not configured" >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
           for i in {1..30}; do
@@ -191,6 +200,8 @@ jobs:
         run: |
           if [ -z "$RENDER_DEPLOY_HOOK" ]; then
             echo "RENDER_PRODUCTION_BACKEND_DEPLOY_HOOK not configured; skipping"
+            echo "::warning::RENDER_PRODUCTION_BACKEND_DEPLOY_HOOK not configured; production deploy skipped"
+            echo "- Production deploy skipped: secret not configured" >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
           curl --fail-with-body --silent --show-error --connect-timeout 25 --max-time 40 -X POST "$RENDER_DEPLOY_HOOK"
@@ -202,6 +213,8 @@ jobs:
         run: |
           if [ -z "$HEALTH_URL" ]; then
             echo "PRODUCTION_API_URL not configured; skipping health check"
+            echo "::warning::PRODUCTION_API_URL not configured; production health check skipped"
+            echo "- Production health check skipped: secret not configured" >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
           for i in {1..30}; do
@@ -237,6 +250,8 @@ jobs:
         run: |
           if [ -z "$HEALTH_URL" ]; then
             echo "STAGING_API_URL not configured; skipping performance baseline"
+            echo "::warning::STAGING_API_URL not configured; performance baseline skipped"
+            echo "- Performance baseline skipped: secret not configured" >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
           echo "Testing staging API performance..."
@@ -253,13 +268,3 @@ jobs:
           if [ "$response_time_ms" -gt "1000" ]; then
             echo "Warning: Response time exceeds 1000ms"
           fi
-
-  cleanup:
-    runs-on: ubuntu-latest
-    if: always()
-    needs: [test-backend, test-frontend]
-    steps:
-      - name: Clean up build artifacts
-        run: echo "Cleanup complete"
-      - name: Send summary
-        run: echo "CI/CD pipeline completed"

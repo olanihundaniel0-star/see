@@ -1,4 +1,5 @@
 import logging
+import time
 from celery.schedules import schedule
 from celery import Celery
 from celery.signals import heartbeat_sent, worker_ready
@@ -11,6 +12,11 @@ from app.core.config import settings
 logger = logging.getLogger(__name__)
 WORKER_HEARTBEAT_KEY = "see:worker:alive"
 WORKER_HEARTBEAT_TTL_SECONDS = 90
+# TTL 90 covers the 30s broker heartbeat interval with ~2 missed heartbeats of tolerance;
+# retries cover a brief Redis blip exactly at boot, when the readiness key must not stay missing for a full interval.
+_HEARTBEAT_MAX_ATTEMPTS = 3
+_HEARTBEAT_RETRY_DELAY_SECONDS = 1
+_worker_heartbeat_announced = False
 
 
 celery_app = Celery(
@@ -47,13 +53,29 @@ celery_app.conf.update(
 
 def _write_worker_heartbeat() -> None:
     """Publish worker liveness without allowing monitoring failures to stop work."""
+    global _worker_heartbeat_announced
     client = redis.Redis.from_url(
         settings.REDIS_URL,
         socket_timeout=2,
         socket_connect_timeout=2,
     )
     try:
-        client.set(WORKER_HEARTBEAT_KEY, "1", ex=WORKER_HEARTBEAT_TTL_SECONDS)
+        for attempt in range(1, _HEARTBEAT_MAX_ATTEMPTS + 1):
+            try:
+                client.set(WORKER_HEARTBEAT_KEY, "1", ex=WORKER_HEARTBEAT_TTL_SECONDS)
+            except Exception:
+                if attempt == _HEARTBEAT_MAX_ATTEMPTS:
+                    raise
+                time.sleep(_HEARTBEAT_RETRY_DELAY_SECONDS)
+            else:
+                if not _worker_heartbeat_announced:
+                    _worker_heartbeat_announced = True
+                    logger.info(
+                        "Worker alive: %s written (TTL %ss); refreshed on each Celery heartbeat",
+                        WORKER_HEARTBEAT_KEY,
+                        WORKER_HEARTBEAT_TTL_SECONDS,
+                    )
+                break
     finally:
         client.close()
 
