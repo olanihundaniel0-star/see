@@ -1,11 +1,10 @@
 import { useEffect, useState } from "react";
-import { Alert, Pressable, ScrollView, Text, View } from "react-native";
+import { Alert, View } from "react-native";
+import { AppText, Button, Screen, ScreenHeader } from "@/components/ui/primitives";
 import * as Haptics from "expo-haptics";
 import type { Session } from "@supabase/supabase-js";
 
 import { GlassCard } from "@/components/glass/GlassCard";
-import { GlassPill } from "@/components/glass/GlassPill";
-import { AsciiBanner } from "@/components/ui/AsciiBanner";
 import { formatShortDateTime } from "@/lib/format";
 import { NotificationSettings } from "@/components/NotificationSettings";
 import { unregisterNotifications } from "@/lib/notifications";
@@ -14,9 +13,9 @@ import { supabase } from "@/lib/supabase";
 function describeProvider(session: Session | null) {
   const provider = session?.user.app_metadata?.provider;
   if (typeof provider === "string" && provider.trim()) {
-    return provider.toUpperCase();
+    return provider.charAt(0).toUpperCase() + provider.slice(1);
   }
-  return "LOCAL";
+  return "your account";
 }
 
 export default function AccountScreen() {
@@ -33,7 +32,7 @@ export default function AccountScreen() {
     void supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
       setLoading(false);
-    });
+    }).catch(() => setLoading(false));
 
     const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       setSession(nextSession);
@@ -78,55 +77,16 @@ export default function AccountScreen() {
   const user = session?.user ?? null;
   const provider = describeProvider(session);
 
-  return (
-    <ScrollView className="flex-1 bg-black" contentContainerClassName="px-4 pb-28 pt-4">
-      <View className="gap-4">
-        <AsciiBanner title="// ACCESS_NODE" subtitle="Session controls and identity details" right={loading ? "[SYNCING]" : "[ONLINE]"} />
-
-        <GlassCard className="gap-4">
-          <View className="flex-row items-start justify-between gap-3">
-            <View className="gap-1">
-              <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">{"// AUTH_SUBJECT"}</Text>
-              <Text className="text-xl font-sans-bold text-white">{user?.email ?? "Unknown account"}</Text>
-              <Text className="font-mono text-[11px] text-[#c5c6ca]">{user?.id ?? "No active session"}</Text>
-            </View>
-            <GlassPill label="PROVIDER" value={provider} tone="active" />
-          </View>
-
-          <View className="flex-row gap-2">
-            <GlassPill label="SESSION" value={session ? "ACTIVE" : "SIGNED OUT"} className="flex-1" />
-            <GlassPill label="USER ROLE" value={user?.role?.toUpperCase() ?? "UNKNOWN"} className="flex-1" />
-          </View>
-
-          <View className="rounded-lg border border-white/10 bg-zinc-950/80 px-3 py-3">
-            <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">{"// TIMESTAMPS"}</Text>
-            <Text className="mt-2 font-mono text-[11px] leading-5 text-[#e2e2e2]">
-              {user?.created_at ? `Created: ${formatShortDateTime(user.created_at)}` : "Created: unknown"}
-              {"\n"}
-              {session?.expires_at ? `Expires: ${formatShortDateTime(new Date(session.expires_at * 1000).toISOString())}` : "Expires: unknown"}
-            </Text>
-          </View>
-
-          <Pressable
-            disabled={!session || signingOut}
-            onPress={() => void onSignOut()}
-            className="rounded-xl border border-white/20 bg-white px-4 py-4 disabled:opacity-50"
-          >
-            <Text className="text-center font-mono-bold text-[12px] tracking-[0.08em] text-black">
-              {signingOut ? "[ SIGNING OUT... ]" : "[ SIGN OUT ]"}
-            </Text>
-          </Pressable>
-        </GlassCard>
-
-        <NotificationSettings />
-        <GlassCard className="gap-3">
-          <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">{"// SESSION_NOTES"}</Text>
-          <Text className="font-mono text-[11px] leading-5 text-[#c5c6ca]">
-            This screen exists so the app has a clear exit path from the authenticated shell. Signing out clears the Supabase
-            session and returns you to the login gateway.
-          </Text>
-        </GlassCard>
-      </View>
-    </ScrollView>
-  );
+  return <Screen form>
+    <ScreenHeader title="Account" back account={false} />
+    <GlassCard>
+      <AppText variant="heading">{loading ? "Loading account…" : user?.email ?? "Account unavailable"}</AppText>
+      <AppText muted>Signed in with {provider}</AppText>
+      {user?.created_at ? <AppText variant="meta" muted>Member since {formatShortDateTime(user.created_at)}</AppText> : null}
+    </GlassCard>
+    <NotificationSettings />
+    <View style={{ gap: 12, paddingTop: 16 }}>
+      <Button label="Sign out" variant="secondary" disabled={!session} busy={signingOut} onPress={() => Alert.alert("Sign out of SEE?", "You can sign in again to access your saved work.", [{ text: "Cancel", style: "cancel" }, { text: "Sign out", onPress: () => void onSignOut() }])} />
+    </View>
+  </Screen>;
 }

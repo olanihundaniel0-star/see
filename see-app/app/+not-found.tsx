@@ -1,16 +1,6 @@
-import { Link } from "expo-router";
-import { Pressable, Text, View } from "react-native";
-
+import { router } from "expo-router";
+import { Screen, ScreenHeader } from "@/components/ui/primitives";
+import { ScreenState } from "@/components/ui/ScreenState";
 export default function NotFound() {
-  return (
-    <View className="flex-1 items-center justify-center bg-black px-6">
-      <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">{"// 404"}</Text>
-      <Text className="mt-2 text-center text-2xl font-sans-bold text-white">Route not found</Text>
-      <Link href="/" asChild>
-        <Pressable className="mt-6 rounded-lg border border-white/10 bg-zinc-950/70 px-4 py-3">
-          <Text className="font-mono text-[10px] text-white">[ RETURN TO SYSTEM ]</Text>
-        </Pressable>
-      </Link>
-    </View>
-  );
+  return <Screen><ScreenHeader title="Page not found" account={false} /><ScreenState title="This page isn’t here" message="It may have moved, or the link may be out of date." label="Go to Today" onPress={() => router.replace("/")} /></Screen>;
 }

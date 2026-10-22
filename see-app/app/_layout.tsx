@@ -7,7 +7,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Pressable, Text, View, StatusBar } from "react-native";
+import { View, StatusBar } from "react-native";
 import type { Session } from "@supabase/supabase-js";
 import {
   SpaceGrotesk_400Regular,
@@ -23,6 +23,8 @@ import { transientRetry } from "@/lib/queryPolicy";
 import { supabase } from "@/lib/supabase";
 import BootScreen from "@/components/ui/BootScreen";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { theme } from "@/constants/theme";
+import { AppText, Button } from "@/components/ui/primitives";
 
 const queryClient = new QueryClient({ defaultOptions: { queries: {
   staleTime: 60_000,
@@ -103,9 +105,9 @@ export default function RootLayout() {
               {!bootDone ? (
                 <BootScreen />
               ) : authLoading ? (
-                <View className="flex-1 items-center justify-center gap-4 bg-black p-6">
-                  <Text className="text-white">Restoring your session is taking longer than expected.</Text>
-                  <Pressable onPress={() => { void supabase?.auth.getSession().then(({ data }) => { setSession(data.session); setAuthLoading(false); }).catch(() => setAuthLoading(false)); }}><Text className="font-mono text-white">[ RETRY CONNECTION ]</Text></Pressable>
+                <View style={{ flex: 1, justifyContent: "center", padding: 24, gap: 16, backgroundColor: theme.colors.background }}>
+                  <AppText>Restoring your session is taking longer than expected.</AppText>
+                  <Button label="Retry connection" onPress={() => { void supabase?.auth.getSession().then(({ data }) => { setSession(data.session); setAuthLoading(false); }).catch(() => setAuthLoading(false)); }} />
                 </View>
               ) : (
                 <AppNavigator session={session} authLoading={authLoading} />
@@ -126,7 +128,7 @@ function AppNavigator({ session, authLoading }: { session: Session | null; authL
       <Stack
         screenOptions={{
           headerShown: false,
-          contentStyle: { backgroundColor: "#000000", paddingTop: insets.top } as any
+          contentStyle: { backgroundColor: theme.colors.background, paddingTop: insets.top }
         }}
       >
         <Stack.Protected guard={!authLoading && !session}>

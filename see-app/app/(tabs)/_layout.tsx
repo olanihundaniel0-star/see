@@ -1,47 +1,39 @@
-import { Link, Tabs } from "expo-router";
-import { Pressable, Text, View } from "react-native";
+import { Tabs, router, usePathname } from "expo-router";
+import { Pressable, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import * as Haptics from "expo-haptics";
+import { Icon, type IconName } from "@/components/ui/primitives";
+import { theme } from "@/constants/theme";
 
+const tabs: { name: string; title: string; icon: IconName }[] = [
+  { name: "index", title: "Today", icon: "target" },
+  { name: "jobs", title: "Jobs", icon: "briefcase" },
+  { name: "events", title: "Events", icon: "radio" },
+  { name: "notes", title: "Notes", icon: "file-text" },
+  { name: "reminders", title: "Tasks", icon: "check-square" }
+];
 export default function TabsLayout() {
   const insets = useSafeAreaInsets();
-  return (
-    <View className="flex-1 bg-black">
-      <Tabs
-        screenOptions={{
-          headerShown: false,
-          tabBarActiveTintColor: "#FFFFFF",
-          tabBarInactiveTintColor: "#c5c6ca",
-          tabBarStyle: {
-            backgroundColor: "rgba(19, 19, 19, 0.8)",
-            borderTopColor: "rgba(255,255,255,0.08)",
-            borderTopWidth: 1,
-            height: 64
-          } as any,
-          tabBarLabelStyle: {
-            fontFamily: "SpaceMono_700Bold",
-            fontSize: 10,
-            letterSpacing: 0.8
-          } as any
-        }}
-        >
-        <Tabs.Screen name="index" options={{ title: "TODAY [\u25CF]" }} />
-        <Tabs.Screen name="jobs" options={{ title: "PIPELINE" }} />
-        <Tabs.Screen name="events" options={{ title: "RADAR" }} />
-        <Tabs.Screen name="notes" options={{ title: "VAULT" }} />
-        <Tabs.Screen name="reminders" options={{ title: "ALERTS" }} />
-        <Tabs.Screen name="account" options={{ title: "ACCOUNT" }} />
-      </Tabs>
-
-      <Link href="/modal/quick-add" asChild>
-        <Pressable
-          onPress={() => void Haptics.selectionAsync()}
-          style={{ bottom: insets.bottom + 96 }}
-          className="absolute right-5 z-10 h-12 w-12 items-center justify-center rounded-xl border border-white/[0.08] bg-[#2a2a2a]/90"
-        >
-          <Text className="font-mono-bold text-[16px] text-white">[+]</Text>
-        </Pressable>
-      </Link>
-    </View>
-  );
+  const { width } = useWindowDimensions();
+  const wide = width >= 840;
+  const path = usePathname();
+  const mode = path.includes("notes") ? "note" : path.includes("reminders") ? "reminder" : "job";
+  return <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
+    <Tabs screenOptions={{
+      headerShown: false,
+      tabBarPosition: wide ? "left" : "bottom",
+      tabBarActiveTintColor: theme.colors.primary,
+      tabBarInactiveTintColor: theme.colors.textMuted,
+      tabBarHideOnKeyboard: true,
+      tabBarStyle: { backgroundColor: theme.colors.background, borderTopColor: theme.colors.border, borderRightColor: theme.colors.border, ...(wide ? { width: 160 } : { height: 64 + insets.bottom, paddingBottom: insets.bottom, paddingTop: 8 }) },
+      tabBarLabelStyle: { fontFamily: "SpaceGrotesk_500Medium", fontSize: 12 },
+      tabBarItemStyle: { minHeight: 48 }
+    }}>
+      {tabs.map(tab => <Tabs.Screen key={tab.name} name={tab.name} options={{ title: tab.title, tabBarIcon: ({ color, size }) => <Icon name={tab.icon} color={color} size={size} /> }} />)}
+      <Tabs.Screen name="account" options={{ href: null }} />
+    </Tabs>
+    {!path.includes("account") ? <Pressable accessibilityRole="button" accessibilityLabel="Quick add" onPress={() => router.push({ pathname: "/modal/quick-add", params: { mode } })}
+      style={({ pressed }) => ({ position: "absolute", right: 20, bottom: wide ? 24 + insets.bottom : 80 + insets.bottom, width: 56, height: 56, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: theme.colors.primary, opacity: pressed ? 0.75 : 1 })}>
+      <Icon name="plus" color={theme.colors.background} size={24} />
+    </Pressable> : null}
+  </View>;
 }
