@@ -1,135 +1,47 @@
 import { useEffect, useRef, useState } from "react";
-import { Alert, Pressable, ScrollView, Text, TextInput, View } from "react-native";
-import { Stack, router, useLocalSearchParams } from "expo-router";
-import * as Haptics from "expo-haptics";
-
-import { GlassCard } from "@/components/glass/GlassCard";
+import { Alert, View } from "react-native";
+import { router, useLocalSearchParams } from "expo-router";
 import { GlassInput } from "@/components/glass/GlassInput";
-import { AsciiBanner } from "@/components/ui/AsciiBanner";
 import { ScreenState } from "@/components/ui/ScreenState";
-import { theme } from "@/constants/theme";
+import { AppText, Button, Screen, ScreenHeader, styles } from "@/components/ui/primitives";
 import { formatRelativePast } from "@/lib/format";
 import { useDeleteNote, useNote, useUpdateNote } from "@/lib/queries";
+import { useUnsavedChanges } from "@/lib/useUnsavedChanges";
 
 export default function NoteDetailScreen() {
-  const params = useLocalSearchParams<{ id: string }>();
-  const noteId = typeof params.id === "string" ? params.id : Array.isArray(params.id) ? params.id[0] : undefined;
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const noteId = Array.isArray(id) ? id[0] : id;
   const { data: note, isLoading, error, refetch } = useNote(noteId);
-  const updateNote = useUpdateNote();
-  const deleteNote = useDeleteNote();
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
-  const [tags, setTags] = useState("");
-
+  const update = useUpdateNote();
+  const remove = useDeleteNote();
+  const [draft, setDraft] = useState({ title: "", content: "", tags: "" });
+  const [baseline, setBaseline] = useState(draft);
+  const [deleted, setDeleted] = useState(false);
+  const [saved, setSaved] = useState(false);
   const initialized = useRef<string | null>(null);
   useEffect(() => {
     if (note && initialized.current !== note.id) {
       initialized.current = note.id;
-      setTitle(note.title);
-      setContent(note.content);
-      setTags(note.tags ?? "");
+      const value = { title: note.title, content: note.content, tags: note.tags ?? "" };
+      setDraft(value); setBaseline(value);
     }
   }, [note]);
-
-  return (
-    <>
-      <Stack.Screen options={{ title: "Note Detail" }} />
-      <ScrollView removeClippedSubviews className="flex-1 bg-black" contentContainerClassName="px-4 pb-28 pt-4">
-        <View className="gap-3">
-          <AsciiBanner title={theme.ascii.vault} subtitle="Editable note record" right="[NOTE]" />
-
-          {error ? (
-            <ScreenState title="// NOTE_ERROR" message="Unable to load this note." label="[ RETRY ]" onPress={() => void refetch()} />
-          ) : null}
-
-          {!error && isLoading ? <ScreenState title="// NOTE_BOOT" message="Loading note record." /> : null}
-
-          {note ? (
-            <>
-              <GlassCard className="gap-3" style={{ padding: 12 }}>
-                <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">
-                  {"// UPDATED: "}
-                  {formatRelativePast(note.updated_at)}
-                </Text>
-                <GlassInput
-                  label="> TITLE [REQ]"
-                  value={title}
-                  onChangeText={setTitle}
-                  maxLength={255}
-                  className="border-white/[0.12] bg-[rgba(9,9,11,0.70)]"
-                />
-                <View className="gap-2">
-                  <Text className="px-1 font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">{"> CONTENT [REQ]"}</Text>
-                  <TextInput
-                    multiline
-                    value={content}
-                    onChangeText={setContent}
-                    maxLength={20000}
-                    className="min-h-[220px] rounded border border-white/[0.12] bg-[rgba(9,9,11,0.70)] px-3 py-3 font-mono text-sm text-white"
-                    textAlignVertical="top"
-                    placeholderTextColor="#52525B"
-                  />
-                </View>
-                <GlassInput
-                  label="> TAGS [OPT]"
-                  value={tags}
-                  onChangeText={setTags}
-                  placeholder="comma,separated,tags"
-                  maxLength={255}
-                  className="border-white/[0.12] bg-[rgba(9,9,11,0.70)]"
-                />
-                <View className="flex-row gap-2">
-                  <Pressable
-                    disabled={updateNote.isPending || !title.trim() || !content.trim()}
-                    onPress={async () => {
-                      await Haptics.selectionAsync();
-                      try {
-                      await updateNote.mutateAsync({
-                        id: note.id,
-                        data: { title: title.trim(), content: content.trim(), tags: tags.trim() || null }
-                      });
-                      Alert.alert("Saved", "Note saved.");
-                      } catch (error) { Alert.alert("Save failed", error instanceof Error ? error.message : "Try again."); }
-                    }}
-                    className="flex-1 rounded border-0 bg-white px-3 py-3 disabled:opacity-60 active:scale-[0.98]"
-                  >
-                    <Text className="text-center font-mono-bold text-[10px] tracking-[0.08em] text-black">
-                      {updateNote.isPending ? "[SAVING]" : "[SAVE NOTE]"}
-                    </Text>
-                  </Pressable>
-                  <Pressable
-                    disabled={deleteNote.isPending}
-                    onPress={async () => {
-                      await Haptics.selectionAsync();
-                      Alert.alert("Delete note?", note.title, [
-                        { text: "Cancel", style: "cancel" },
-                        {
-                          text: "Delete",
-                          style: "destructive",
-                          onPress: () => {
-                            void deleteNote.mutateAsync(note.id).then(() => router.back()).catch(error => Alert.alert("Delete failed", error.message));
-                          }
-                        }
-                      ]);
-                    }}
-                    className="rounded border border-white/[0.10] bg-transparent px-3 py-3 disabled:opacity-60 active:scale-95"
-                  >
-                    <Text className="text-center font-mono text-[10px] tracking-[0.08em] text-white">[DELETE]</Text>
-                  </Pressable>
-                </View>
-              </GlassCard>
-
-              <GlassCard className="gap-2" style={{ padding: 12 }}>
-                <View className="flex-row items-center justify-between">
-                  <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">{"// PREVIEW"}</Text>
-                  <Text className="font-mono text-[10px] tracking-[0.08em] text-white">TXT_BUF</Text>
-                </View>
-                <Text className="font-mono text-[11px] leading-5 text-[#e2e2e2]">{content}</Text>
-              </GlassCard>
-            </>
-          ) : null}
-        </View>
-      </ScrollView>
-    </>
-  );
+  const dirty = JSON.stringify(draft) !== JSON.stringify(baseline);
+  useUnsavedChanges(dirty && !deleted);
+  useEffect(() => { if (deleted) router.back(); }, [deleted]);
+  return <Screen form>
+    <ScreenHeader title="Edit note" back account={false} />
+    {error ? <ScreenState title="Note unavailable" message="We couldn’t load this note." label="Retry" onPress={() => void refetch()} /> : isLoading ? <ScreenState loading title="Loading" message="" /> : !note ? <ScreenState title="Note not found" message="This note may have been deleted." /> : <>
+      <AppText variant="meta" muted accessibilityLiveRegion="polite">{dirty ? "Unsaved changes" : saved ? "All changes saved" : `Edited ${formatRelativePast(note.updated_at)}`}</AppText>
+      <GlassInput label="Title *" value={draft.title} onChangeText={title => setDraft(current => ({ ...current, title }))} maxLength={255} style={{ fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 22, lineHeight: 28 }} />
+      <GlassInput label="Content *" value={draft.content} onChangeText={content => setDraft(current => ({ ...current, content }))} multiline maxLength={20000} style={{ minHeight: 320, lineHeight: 26 }} placeholder="Your notes…" />
+      <GlassInput label="Tags" value={draft.tags} onChangeText={tags => setDraft(current => ({ ...current, tags }))} placeholder="interviews, typescript" helper="Separate tags with commas." maxLength={255} />
+      <Button label="Save note" busy={update.isPending} disabled={!draft.title.trim() || !draft.content.trim() || !dirty} onPress={() => {
+        const submitted = { ...draft, title: draft.title.trim(), tags: draft.tags.trim() };
+        update.mutate({ id: note.id, data: { ...submitted, tags: submitted.tags || null } }, { onSuccess: () => { setBaseline(submitted); setDraft(current => JSON.stringify(current) === JSON.stringify(draft) ? submitted : current); setSaved(true); } });
+      }} />
+      <View style={styles.divider} />
+      <Button label="Delete note" variant="danger" busy={remove.isPending} onPress={() => Alert.alert("Delete note?", "This cannot be undone.", [{ text: "Cancel", style: "cancel" }, { text: "Delete", style: "destructive", onPress: () => remove.mutate(note.id, { onSuccess: () => setDeleted(true) }) }])} />
+    </>}
+  </Screen>;
 }

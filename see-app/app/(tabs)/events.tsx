@@ -1,336 +1,93 @@
 import { useContext, useMemo, useState } from "react";
-import { Alert, Linking, Platform, Pressable, ScrollView, Text, View } from "react-native";
+import { Alert, Linking, Platform, RefreshControl, ScrollView, View } from "react-native";
 import * as Calendar from "expo-calendar";
-import * as Haptics from "expo-haptics";
-
 import { useQuery } from "@tanstack/react-query";
 import { AccountContext } from "@/lib/session";
 import { api } from "@/lib/api";
 import { GlassCard } from "@/components/glass/GlassCard";
-import { GlassInput } from "@/components/glass/GlassInput";
+import { DateTimeField } from "@/components/ui/DateTimeField";
 import { LoadMoreButton } from "@/components/ui/LoadMoreButton";
 import { ScreenState } from "@/components/ui/ScreenState";
-import { DATETIME_INPUT_PLACEHOLDER, parseDateTimeInput, toDateTimeInput } from "@/lib/datetime";
-import { formatCountdown, formatRelativePast, formatShortDate } from "@/lib/format";
-import { useInfiniteEvents } from "@/lib/queries";
+import { AppText, Badge, Button, Chip, Screen, ScreenHeader, styles } from "@/components/ui/primitives";
+import { formatFullDateTime, localTimeZone } from "@/lib/format";
+import { type Event, useInfiniteEvents } from "@/lib/queries";
 import { syncLocalNotifications } from "@/lib/notifications";
+import { theme } from "@/constants/theme";
 
-const filters = [
-  { label: "ALL", value: undefined },
-  { label: "VIRTUAL", value: true },
-  { label: "IN-PERSON", value: false }
-] as const;
-
-const OPENABLE_URL_RE = /^https?:\/\//i;
-
-function isOpenableUrl(value: unknown): value is string {
-  return typeof value === "string" && OPENABLE_URL_RE.test(value.trim());
-}
-
-async function openExternalUrl(url: string, failureTitle: string) {
-  if (!isOpenableUrl(url)) {
-    Alert.alert(failureTitle, "The link for this item is invalid.");
-    return;
-  }
-  const trimmed = url.trim();
-  try {
-    const supported = await Linking.canOpenURL(trimmed);
-    if (!supported) {
-      Alert.alert(failureTitle, "No app can open this link on this device.");
-      return;
-    }
-    await Linking.openURL(trimmed);
-  } catch (error) {
-    Alert.alert(failureTitle, error instanceof Error ? error.message : "The link could not be opened.");
-  }
-}
-
+const filters = [{ label: "All events", value: undefined }, { label: "Online", value: true }, { label: "In person", value: false }] as const;
 export default function EventsScreen() {
   const userId = useContext(AccountContext);
-  const saved = useQuery({ queryKey: [userId, "saved-events"], queryFn: async ({ signal }) => (await api.get<{ event_id: string; registration_deadline: string | null }[]>("/notifications/saved-events", { signal })).data });
-  const [deadlineDrafts, setDeadlineDrafts] = useState<Record<string, string>>({});
-  const toggleSaved = async (id: string) => {
+  const saved = useQuery({ queryKey: [userId, "saved-events"], enabled: !!userId, queryFn: async ({ signal }) => (await api.get<{ event_id: string; registration_deadline: string | null }[]>("/notifications/saved-events", { signal })).data });
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const [filter, setFilter] = useState<boolean | undefined>(undefined);
+  const { data, isLoading, isRefetching, error, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteEvents(filter);
+  const events = useMemo(() => data?.pages.flatMap(page => page.items) ?? [], [data]);
+  const saveEvent = async (id: string, remove = false, deadline?: string) => {
+    if (busyId) return;
+    setBusyId(id);
     try {
-      if (saved.data?.some(e => e.event_id === id)) await api.delete(`/notifications/saved-events/${id}`);
-      else await api.put(`/notifications/saved-events/${id}`, {});
+      if (remove) await api.delete(`/notifications/saved-events/${id}`);
+      else await api.put(`/notifications/saved-events/${id}`, deadline === undefined ? {} : { registration_deadline: deadline || null });
       await saved.refetch();
+      setDrafts(current => { const next = { ...current }; delete next[id]; return next; });
       if (userId) await syncLocalNotifications(userId);
-    } catch (error) { Alert.alert("Event reminder failed", error instanceof Error ? error.message : "Try again."); }
+      if (deadline !== undefined) Alert.alert("Deadline saved", deadline ? "Your registration deadline has been updated." : "Registration deadline removed.");
+    } catch (e) { Alert.alert("Couldn’t update event", e instanceof Error ? e.message : "Please try again."); }
+    finally { setBusyId(null); }
   };
-  const [activeFilter, setActiveFilter] = useState<(typeof filters)[number]["value"]>(undefined);
-  const { data, isLoading, error, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteEvents(activeFilter);
-  const events = useMemo(() => data?.pages.flatMap((page) => page.items) ?? [], [data]);
-
-  const counts = useMemo(
-    () => ({
-      all: events.length,
-      virtual: events.filter((event) => event.is_virtual).length,
-      inPerson: events.filter((event) => !event.is_virtual).length
-    }),
-    [events]
-  );
-
-  const syncCalendar = async (title: string, startDate: string, endDate?: string | null, url?: string, location?: string | null) => {
+  const openEvent = async (event: Event) => {
     try {
-    if (Platform.OS === "web") throw new Error("Calendar sync requires the mobile app.");
-    const perm = await Calendar.requestCalendarPermissions();
-    if (!perm.granted) {
-      Alert.alert("Calendar permission required", "Grant access to sync events.");
-      return;
-    }
-
-      const calendars = await Calendar.getCalendars(Calendar.EntityTypes.EVENT);
-      const calendar = calendars.find(c => c.allowsModifications);
-      if (!calendar) throw new Error("Add a writable calendar account on this device first.");
-      const start = new Date(startDate);
-      const end = endDate ? new Date(endDate) : new Date(start.getTime() + 60 * 60 * 1000);
-      const eventId = await calendar.createEvent({
-        title,
-        startDate: start,
-        endDate: end,
-        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-        location: location ?? undefined,
-        notes: url ? `Source: ${url}` : undefined,
-        allDay: false,
-        availability: Calendar.Availability.BUSY
-      });
-      Alert.alert("Calendar synced", `Saved ${title} to your calendar. Event id: ${eventId.id}`);
-    } catch (error) {
-      Alert.alert("Calendar sync failed", error instanceof Error ? error.message : "Unable to create a calendar event.");
-    }
+      if (!/^https?:\/\//i.test(event.url.trim())) throw new Error("This event doesn’t have a valid source link.");
+      await Linking.openURL(event.url.trim());
+    } catch (e) { Alert.alert("Couldn’t open event", e instanceof Error ? e.message : "Please try again."); }
   };
-
-  return (
-    <ScrollView className="flex-1 bg-black" contentContainerClassName="px-4 pb-28 pt-4">
-      <View className="gap-3">
-        <View className="flex-row items-center justify-between px-1">
-          <View className="flex-row items-center gap-2">
-            <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">{"// RADAR_FEED"}</Text>
-            <Text className="font-mono-bold text-[10px] tracking-[0.08em] text-white">[● LIVE]</Text>
-          </View>
-          <View className="flex-row items-center gap-1 rounded border border-white/[0.08] bg-[#2a2a2a] px-2 py-1">
-            <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">TARGETS:</Text>
-            <Text className="font-mono-bold text-[10px] tracking-[0.08em] text-white">{events.length}_DETECTED</Text>
-          </View>
+  const syncCalendar = async (event: Event) => {
+    try {
+      if (Platform.OS === "web") throw new Error("Open SEE on your phone to add an event to your calendar.");
+      const permission = await Calendar.requestCalendarPermissions();
+      if (!permission.granted) throw new Error("Allow calendar access in your device settings to add events.");
+      const calendars = await Calendar.getCalendars(Calendar.EntityTypes.EVENT);
+      const calendar = calendars.find(item => item.allowsModifications);
+      if (!calendar) throw new Error("Add a writable calendar account on this device first.");
+      const start = new Date(event.start_date);
+      const end = event.end_date ? new Date(event.end_date) : new Date(start.getTime() + 3_600_000);
+      if (Number.isNaN(start.getTime()) || end <= start) throw new Error("This event’s schedule is incomplete. Check the source for details.");
+      await calendar.createEvent({ title: event.title, startDate: start, endDate: end, timeZone: localTimeZone(), location: event.location ?? undefined, notes: `Source: ${event.url}`, allDay: false, availability: Calendar.Availability.BUSY });
+      Alert.alert("Added to calendar", event.title);
+    } catch (e) { Alert.alert("Couldn’t add to calendar", e instanceof Error ? e.message : "Please try again."); }
+  };
+  return <Screen refreshControl={<RefreshControl refreshing={isRefetching && !isLoading} onRefresh={() => { void refetch(); void saved.refetch(); }} tintColor={theme.colors.primary} />}>
+    <ScreenHeader title="Events" subtitle="Hackathons, meetups, and new connections." />
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>{filters.map(item => <Chip key={item.label} label={item.label} selected={filter === item.value} onPress={() => setFilter(item.value)} />)}</ScrollView>
+    {saved.error ? <ScreenState title="Saved events unavailable" message="Event discovery is available. Retry to manage saved reminders." label="Retry saved events" onPress={() => void saved.refetch()} /> : null}
+    {error ? <ScreenState title="Events unavailable" message="We couldn’t load the event feed." label="Retry" onPress={() => void refetch()} /> : isLoading ? <ScreenState loading title="Loading" message="" /> : !events.length ? <ScreenState title="No events found" message="Try a different filter or check back for new opportunities." /> : events.map(event => {
+      const entry = saved.data?.find(item => item.event_id === event.id);
+      const isExpanded = expanded === event.id;
+      const deadline = drafts[event.id] ?? entry?.registration_deadline ?? "";
+      return <GlassCard key={event.id}>
+        <View style={styles.row}><Badge label={event.source} /><AppText variant="meta" muted>{event.is_virtual ? "Online" : event.location ?? "In person"}</AppText>{entry ? <Badge label="Saved" /> : null}</View>
+        <AppText variant="heading">{event.title}</AppText>
+        <View style={{ gap: 4 }}>
+          <AppText variant="label">Starts {formatFullDateTime(event.start_date)}</AppText>
+          {event.end_date ? <AppText variant="meta" muted>Ends {formatFullDateTime(event.end_date)}</AppText> : null}
+          {event.prize_pool ? <AppText variant="meta" muted>Prizes: {event.prize_pool}</AppText> : null}
         </View>
-
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2">
-          {filters.map((filter) => {
-            const active = filter.value === activeFilter;
-            const count = filter.label === "ALL" ? counts.all : filter.label === "VIRTUAL" ? counts.virtual : counts.inPerson;
-            return (
-              <Pressable
-                key={filter.label}
-                onPress={async () => {
-                  await Haptics.selectionAsync();
-                  setActiveFilter(filter.value);
-                }}
-                className={`rounded border px-3 py-2 active:scale-95 ${
-                  active ? "border-transparent bg-white" : "border-white/[0.08] bg-[#2a2a2a]"
-                }`}
-              >
-                <Text className={`font-mono text-[10px] tracking-[0.08em] ${active ? "font-mono-bold text-black" : "text-white"}`}>
-                  [{filter.label} {count}]
-                </Text>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
-
-        {error ? (
-          <ScreenState
-            title="// RADAR_ERROR"
-            message="Unable to load events."
-            label="[ RETRY ]"
-            onPress={() => void refetch()}
-          />
-        ) : null}
-
-        {!error && isLoading ? <ScreenState title="// RADAR_BOOT" message="Scanning event sources." /> : null}
-
-        <View className="gap-3">
-          {!error && !isLoading
-            ? events.map((event) => {
-            const urlValid = isOpenableUrl(event.url);
-            const seenAt = event.scraped_at ?? event.last_seen_at;
-
-            return (
-              <GlassCard key={event.id} className="gap-3" style={{ padding: 12 }}>
-                <View className="flex-row items-center justify-between gap-2">
-                  <View className="flex-row flex-wrap items-center gap-2">
-                    <View className="rounded border border-white/[0.08] bg-[#353535] px-2 py-1">
-                      <Text className="font-mono text-[10px] tracking-[0.08em] text-white">
-                        [{event.source.toUpperCase().slice(0, 18)}]
-                      </Text>
-                    </View>
-                    <View className="rounded border border-white/[0.08] bg-[#1f1f1f] px-2 py-1">
-                      <Text className="font-mono text-[10px] tracking-[0.08em] text-[#c5c6ca]">
-                        {event.is_virtual ? "[VIRTUAL // GLOBAL]" : `[${(event.location ?? "ONSITE").toUpperCase().slice(0, 14)} // IN-PERSON]`}
-                      </Text>
-                    </View>
-                  </View>
-                  <View className="shrink-0 rounded border border-white/[0.08] bg-[#1f1f1f] px-2 py-1">
-                    <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">
-                      ID_{event.external_id.slice(0, 8).toUpperCase()}
-                    </Text>
-                  </View>
-                </View>
-
-                <Text className="text-xl font-sans-bold text-white">{event.title}</Text>
-
-                {event.description ? (
-                  <Text className="font-mono text-[11px] leading-5 text-[#e2e2e2]" numberOfLines={4}>
-                    {event.description}
-                  </Text>
-                ) : null}
-
-                <View className="gap-2 rounded border border-white/[0.08] bg-[rgba(9,9,11,0.70)] px-3 py-3">
-                  {event.is_virtual ? (
-                    <>
-                      <View className="flex-row items-center justify-between">
-                        <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">STATUS</Text>
-                        <Text className="font-mono-bold text-[12px] tracking-[0.05em] text-white">
-                          STARTS IN {formatCountdown(event.start_date)}
-                        </Text>
-                      </View>
-                      <View className="flex-row items-center justify-between">
-                        <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">DEADLINE</Text>
-                        <Text className="font-mono text-[12px] tracking-[0.05em] text-[#e2e2e2]">
-                          {formatShortDate(event.end_date ?? event.start_date).toUpperCase()}
-                        </Text>
-                      </View>
-                      <View className="flex-row items-center justify-between">
-                        <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">PRIZE_POOL</Text>
-                        <Text className="font-mono-bold text-[12px] tracking-[0.05em] text-white">
-                          {(event.prize_pool ?? "NETWORK").toUpperCase()}
-                        </Text>
-                      </View>
-                    </>
-                  ) : (
-                    <>
-                      <View className="flex-row items-center justify-between">
-                        <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">SCHEDULE</Text>
-                        <Text className="font-mono-bold text-[12px] tracking-[0.05em] text-white">
-                          {formatShortDate(event.start_date).toUpperCase()}
-                        </Text>
-                      </View>
-                      <View className="flex-row items-center justify-between gap-3">
-                        <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">LOCATION</Text>
-                        <Text className="flex-1 text-right font-mono text-[12px] tracking-[0.05em] text-[#e2e2e2]" numberOfLines={1}>
-                          {(event.location ?? "LOCATION PENDING").toUpperCase()}
-                        </Text>
-                      </View>
-                      <View className="flex-row items-center justify-between">
-                        <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">STARTS IN</Text>
-                        <Text className="font-mono-bold text-[12px] tracking-[0.05em] text-white">
-                          {formatCountdown(event.start_date)}
-                        </Text>
-                      </View>
-                    </>
-                  )}
-                </View>
-
-                <View className="flex-row gap-2">
-                  <Pressable
-                    disabled={!urlValid}
-                    onPress={async () => {
-                      await Haptics.selectionAsync();
-                      await openExternalUrl(event.url, "Unable to open event");
-                    }}
-                    className={`flex-1 rounded border border-white/[0.10] bg-transparent px-3 py-2 active:scale-[0.99] ${urlValid ? "" : "opacity-40"}`}
-                  >
-                    <Text className="text-center font-mono text-[10px] tracking-[0.08em] text-white">[OPEN SOURCE]</Text>
-                  </Pressable>
-                  <Pressable
-                    onPress={async () => {
-                      await Haptics.selectionAsync();
-                      await syncCalendar(event.title, event.start_date, event.end_date, event.url, event.location);
-                    }}
-                    className="flex-1 rounded border border-white/[0.14] bg-[#2a2a2a] px-3 py-2 active:scale-[0.99]"
-                  >
-                    <Text className="text-center font-mono-bold text-[10px] tracking-[0.08em] text-white">[+ SYNC CALENDAR]</Text>
-                  </Pressable>
-                  <Pressable onPress={() => void toggleSaved(event.id)} className="rounded border border-white/20 p-3">
-                    <Text className="font-mono text-white">{saved.data?.some(e => e.event_id === event.id) ? "[ UNSAVE REMINDER ]" : "[ SAVE EVENT REMINDER ]"}</Text>
-                  </Pressable>
-                </View>
-
-                {saved.data?.some((entry) => entry.event_id === event.id) ? (
-                  <View className="gap-2 rounded border border-white/[0.08] bg-[rgba(9,9,11,0.70)] px-3 py-3">
-                    <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">
-                      REGISTRATION DEADLINE · LOCAL TIME
-                    </Text>
-                    <GlassInput
-                      placeholder={DATETIME_INPUT_PLACEHOLDER}
-                      autoCapitalize="none"
-                      value={
-                        deadlineDrafts[event.id] ??
-                        toDateTimeInput(saved.data.find((entry) => entry.event_id === event.id)?.registration_deadline)
-                      }
-                      onChangeText={(value) =>
-                        setDeadlineDrafts((current) => ({ ...current, [event.id]: value }))
-                      }
-                    />
-                    <Pressable
-                      onPress={async () => {
-                        await Haptics.selectionAsync();
-                        let registrationDeadline: string | null;
-                        try {
-                          registrationDeadline = parseDateTimeInput(
-                            deadlineDrafts[event.id] ??
-                              toDateTimeInput(saved.data?.find((entry) => entry.event_id === event.id)?.registration_deadline)
-                          );
-                        } catch (error) {
-                          Alert.alert(
-                            "Invalid deadline",
-                            error instanceof Error
-                              ? `${error.message}\nUse ${DATETIME_INPUT_PLACEHOLDER}.`
-                              : `Use ${DATETIME_INPUT_PLACEHOLDER}.`
-                          );
-                          return;
-                        }
-                        try {
-                          await api.put(`/notifications/saved-events/${event.id}`, {
-                            registration_deadline: registrationDeadline
-                          });
-                          setDeadlineDrafts((current) => {
-                            const next = { ...current };
-                            delete next[event.id];
-                            return next;
-                          });
-                          await saved.refetch();
-                          if (userId) await syncLocalNotifications(userId);
-                          Alert.alert("Reminder saved", "Registration deadline alerts are scheduled.");
-                        } catch (error) {
-                          Alert.alert("Save failed", error instanceof Error ? error.message : "Please retry.");
-                        }
-                      }}
-                      className="self-start rounded bg-[#353535] px-3 py-2 active:scale-[0.98]"
-                    >
-                      <Text className="font-mono text-[10px] tracking-[0.08em] text-white">[SAVE DEADLINE]</Text>
-                    </Pressable>
-                  </View>
-                ) : null}
-
-                <View className="flex-row items-center justify-between">
-                  <Text className="font-mono text-[10px] tracking-[0.08em] text-[#8f9194]">
-                    {"// SYNCED "}
-                    {seenAt ? formatRelativePast(seenAt) : "PENDING"}
-                  </Text>
-                  <Text className="font-mono-bold text-[10px] tracking-[0.08em] text-white">[200 OK]</Text>
-                </View>
-              </GlassCard>
-            );
-          })
-            : null}
+        {event.description ? <><AppText muted numberOfLines={isExpanded ? undefined : 3}>{event.description}</AppText><Button variant="ghost" label={isExpanded ? "Show less" : "Read more"} onPress={() => setExpanded(isExpanded ? null : event.id)} style={{ alignSelf: "flex-start", paddingHorizontal: 0 }} /></> : null}
+        {isExpanded && event.categories?.length ? <View style={styles.row}>{event.categories.map(category => <Badge key={category} label={category} />)}</View> : null}
+        <View style={styles.row}>
+          <Button label="View event" icon="external-link" variant="secondary" onPress={() => void openEvent(event)} />
+          <Button label="Add to calendar" icon="calendar" variant="secondary" onPress={() => void syncCalendar(event)} />
+          <Button label={entry ? "Unsave" : "Save event"} icon="bookmark" variant="ghost" busy={busyId === event.id} disabled={saved.isPending || !!saved.error || !!busyId} onPress={() => void saveEvent(event.id, !!entry)} />
         </View>
-
-        {!error && !isLoading && !events.length ? (
-          <ScreenState title="// NO_SIGNAL" message="No radar events match this filter." />
-        ) : null}
-
-        {!error && hasNextPage ? <LoadMoreButton onPress={() => void fetchNextPage()} busy={isFetchingNextPage} /> : null}
-      </View>
-    </ScrollView>
-  );
+        {entry ? <View style={{ gap: 12, borderTopWidth: 1, borderTopColor: theme.colors.border, paddingTop: 16 }}>
+          <DateTimeField label="Registration deadline" value={deadline} onChange={value => setDrafts(current => ({ ...current, [event.id]: value }))} disabled={!!busyId} />
+          <AppText variant="meta" muted>Local time · {localTimeZone()}</AppText>
+          <Button label="Save deadline" variant="secondary" busy={busyId === event.id} disabled={drafts[event.id] === undefined || !!busyId} onPress={() => void saveEvent(event.id, false, deadline)} />
+        </View> : null}
+      </GlassCard>;
+    })}
+    {!error && hasNextPage ? <LoadMoreButton busy={isFetchingNextPage} onPress={() => void fetchNextPage()} /> : null}
+  </Screen>;
 }
