@@ -10,7 +10,7 @@ export function Icon({ name, size = 20, color = theme.colors.text }: { name: Ico
   return <Feather name={name} size={size} color={color} accessible={false} />;
 }
 export function AppText({ variant = "body", muted, danger, style, ...props }: TextProps & { variant?: keyof typeof theme.type; muted?: boolean; danger?: boolean }) {
-  return <Text {...props} style={[theme.type[variant], { color: danger ? theme.colors.error : muted ? theme.colors.onSurfaceVariant : theme.colors.text, flexShrink: 1 }, style]} />;
+  return <Text {...props} style={[theme.type[variant], { color: danger ? theme.colors.error : muted ? theme.colors.onSurfaceVariant : theme.colors.text, flexShrink: 1, includeFontPadding: false }, style]} />;
 }
 export function Button({ label, onPress, variant = "primary", busy = false, disabled = false, icon, style }: {
   label: string; onPress: () => void; variant?: "primary" | "secondary" | "ghost" | "danger"; busy?: boolean; disabled?: boolean; icon?: IconName; style?: ViewStyle;

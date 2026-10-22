@@ -3,6 +3,7 @@ import "@/global.css";
 import { useEffect, useRef, useState } from "react";
 import { Stack } from "expo-router";
 import { useFonts } from "expo-font";
+import Feather from "@expo/vector-icons/Feather";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
@@ -38,6 +39,7 @@ const queryClient = new QueryClient({ defaultOptions: { queries: {
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
+    ...Feather.font,
     SpaceGrotesk_400Regular,
     SpaceGrotesk_500Medium,
     SpaceGrotesk_600SemiBold,

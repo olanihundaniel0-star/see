@@ -19,7 +19,9 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#131313"
+          "backgroundColor": "#131313",
+          "image": "./assets/see-dino-icon.png",
+          "imageWidth": 160
         }
       ],
       "expo-web-browser",
@@ -40,7 +42,7 @@
     "android": {
       "softwareKeyboardLayoutMode": "resize",
       "package": "com.nife.dev.see",
-      "versionCode": 2,
+      "versionCode": 4,
       "permissions": [
         "READ_CALENDAR",
         "WRITE_CALENDAR",

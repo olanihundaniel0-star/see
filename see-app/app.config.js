@@ -15,8 +15,22 @@ module.exports = ({ config }) => {
     }
   }
   const localGoogleServices = path.join(process.cwd(), 'google-services.json');
-  const googleServicesFile = process.env.GOOGLE_SERVICES_JSON ||
-    (fs.existsSync(localGoogleServices) ? './google-services.json' : undefined);
+  let googleServicesFile;
+  const googleServicesConfigured = process.env.GOOGLE_SERVICES_JSON;
+  if (fs.existsSync(localGoogleServices)) {
+    googleServicesFile = './google-services.json';
+  } else if (googleServicesConfigured) {
+    const value = googleServicesConfigured.trim();
+    if (value.startsWith('{')) {
+      // A content-type secret: EAS file secrets substitute a path instead,
+      // this covers the mistake of uploading the JSON as a plain string.
+      fs.writeFileSync(localGoogleServices, value);
+      googleServicesFile = './google-services.json';
+    } else {
+      // EAS materializes file-type secrets to a temp path on the builder.
+      googleServicesFile = value;
+    }
+  }
   if (release && !googleServicesFile) {
     console.warn('[see] google-services.json is missing: remote push cannot be delivered in this Android build. Local notifications still work.');
   }
