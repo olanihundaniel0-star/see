@@ -820,8 +820,9 @@ def test_persist_email_extraction_survives_malformed_gemini_payload(fake_db, mon
             "sender": "Acme HR <hr@acme.example>",
             "recipient": "see@example.com",
             "subject": "Interview scheduled",
-            "body_plain": "Interview scheduled.",
-            "stripped_text": "Interview scheduled.",
+            "body_plain": "Your interview for Backend Engineer at Acme is scheduled.",
+            "stripped_text": "Your interview for Backend Engineer at Acme is scheduled.",
+            "sender_verified": True,
             "raw_email_hash": "",
         }
     )
@@ -830,9 +831,8 @@ def test_persist_email_extraction_survives_malformed_gemini_payload(fake_db, mon
     jobs_stored = [item for item in fake_db.store.get(JobApplication, [])]
     reminders_stored = [item for item in fake_db.store.get(Reminder, [])]
     assert len(jobs_stored) == 1
-    assert jobs_stored[0].status == JobStatus.APPLIED  # invalid status fell back safely
-    assert len(reminders_stored) == 1
-    assert reminders_stored[0].priority == ReminderPriority.MEDIUM  # invalid priority fell back safely
+    assert jobs_stored[0].status == JobStatus.INTERVIEWING  # source evidence overrides invalid model status
+    assert len(reminders_stored) == 0  # invalid dates must not become invented deadlines
 
 
 class FakeIMAPConnection:

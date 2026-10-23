@@ -4,6 +4,7 @@ from datetime import datetime
 from uuid import UUID
 
 from pydantic import BaseModel, Field, field_validator
+from app.services.event_text import compact_event_description
 
 
 class EventRead(BaseModel):
@@ -24,6 +25,12 @@ class EventRead(BaseModel):
     scraped_at: datetime
 
     model_config = {"from_attributes": True}
+
+    @field_validator("description", mode="before")
+    @classmethod
+    def _compact_description(cls, value: str | None) -> str | None:
+        # Applies to existing cached rows as well as newly scraped events.
+        return compact_event_description(value)
 
     @field_validator("categories", mode="before")
     @classmethod

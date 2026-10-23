@@ -62,7 +62,13 @@ class JobApplicationBase(BaseModel):
 
 
 class JobApplicationCreate(JobApplicationBase):
-    pass
+    @field_validator("company", "role")
+    @classmethod
+    def _require_meaningful_value(cls, value: str) -> str:
+        value = value.strip()
+        if not value or not any(char.isalnum() for char in value):
+            raise ValueError("Company and role must contain text")
+        return value
 
 
 class JobApplicationUpdate(RequiredPatch):
@@ -79,6 +85,11 @@ class JobApplicationUpdate(RequiredPatch):
     assessment_at: datetime | None = None
     follow_up_at: datetime | None = None
     checklists: list[JobChecklistCreate] | None = None
+
+    @field_validator("company", "role")
+    @classmethod
+    def _require_meaningful_value(cls, value: str | None) -> str:
+        return JobApplicationCreate._require_meaningful_value(value or "")
 
     @field_validator("job_url")
     @classmethod

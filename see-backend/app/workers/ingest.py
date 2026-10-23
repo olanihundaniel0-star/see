@@ -135,7 +135,7 @@ def _parse_categories(*values: Any) -> list[str]:
     haystack = " ".join(_clean_text(value).lower() for value in values if _clean_text(value))
     categories: list[str] = []
     for slug, keywords in SOURCE_CATEGORIES.items():
-        if any(keyword in haystack for keyword in keywords):
+        if any(re.search(r"(?<!\w)" + re.escape(keyword) + r"(?!\w)", haystack) for keyword in keywords):
             categories.append(slug)
     return _dedupe_preserve_order(categories)
 
@@ -483,7 +483,7 @@ def _normalize_luma_json_event(raw_event: dict[str, Any], feed_url: str) -> dict
         return None
 
     end_date = _parse_isoish(raw_event.get("end_date") or raw_event.get("ends_at") or raw_event.get("end") or raw_event.get("end_time"))
-    description = _clean_text(raw_event.get("description") or raw_event.get("summary") or raw_event.get("details")) or None
+    description = str(raw_event.get("description") or raw_event.get("summary") or raw_event.get("details") or "").strip() or None
     location = _clean_text(raw_event.get("location") or raw_event.get("venue") or raw_event.get("address")) or None
     explicit_virtual = raw_event.get("is_virtual")
     if explicit_virtual is None:
@@ -532,7 +532,7 @@ def _normalize_luma_ics_event(raw_event: dict[str, Any], feed_url: str) -> dict[
     if start_date is None:
         return None
     end_date = raw_event.get("DTEND")
-    description = _clean_text(raw_event.get("DESCRIPTION")) or None
+    description = str(raw_event.get("DESCRIPTION") or "").strip() or None
     location = _clean_text(raw_event.get("LOCATION")) or None
     categories = _dedupe_preserve_order(
         _normalize_category_values(raw_event.get("CATEGORIES"))
@@ -663,7 +663,7 @@ def _normalize_luma_page_event(soup: BeautifulSoup, page_url: str) -> dict[str, 
 
     payload = event_obj or {}
     event_url = _clean_text(payload.get("url") or canonical) or canonical
-    description = _clean_text(payload.get("description") or description) or None
+    description = str(payload.get("description") or description or "").strip() or None
 
     start_date = _parse_isoish(payload.get("startDate") or payload.get("start_date") or payload.get("start"))
     if start_date is None:

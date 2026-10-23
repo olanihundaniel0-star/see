@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from uuid import UUID
+from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, select
@@ -9,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.auth import get_current_user_id
 from app.core.database import get_db
 from app.models.note import Note
+from app.models.email_ingestion import EmailIngestion
 from app.schemas.note import NoteCreate, NoteRead, NoteUpdate
 
 
@@ -28,6 +30,12 @@ def _escape_like_literal(value: str) -> str:
     return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 
 
+def note_source_clause(source: Literal["manual", "email"]):
+    # Provenance comes from the ingestion link, not tags a person may also use.
+    imported = select(EmailIngestion.id).where(EmailIngestion.linked_note_id == Note.id).exists()
+    return imported if source == "email" else ~imported
+
+
 @router.get("")
 async def list_notes(
     q: str | None = Query(default=None),
@@ -36,8 +44,11 @@ async def list_notes(
     page_size: int = Query(default=20, ge=1, le=100),
     user_id: UUID = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
+    source: Literal["all", "manual", "email"] = "all",
 ) -> list[NoteRead]:
     stmt = select(Note).where(Note.user_id == user_id)
+    if source != "all":
+        stmt = stmt.where(note_source_clause(source))
     if q:
         stmt = stmt.where(Note.search_vector.op("@@")(func.websearch_to_tsquery("english", q)))
     if tags:

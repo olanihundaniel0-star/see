@@ -2,11 +2,14 @@ from __future__ import annotations
 
 import imaplib
 import logging
+import re
 from email import message_from_bytes
 from email.header import decode_header
+from email.utils import parseaddr
 from typing import Any
 
 from app.core.config import settings
+from app.services.job_import import CAREER_CANDIDATE, MARKETING, career_signal, current_message_text
 
 
 logger = logging.getLogger(__name__)
@@ -14,7 +17,6 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_IMAP_HOST = "imap.gmail.com"
 DEFAULT_IMAP_PORT = 993
-JOB_KEYWORDS = ("application", "interview", "assessment", "offer", "recruit", "recruiter", "job")
 
 
 def clean_header(header_val: str | None) -> str:
@@ -31,24 +33,52 @@ def clean_header(header_val: str | None) -> str:
 
 
 def extract_body(msg) -> str:
-    if msg.is_multipart():
-        for part in msg.walk():
-            content_type = part.get_content_type()
-            content_disposition = str(part.get("Content-Disposition") or "")
-            if content_type == "text/plain" and "attachment" not in content_disposition.lower():
-                payload = part.get_payload(decode=True)
-                if payload:
-                    return payload.decode(errors="ignore")
-    else:
-        payload = msg.get_payload(decode=True)
+    bodies: dict[str, str] = {}
+
+    def collect(part):
+        if part.get_content_disposition() == "attachment" or part.get_content_maintype() == "message":
+            return
+        if part.is_multipart():
+            for child in part.get_payload():
+                collect(child)
+            return
+        kind = part.get_content_type()
+        if kind not in {"text/plain", "text/html"} or kind in bodies:
+            return
+        payload = part.get_payload(decode=True)
         if payload:
-            return payload.decode(errors="ignore")
-    return ""
+            try:
+                bodies[kind] = payload.decode(part.get_content_charset() or "utf-8", errors="replace")
+            except LookupError:
+                bodies[kind] = payload.decode("utf-8", errors="replace")
+
+    collect(msg)
+    # Many recruitment systems send HTML-only alternatives. The admission
+    # service strips markup and quoted content from this fallback.
+    return bodies.get("text/plain", "").strip() or bodies.get("text/html", "")
 
 
 def _looks_relevant(sender: str, subject: str, body: str) -> bool:
-    haystack = f"{sender} {subject} {body}".lower()
-    return any(keyword in haystack for keyword in JOB_KEYWORDS)
+    # Sender addresses (e.g. jobs@...) do not establish relevance. Borderline
+    # career messages reach the audited admission step; obvious marketing does not.
+    text = current_message_text(subject, body)
+    return not MARKETING.search(text) and bool(career_signal(text)[0] or CAREER_CANDIDATE.search(text))
+
+
+def _sender_authenticated(msg, sender: str) -> bool:
+    """Use Gmail's first authentication result, never a later sender-supplied one."""
+    results = msg.get_all("Authentication-Results", [])
+    if not results:
+        return False
+    result = " ".join(str(results[0]).split()).lower()
+    address = parseaddr(sender)[1]
+    domain = address.rsplit("@", 1)[-1].lower() if "@" in address else ""
+    return bool(
+        domain
+        and re.match(r"^mx\.google\.com\s*;", result)
+        and re.search(r"\bdmarc=pass(?:\s|;|$)", result)
+        and re.search(r"\bheader\.from=" + re.escape(domain) + r"(?:\s|;|$)", result)
+    )
 
 
 def fetch_unread_job_emails() -> list[dict[str, Any]]:
@@ -108,7 +138,7 @@ def fetch_unread_job_emails() -> list[dict[str, Any]]:
                 {
                     "uid": uid,
                     "message_id": clean_header(msg.get("Message-ID")) or None,
-                    "sender_verified": any("mx.google.com" in h and "dmarc=pass" in h for h in msg.get_all("Authentication-Results", [])),
+                    "sender_verified": _sender_authenticated(msg, sender),
                     "sender": sender,
                     "recipient": clean_header(msg.get("To")) or None,
                     "subject": subject,
