@@ -1,5 +1,5 @@
 import { useContext, useMemo, useState } from "react";
-import { Alert, Linking, Platform, RefreshControl, ScrollView, View } from "react-native";
+import { Alert, Linking, Platform, RefreshControl, View } from "react-native";
 import * as Calendar from "expo-calendar";
 import { useQuery } from "@tanstack/react-query";
 import { AccountContext } from "@/lib/session";
@@ -13,6 +13,8 @@ import { formatFullDateTime, localTimeZone } from "@/lib/format";
 import { type Event, useInfiniteEvents } from "@/lib/queries";
 import { syncLocalNotifications } from "@/lib/notifications";
 import { theme } from "@/constants/theme";
+import { FilterBar } from "@/components/ui/FilterBar";
+import { QueryFeedback } from "@/components/ui/QueryFeedback";
 
 const filters = [{ label: "All events", value: undefined }, { label: "Online", value: true }, { label: "In person", value: false }] as const;
 export default function EventsScreen() {
@@ -59,10 +61,11 @@ export default function EventsScreen() {
     } catch (e) { Alert.alert("Couldn’t add to calendar", e instanceof Error ? e.message : "Please try again."); }
   };
   return <Screen refreshControl={<RefreshControl refreshing={isRefetching && !isLoading} onRefresh={() => { void refetch(); void saved.refetch(); }} tintColor={theme.colors.primary} />}>
-    <ScreenHeader title="Events" subtitle="Hackathons, meetups, and new connections." />
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>{filters.map(item => <Chip key={item.label} label={item.label} selected={filter === item.value} onPress={() => setFilter(item.value)} />)}</ScrollView>
+    <ScreenHeader title="Events" subtitle="Hackathons, meetups, and new connections." addMode="reminder" />
+    <FilterBar label="Event format">{filters.map(item => <Chip key={item.label} label={item.label} selected={filter === item.value} onPress={() => setFilter(item.value)} />)}</FilterBar>
+    <QueryFeedback hasData={!!data} refreshing={isRefetching} error={error} onRetry={() => void refetch()} />
     {saved.error ? <ScreenState title="Saved events unavailable" message="Event discovery is available. Retry to manage saved reminders." label="Retry saved events" onPress={() => void saved.refetch()} /> : null}
-    {error ? <ScreenState title="Events unavailable" message="We couldn’t load the event feed." label="Retry" onPress={() => void refetch()} /> : isLoading ? <ScreenState loading title="Loading" message="" /> : !events.length ? <ScreenState title="No events found" message="Try a different filter or check back for new opportunities." /> : events.map(event => {
+    {error && !data ? <ScreenState title="Events unavailable" message="We couldn’t load the event feed." label="Retry" onPress={() => void refetch()} /> : isLoading ? <ScreenState loading title="Loading" message="" /> : !events.length ? <ScreenState title="No events found" message="Try a different filter or check back for new opportunities." /> : events.map(event => {
       const entry = saved.data?.find(item => item.event_id === event.id);
       const isExpanded = expanded === event.id;
       const deadline = drafts[event.id] ?? entry?.registration_deadline ?? "";

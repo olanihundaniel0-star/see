@@ -8,6 +8,7 @@ import { AppText, Badge, Button, Screen, ScreenHeader, SectionHeading, styles } 
 import { formatCountdown, formatShortDate, formatShortDateTime } from "@/lib/format";
 import { useToday, useUpdateReminder } from "@/lib/queries";
 import { theme } from "@/constants/theme";
+import { QueryFeedback } from "@/components/ui/QueryFeedback";
 
 export default function TodayScreen() {
   const { data, isLoading, isRefetching, error, refetch } = useToday();
@@ -19,8 +20,9 @@ export default function TodayScreen() {
   const reminders = items.filter(item => item.kind === "reminder");
   const overdue = items.filter(item => new Date(item.due_at) < now).length;
   return <Screen refreshControl={<RefreshControl refreshing={isRefetching && !isLoading} onRefresh={() => void refetch()} tintColor={theme.colors.primary} />}>
-    <ScreenHeader title="Today" subtitle={formatShortDate(now)} />
-    {isLoading ? <ScreenState loading title="Loading" message="" /> : error ? <ScreenState title="Today is unavailable" message="Check your connection and try again. Your saved work is safe." label="Retry" onPress={() => void refetch()} /> : <>
+    <ScreenHeader title="Today" subtitle={formatShortDate(now)} addMode="reminder" />
+    <QueryFeedback hasData={!!data} refreshing={isRefetching} error={error} onRetry={() => void refetch()} />
+    {isLoading ? <ScreenState loading title="Loading" message="" /> : error && !data ? <ScreenState title="Today is unavailable" message="The service hasn’t responded. Check your connection and retry. Your saved work is safe." label="Retry" onPress={() => void refetch()} /> : <>
       <View style={styles.row}>
         <Badge label={`${items.length} due in the next ${data?.window_hours ?? 48} hours`} />
         {overdue > 0 ? <Badge label={`${overdue} overdue`} danger /> : null}

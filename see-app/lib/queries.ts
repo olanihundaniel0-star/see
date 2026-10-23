@@ -9,6 +9,7 @@ import { api } from "@/lib/api";
 
 export type JobStatus = "bookmarked" | "applied" | "assessment" | "interviewing" | "offer" | "rejected" | "archived";
 export type ReminderPriority = "low" | "medium" | "high";
+export type NoteSource = "manual" | "email" | "all";
 const PAGE_SIZE = 20;
 
 export type JobChecklist = {
@@ -242,26 +243,26 @@ export function useCreateChecklist(jobId?: string) {
   });
 }
 
-export function useNotes(query?: string, tags?: string) {
+export function useNotes(query?: string, tags?: string, source: NoteSource = "manual") {
   return useQuery({
-    queryKey: [useContext(AccountContext), "notes", query ?? "", tags ?? ""],
+    queryKey: [useContext(AccountContext), "notes", source, query ?? "", tags ?? ""],
     queryFn: async ({ signal }) =>
       (
         await api.get<Note[]>("/notes", {
-          signal, params: { q: query || undefined, tags, page_size: 50 }
+          signal, params: { q: query || undefined, tags, source, page_size: 50 }
         })
       ).data
   });
 }
 
-export function useInfiniteNotes(query?: string, tags?: string) {
+export function useInfiniteNotes(query?: string, tags?: string, source: NoteSource = "manual") {
   return useInfiniteQuery({
-    queryKey: [useContext(AccountContext), "notes", query ?? "", tags ?? "", "infinite"],
+    queryKey: [useContext(AccountContext), "notes", source, query ?? "", tags ?? "", "infinite"],
     initialPageParam: 1,
     queryFn: async ({ pageParam, signal }) =>
       (
         await api.get<Note[]>("/notes", {
-          signal, params: { q: query || undefined, tags, page: pageParam, page_size: PAGE_SIZE }
+          signal, params: { q: query || undefined, tags, source, page: pageParam, page_size: PAGE_SIZE }
         })
       ).data,
     getNextPageParam
@@ -418,15 +419,17 @@ export function useQuickAdd() {
       title?: string | null;
       data: Record<string, unknown>;
     }) => (await api.post<{ id: string; type: string }>("/quick-add", payload)).data,
-    onSuccess: async (_, variables) => {
+    onSuccess: (_, variables) => {
       const resource = { job: "jobs", note: "notes", reminder: "reminders" }[variables.type];
       if (variables.type !== "note" && account) {
         void syncLocalNotifications(account).catch(error => console.warn("Alert synchronization failed", error.message));
       }
-      await Promise.all([
+      // The write already succeeded. A slow refresh must not keep the form in
+      // "Saving…" or make the user submit the same item again.
+      void Promise.all([
         queryClient.invalidateQueries({ queryKey: [account, resource] }),
         ...(variables.type === "note" ? [] : [queryClient.invalidateQueries({ queryKey: [account, "dashboard"] })])
-      ]);
+      ]).catch(error => console.warn("Background refresh failed", error));
     }
   });
 }

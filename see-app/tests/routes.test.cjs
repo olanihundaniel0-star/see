@@ -18,7 +18,7 @@ const event = { id: 'event-1', source: 'Example source', title: 'Developer meetu
 let scenario = 'loaded';
 let mode = 'job';
 const mutation = () => ({ isPending: false, mutate() {}, mutateAsync: async () => ({}) });
-const query = data => ({ data: scenario === 'loaded' ? data : scenario === 'empty' ? undefined : undefined, isLoading: scenario === 'loading', isPending: scenario === 'loading', isRefetching: false, error: scenario === 'error' ? new Error('Offline') : null, refetch: async () => {}, fetchNextPage: async () => {}, hasNextPage: false, isFetchingNextPage: false });
+const query = data => ({ data: ['loaded', 'stale-error'].includes(scenario) ? data : undefined, isLoading: scenario === 'loading', isPending: scenario === 'loading', isRefetching: false, error: ['error', 'stale-error'].includes(scenario) ? new Error('Offline') : null, refetch: async () => {}, fetchNextPage: async () => {}, hasNextPage: false, isFetchingNextPage: false });
 const queryMocks = {
   useToday: () => query({ window_hours: 48, items: [{ kind: 'job', id: job.id, title: job.role, due_at: timestamp, status: 'interviewing' }, { kind: 'reminder', id: reminder.id, title: reminder.title, due_at: timestamp, priority: 'high' }] }),
   useInfiniteJobs: () => query({ pages: [scenario === 'empty' ? [] : [job]] }),
@@ -65,7 +65,7 @@ function load(file) {
   return exports;
 }
 const routes = ['(tabs)/index', '(tabs)/jobs', '(tabs)/events', '(tabs)/notes', '(tabs)/reminders', '(tabs)/account', 'jobs/[id]', 'notes/[id]', 'reminders/[id]', '+not-found', 'auth'];
-for (const state of ['loaded', 'loading', 'error', 'empty']) {
+for (const state of ['loaded', 'loading', 'error', 'empty', 'stale-error']) {
   for (const route of routes) {
     test(`${route} renders in ${state} state`, () => {
       scenario = state;
@@ -73,6 +73,11 @@ for (const state of ['loaded', 'loading', 'error', 'empty']) {
       const html = renderToString(React.createElement(Component));
       assert.ok(html.length > 100);
       assert.doesNotMatch(html, /SYS_ONLINE|SYNC_EPOCH|PIPELINE_METRICS/);
+      if (state === 'stale-error' && ['(tabs)/index', '(tabs)/jobs', '(tabs)/events', '(tabs)/notes', '(tabs)/reminders'].includes(route)) {
+        assert.match(html, /Showing your last saved data/);
+        assert.match(html, /Backend Engineer|Developer meetup|Interview prep|Send follow-up/);
+      }
+      if (route.startsWith('(tabs)/') && route !== '(tabs)/account') assert.match(html, /aria-label="Add"/);
     });
   }
 }

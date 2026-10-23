@@ -5,10 +5,10 @@ import { Stack } from "expo-router";
 import { useFonts } from "expo-font";
 import Feather from "@expo/vector-icons/Feather";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
+import { SafeAreaProvider, initialWindowMetrics, useSafeAreaInsets } from "react-native-safe-area-context";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { View, StatusBar } from "react-native";
+import { AppState, View, StatusBar } from "react-native";
 import type { Session } from "@supabase/supabase-js";
 import {
   SpaceGrotesk_400Regular,
@@ -26,11 +26,13 @@ import BootScreen from "@/components/ui/BootScreen";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { theme } from "@/constants/theme";
 import { AppText, Button } from "@/components/ui/primitives";
+import { QueryCachePersistence } from "@/components/QueryCachePersistence";
+import { warmBackend } from "@/lib/api";
 
 const queryClient = new QueryClient({ defaultOptions: { queries: {
   staleTime: 60_000,
   gcTime: 5 * 60_000,
-  // One retry owner: every initial query gets the cold-start sized budget.
+  // One retry owner; cached content stays visible during background refreshes.
   // Permanent 4xx responses and cancellations never retry.
   retry: coldStartRetry,
   retryDelay: coldStartRetryDelay,
@@ -52,6 +54,24 @@ export default function RootLayout() {
   const [authLoading, setAuthLoading] = useState(true);
 
   const identity = useRef<string | null>(null);
+
+  useEffect(() => {
+    let controller: AbortController | null = null;
+    let startedAt = 0;
+    const warm = () => {
+      if (Date.now() - startedAt < 60_000) return;
+      startedAt = Date.now();
+      controller?.abort();
+      controller = new AbortController();
+      const signal = controller.signal;
+      void warmBackend(signal).then(ready => {
+        if (ready && !signal.aborted) void client.refetchQueries({ type: "active", predicate: query => query.state.status === "error" });
+      });
+    };
+    warm();
+    const listener = AppState.addEventListener("change", state => { if (state === "active") warm(); else controller?.abort(); });
+    return () => { controller?.abort(); listener.remove(); };
+  }, [client]);
 
   useEffect(() => {
     if (!supabase) {
@@ -100,9 +120,10 @@ export default function RootLayout() {
   return (
     <ErrorBoundary>
       <GestureHandlerRootView style={{ flex: 1 }}>
-        <SafeAreaProvider>
+        <SafeAreaProvider initialMetrics={initialWindowMetrics}>
           <QueryClientProvider client={client}>
             <AccountContext.Provider value={session?.user.id ?? null}>
+            <QueryCachePersistence account={session?.user.id ?? null} />
             <BottomSheetModalProvider>
               {!bootDone ? (
                 <BootScreen />
@@ -130,7 +151,7 @@ function AppNavigator({ session, authLoading }: { session: Session | null; authL
       <Stack
         screenOptions={{
           headerShown: false,
-          contentStyle: { backgroundColor: theme.colors.background, paddingTop: insets.top }
+          contentStyle: { backgroundColor: theme.colors.background, paddingTop: insets.top, paddingLeft: insets.left, paddingRight: insets.right }
         }}
       >
         <Stack.Protected guard={!authLoading && !session}>

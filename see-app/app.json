@@ -42,7 +42,7 @@
     "android": {
       "softwareKeyboardLayoutMode": "resize",
       "package": "com.nife.dev.see",
-      "versionCode": 4,
+      "versionCode": 5,
       "permissions": [
         "READ_CALENDAR",
         "WRITE_CALENDAR",

@@ -17,19 +17,15 @@ function load(file, imports = {}) {
 const axios = { isCancel: e => e && e.name === 'Canceled', isAxiosError: e => e && e.__isAxios };
 const { coldStartRetry, coldStartRetryDelay } = load('lib/queryPolicy.ts', { axios });
 
-test('cold-start budget allows five attempts with exponential capped delays', () => {
+test('foreground reads fail visibly within about 21 seconds instead of retrying for a minute', () => {
   const timeout = { code: 'ECONNABORTED', response: undefined, __isAxios: true };
-  // count < 4 while transient: counts 0-3 authorize attempts one through five.
   assert.equal(coldStartRetry(0, timeout), true);
-  assert.equal(coldStartRetry(1, timeout), true);
-  assert.equal(coldStartRetry(2, timeout), true);
-  assert.equal(coldStartRetry(3, timeout), true);
+  assert.equal(coldStartRetry(1, timeout), false);
+  assert.equal(coldStartRetry(2, timeout), false);
+  assert.equal(coldStartRetry(3, timeout), false);
   assert.equal(coldStartRetry(4, timeout), false);
-  assert.deepEqual([0, 1, 2, 3].map(coldStartRetryDelay), [1500, 3000, 5000, 5000]);
-  // Five attempts against the 10s client timeout plus 14.5s of delays must
-  // cover a worst-case 55s Render cold start.
-  const budget = 5 * 10_000 + [1500, 3000, 5000, 5000].reduce((a, b) => a + b, 0);
-  assert.ok(budget >= 60_000);
+  const budget = 2 * 10_000 + coldStartRetryDelay(0);
+  assert.equal(budget, 20_750);
 });
 
 test('permanent 4xx responses never retry', () => {

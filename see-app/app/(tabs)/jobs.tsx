@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { router } from "expo-router";
-import { FlatList, Pressable, RefreshControl, ScrollView, View } from "react-native";
+import { FlatList, Pressable, RefreshControl, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { GlassCard } from "@/components/glass/GlassCard";
 import { LoadMoreButton } from "@/components/ui/LoadMoreButton";
@@ -10,6 +10,8 @@ import { AppText, Badge, Chip, Icon, ScreenHeader, styles } from "@/components/u
 import { formatProgress, formatRelativePast, formatShortDateTime } from "@/lib/format";
 import { type JobStatus, useInfiniteJobs } from "@/lib/queries";
 import { theme } from "@/constants/theme";
+import { FilterBar } from "@/components/ui/FilterBar";
+import { QueryFeedback } from "@/components/ui/QueryFeedback";
 
 const filters: { label: string; value: JobStatus | "all" }[] = [
   { label: "All", value: "all" }, { label: "Saved", value: "bookmarked" },
@@ -22,16 +24,20 @@ export default function JobsScreen() {
   const [filter, setFilter] = useState<JobStatus | "all">("all");
   const { data, isLoading, isRefetching, error, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteJobs(filter === "all" ? undefined : filter);
   const jobs = useMemo(() => data?.pages.flatMap(page => page) ?? [], [data]);
-  return <FlatList data={isLoading || error ? [] : jobs} keyExtractor={job => job.id} style={styles.screen}
+  return <View style={styles.screen}>
+    <View style={[styles.content, { paddingBottom: 8 }]}>
+      <ScreenHeader title="Applications" subtitle="Keep your next move in sight." addMode="job" />
+      <FilterBar label="Application stages">
+        {filters.map(item => <Chip key={item.value} label={item.label} selected={filter === item.value} onPress={() => setFilter(item.value)} />)}
+      </FilterBar>
+    </View>
+    <FlatList data={jobs} keyExtractor={job => job.id} style={styles.screen}
     contentContainerStyle={[styles.content, { paddingBottom: 96 + insets.bottom }]} initialNumToRender={8} windowSize={5}
     refreshControl={<RefreshControl refreshing={isRefetching && !isLoading} onRefresh={() => void refetch()} tintColor={theme.colors.primary} />}
     onEndReached={() => { if (hasNextPage && !isFetchingNextPage) void fetchNextPage(); }} onEndReachedThreshold={0.5}
     ListHeaderComponent={<View style={{ gap: 16 }}>
-      <ScreenHeader title="Applications" subtitle="Keep your next move in sight." />
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
-        {filters.map(item => <Chip key={item.value} label={item.label} selected={filter === item.value} onPress={() => setFilter(item.value)} />)}
-      </ScrollView>
-      {isLoading ? <ScreenState loading title="Loading" message="" /> : error ? <ScreenState title="Applications unavailable" message="We couldn’t load your applications." label="Retry" onPress={() => void refetch()} /> : !jobs.length ? <ScreenState title={filter === "all" ? "Your next opportunity starts here" : "No applications in this stage"} message="Save a role and track your preparation, deadlines, and interviews." label="Add application" onPress={() => router.push({ pathname: "/modal/quick-add", params: { mode: "job" } })} /> : null}
+      <QueryFeedback hasData={!!data} refreshing={isRefetching} error={error} onRetry={() => void refetch()} />
+      {isLoading ? <ScreenState loading title="Loading" message="" /> : error && !data ? <ScreenState title="Applications unavailable" message="The service hasn’t responded. Check your connection and retry." label="Retry" onPress={() => void refetch()} /> : !jobs.length ? <ScreenState title={filter === "all" ? "Your next opportunity starts here" : "No applications in this stage"} message="Save a role and track your preparation, deadlines, and interviews." label="Add application" onPress={() => router.push({ pathname: "/modal/quick-add", params: { mode: "job" } })} /> : null}
     </View>}
     renderItem={({ item: job }) => {
       const completed = job.checklists.filter(item => item.is_completed).length;
@@ -52,5 +58,5 @@ export default function JobsScreen() {
       </Pressable>;
     }}
     ListFooterComponent={!error && hasNextPage ? <LoadMoreButton onPress={() => void fetchNextPage()} busy={isFetchingNextPage} /> : null}
-  />;
+  /></View>;
 }

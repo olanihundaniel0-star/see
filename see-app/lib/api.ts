@@ -32,6 +32,24 @@ function resolveBaseURL(): string {
 
 const baseURL = resolveBaseURL();
 
+/** Start waking a sleeping API while fonts/session/cache restore in parallel. */
+export async function warmBackend(signal: AbortSignal): Promise<boolean> {
+  for (let attempt = 0; attempt < 10 && !signal.aborted; attempt++) {
+    try {
+      await axios.get(new URL("/health", baseURL).toString(), { timeout: 6_000, signal });
+      return true;
+    } catch {
+      if (signal.aborted) return false;
+      await new Promise<void>(resolve => {
+        const finish = () => { clearTimeout(timer); signal.removeEventListener("abort", finish); resolve(); };
+        const timer = setTimeout(finish, 2_000);
+        signal.addEventListener("abort", finish, { once: true });
+      });
+    }
+  }
+  return false;
+}
+
 export const api = axios.create({
   baseURL,
   timeout: 10000

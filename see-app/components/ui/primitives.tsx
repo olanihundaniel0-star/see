@@ -31,11 +31,12 @@ export function Screen({ children, form = false, contentContainerStyle, ...props
     style={styles.screen} contentContainerStyle={[styles.content, { paddingBottom: 96 + insets.bottom }, contentContainerStyle]}>{children}</ScrollView>;
   return form ? <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === "ios" ? "padding" : undefined}>{scroll}</KeyboardAvoidingView> : scroll;
 }
-export function ScreenHeader({ title, subtitle, back = false, account = true, action }: { title: string; subtitle?: string; back?: boolean; account?: boolean; action?: ReactNode }) {
+export function ScreenHeader({ title, subtitle, back = false, account = true, action, addMode }: { title: string; subtitle?: string; back?: boolean; account?: boolean; action?: ReactNode; addMode?: "job" | "note" | "reminder" }) {
   return <View style={{ gap: 4, marginBottom: 8 }}>
     <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
       {back ? <IconButton name="arrow-left" label="Go back" onPress={() => router.canGoBack() ? router.back() : router.replace("/")} /> : null}
-      <AppText variant="title" accessibilityRole="header" style={{ flex: 1 }}>{title}</AppText>
+      <AppText variant="title" accessibilityRole="header" style={{ flex: 1, minWidth: 0 }}>{title}</AppText>
+      {addMode ? <Button label="Add" icon="plus" variant="secondary" onPress={() => router.push({ pathname: "/modal/quick-add", params: { mode: addMode } })} style={{ flexShrink: 0 }} /> : null}
       {action ?? (account ? <IconButton name="user" label="Account and settings" onPress={() => router.push("/(tabs)/account")} /> : null)}
     </View>
     {subtitle ? <AppText muted style={back ? { paddingLeft: 56 } : undefined}>{subtitle}</AppText> : null}
@@ -45,14 +46,14 @@ export function SectionHeading({ title, detail }: { title: string; detail?: stri
   return <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 8, marginTop: 8 }}><AppText variant="heading" accessibilityRole="header">{title}</AppText>{detail ? <AppText variant="meta" muted>{detail}</AppText> : null}</View>;
 }
 export function Chip({ label, selected, onPress, disabled = false }: { label: string; selected: boolean; onPress: () => void; disabled?: boolean }) {
-  return <Pressable accessibilityRole="button" accessibilityState={{ selected, disabled }} disabled={disabled} onPress={onPress} style={({ pressed }) => ({ minHeight: 48, paddingHorizontal: 16, paddingVertical: 12, borderRadius: 4, justifyContent: "center", backgroundColor: selected ? theme.colors.primary : theme.colors.surfaceHigh, opacity: disabled ? 0.5 : pressed ? 0.7 : 1 })}><AppText variant="label" style={{ color: selected ? theme.colors.background : theme.colors.text }}>{label}</AppText></Pressable>;
+  return <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ selected, disabled }} disabled={disabled} onPress={onPress} style={({ pressed }) => ({ minHeight: 48, flexGrow: 0, flexShrink: 0, alignSelf: "flex-start", paddingHorizontal: 16, paddingVertical: 12, borderRadius: 4, justifyContent: "center", backgroundColor: selected ? theme.colors.primary : theme.colors.surfaceHigh, opacity: disabled ? 0.5 : pressed ? 0.7 : 1 })}><AppText variant="label" numberOfLines={1} style={{ flexShrink: 0, color: selected ? theme.colors.background : theme.colors.text }}>{label}</AppText></Pressable>;
 }
 export function Badge({ label, danger = false }: { label: string; danger?: boolean }) {
   return <View style={{ alignSelf: "flex-start", maxWidth: "100%", borderRadius: 4, backgroundColor: danger ? theme.colors.errorSurface : theme.colors.surfaceHigh, paddingHorizontal: 8, paddingVertical: 4 }}><AppText variant="meta" danger={danger}>{label}</AppText></View>;
 }
 export const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.colors.background },
-  content: { padding: theme.layout.screenPadding, gap: 16, width: "100%", maxWidth: theme.layout.maxWidth, alignSelf: "center" },
+  content: { padding: theme.layout.screenPadding, gap: 16, width: "100%", minWidth: 0, maxWidth: theme.layout.maxWidth, alignSelf: "center" },
   row: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 8 },
   button: { minHeight: theme.layout.touchTarget, borderRadius: theme.radius.controls, paddingVertical: 12, paddingHorizontal: 16, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
   section: { gap: 12 },
